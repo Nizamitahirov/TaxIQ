@@ -124,6 +124,22 @@ service cloud.firestore {
       allow write: if isSuperAdmin(); // istehsalatda: yalnız service account
     }
 
+    // ── Hesablar Planı (08 §1): sistem hesabları silinməz ──
+    match /chartOfAccounts/{id} {
+      allow read: if isSignedIn() && hasCompanyAccess(resource.data.companyId);
+      allow create: if isSignedIn() && hasCompanyAccess(request.resource.data.companyId);
+      allow update: if isSignedIn() && hasCompanyAccess(resource.data.companyId) && companyIdUnchanged();
+      allow delete: if isSignedIn() && hasCompanyAccess(resource.data.companyId) && resource.data.isSystemAccount == false;
+    }
+
+    // ── Əməliyyat jurnalı (08 §2.5): heç vaxt silinmir (yalnız əks-yazı) ──
+    match /journalEntries/{id} {
+      allow read: if isSignedIn() && hasCompanyAccess(resource.data.companyId);
+      allow create: if isSignedIn() && hasCompanyAccess(request.resource.data.companyId);
+      allow update: if isSignedIn() && hasCompanyAccess(resource.data.companyId) && companyIdUnchanged();
+      allow delete: if false;
+    }
+
     // ── Ümumi biznes kolleksiyaları (Modul 5–10) ──
     //  Hər sənəd məcburi companyId daşıyır; giriş şirkət əsaslı izolyasiya ilə.
     match /{collection}/{docId} {

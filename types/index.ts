@@ -185,6 +185,100 @@ export interface Currency {
   isActive: boolean;
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Mühasibat Nüvəsi — Modul 8
+// ─────────────────────────────────────────────────────────────
+export type AccountType = 'asset' | 'liability' | 'equity' | 'income' | 'expense';
+
+/** chartOfAccounts/{accountId} — 08 §1.2 */
+export interface ChartAccount {
+  id: string;
+  companyId: string;
+  accountCode: string;              // "211", "601" — rəsmi struktur
+  accountName: LocalizedText;
+  accountClass: number;             // 1-9
+  accountGroup: string;             // "20", "60"
+  accountType: AccountType;
+  normalBalance: 'debit' | 'credit';
+  isPostable: boolean;              // leaf hesab (jurnal sətrində seçilə bilər)
+  isSubAccount: boolean;            // Company əlavə edib
+  parentAccountId?: string | null;
+  currency?: string | null;
+  isActive: boolean;
+  isSystemAccount: boolean;         // rəsmi struktur — silinməz
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
+export interface JournalLine {
+  accountId: string;
+  accountCode?: string;
+  accountName?: string;
+  debit: number;
+  credit: number;
+  departmentId?: string | null;
+  currency?: string;
+  amountInBaseCurrency?: number;
+}
+
+export type JournalSourceType =
+  | 'manual' | 'sales_invoice' | 'purchase_bill' | 'payment' | 'cash_transaction'
+  | 'stock_movement' | 'payroll' | 'depreciation' | 'fx_revaluation';
+
+/** journalEntries/{entryId} — 08 §2.1 */
+export interface JournalEntry {
+  id: string;
+  companyId: string;
+  entryNumber: string;
+  entryDate: TS;
+  entryDateStr?: string;            // "YYYY-MM-DD" (filtr/dövr üçün)
+  postingPeriodId?: string;
+  sourceType: JournalSourceType;
+  sourceDocumentId?: string | null;
+  description: string;
+  lines: JournalLine[];
+  totalDebit: number;
+  totalCredit: number;
+  status: 'posted' | 'reversed';
+  reversalOfEntryId?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+/** accountingPeriods/{periodId} — 08 §4.1 */
+export interface AccountingPeriod {
+  id: string;
+  companyId: string;
+  fiscalYear: number;
+  periodNumber: number;             // 1-12
+  periodStart: string;              // "YYYY-MM-DD"
+  periodEnd: string;
+  status: 'open' | 'closed';
+  closedBy?: string | null;
+  closedAt?: TS;
+  reopenReason?: string | null;
+}
+
+/** fixedAssets/{assetId} — 08 §5.1 */
+export interface FixedAsset {
+  id: string;
+  companyId: string;
+  assetName: string;
+  assetAccountId?: string;
+  acquisitionDate: string;          // "YYYY-MM-DD"
+  acquisitionCost: number;
+  depreciationMethod: 'straight_line' | 'reducing_balance';
+  usefulLifeMonths: number;
+  residualValue: number;
+  reducingBalanceRate?: number | null;
+  accumulatedDepreciation: number;
+  netBookValue: number;
+  departmentId?: string | null;
+  status: 'active' | 'fully_depreciated' | 'disposed';
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
 /**
  * Aktiv membership — auth-provider-in cari company kontekstində hesabladığı
  * birləşdirilmiş giriş məlumatı (rol + effektiv icazələr).
