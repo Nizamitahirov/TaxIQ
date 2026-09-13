@@ -499,6 +499,101 @@ export interface PurchaseBill {
   createdBy?: string;
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Anbar, Mal/Xidmət — Modul 5
+// ─────────────────────────────────────────────────────────────
+export interface GoodCategory {
+  id: string;
+  companyId: string;
+  name: LocalizedText;
+  code?: string;
+  parentCategoryId?: string | null;
+  isActive: boolean;
+}
+
+export interface Good {
+  id: string;
+  companyId: string;
+  type: 'good' | 'service';
+  sku: string;
+  barcode?: string | null;
+  name: LocalizedText;
+  description?: LocalizedText;
+  categoryId?: string | null;
+  baseUnit: string;
+  trackInventory: boolean;
+  valuationMethodOverride?: 'fifo' | 'weighted_average' | null;
+  defaultPurchasePrice?: number | null;
+  defaultSalePrice?: number | null;
+  vatRate: number;
+  reorderPoint?: number | null;
+  reorderQuantity?: number | null;
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+export interface Warehouse {
+  id: string;
+  companyId: string;
+  name: LocalizedText;
+  code: string;
+  type: 'main' | 'store' | 'production' | 'virtual';
+  address?: string | null;
+  linkedDepartmentId?: string | null;
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
+export type MovementType =
+  | 'purchase_in' | 'sale_out' | 'transfer_out' | 'transfer_in'
+  | 'adjustment_in' | 'adjustment_out' | 'return_in' | 'return_out';
+
+export interface StockMovement {
+  id: string;
+  companyId: string;
+  warehouseId: string;
+  warehouseName?: string;
+  goodId: string;
+  goodName?: string;
+  movementType: MovementType;
+  quantity: number;            // baseUnit, müsbət
+  unitCost?: number | null;    // yalnız "in" hərəkətlər
+  relatedDocumentType?: string | null;
+  relatedDocumentId?: string | null;
+  movementDate: string;        // YYYY-MM-DD
+  note?: string | null;
+  journalEntryId?: string | null;
+  performedBy?: string;
+  createdAt?: TS;
+}
+
+export interface StockBalance {
+  id: string;                  // `${warehouseId}_${goodId}`
+  companyId: string;
+  warehouseId: string;
+  goodId: string;
+  quantityOnHand: number;
+  averageCost: number;
+  totalValue: number;
+  lastMovementAt?: TS;
+}
+
+export interface StockTransfer {
+  id: string;
+  companyId: string;
+  fromWarehouseId: string;
+  toWarehouseId: string;
+  status: 'pending' | 'in_transit' | 'completed' | 'cancelled';
+  items: { goodId: string; goodName?: string; quantity: number }[];
+  requestedBy?: string;
+  shippedAt?: TS;
+  receivedAt?: TS;
+  createdAt?: TS;
+}
+
 /**
  * Aktiv membership — auth-provider-in cari company kontekstində hesabladığı
  * birləşdirilmiş giriş məlumatı (rol + effektiv icazələr).
