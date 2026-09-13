@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Save, User as UserIcon } from 'lucide-react';
+import { Loader2, Save, User as UserIcon, Camera, Trash2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useAvatarUpload } from '@/components/shared/use-avatar-upload';
 import { updateUser } from '@/lib/firebase/users';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +20,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function ProfilePage() {
   const { profile, active, memberships, refresh } = useAuth();
+  const { inputRef, uploading, openPicker, onFile, removeAvatar } = useAvatarUpload();
   const name = profile?.displayName || profile?.email || 'İstifadəçi';
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
@@ -53,8 +55,18 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-4 lg:col-span-1">
           <Card className="rounded-card">
             <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
-              <Avatar className="h-20 w-20 text-2xl">{profile?.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={name} />}<AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+              <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
+              <button type="button" onClick={openPicker} disabled={uploading} title="Şəkli dəyişdir" className="group relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                <Avatar className="h-20 w-20 text-2xl">{profile?.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={name} />}<AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+                <span className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground shadow-lg transition-transform group-hover:scale-110">
+                  {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                </span>
+              </button>
               <div><p className="text-lg font-semibold">{name}</p><p className="text-sm text-muted-foreground">{profile?.email}</p></div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={openPicker} disabled={uploading}><Camera className="h-3.5 w-3.5" /> {profile?.avatarUrl ? 'Dəyişdir' : 'Şəkil əlavə et'}</Button>
+                {profile?.avatarUrl && <Button variant="ghost" size="sm" onClick={removeAvatar} disabled={uploading} className="text-danger"><Trash2 className="h-3.5 w-3.5" /> Sil</Button>}
+              </div>
               <Badge variant="secondary">{TYPE_LABEL[profile?.userType ?? ''] ?? profile?.userType}</Badge>
               {active && <p className="text-xs text-muted-foreground">Aktiv: <span className="font-medium text-foreground">{active.company.name}</span> · {active.roleName}</p>}
             </CardContent>

@@ -9,9 +9,10 @@ import {
 } from 'recharts';
 import {
   Building2, Users2, Wallet, FileWarning, TrendingUp, ArrowUpRight, ArrowRight,
-  ShieldCheck, Receipt, UserCheck, Inbox, AlertTriangle, Target, Sparkles,
+  ShieldCheck, Receipt, UserCheck, Inbox, AlertTriangle, Target, Sparkles, Camera, Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useAvatarUpload } from '@/components/shared/use-avatar-upload';
 import { loadPlatformMetrics } from '@/lib/dashboard/kpi';
 import { loadLiveCompanyKpis, type LiveCompanyKpis } from '@/lib/dashboard/live';
 import { ChartCard } from '@/components/charts/chart-card';
@@ -121,7 +122,7 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
           <Card className="rounded-card">
             <CardHeader className="pb-0"><CardTitle className="flex items-center gap-2 text-base"><Target className="h-4 w-4 text-primary" /> Aylıq gəlir hədəfi</CardTitle></CardHeader>
             <CardContent className="flex flex-col items-center pt-4 text-center">
-              <AvatarRing name={firstName} avatarUrl={avatarUrl} percent={Math.round(m.targetPct)} />
+              <AvatarRing name={firstName} avatarUrl={avatarUrl} percent={Math.round(m.targetPct)} editable />
               {m.monthlyTarget > 0 ? (<>
                 <p className="mt-4 text-lg font-bold">{formatCurrency(m.revenueThisMonth, cur)}</p>
                 <p className="text-xs text-muted-foreground">/ {formatCurrency(m.monthlyTarget, cur)} hədəf (5 ay ortası) · bu ay</p>
@@ -285,16 +286,33 @@ function CustomerCard({ name, revenue, cur, max, idx }: { name: string; revenue:
     </div>
   );
 }
-function AvatarRing({ name, avatarUrl, percent }: { name: string; avatarUrl?: string; percent: number }) {
+function AvatarRing({ name, avatarUrl, percent, editable }: { name: string; avatarUrl?: string; percent: number; editable?: boolean }) {
   const p = Math.min(100, Math.max(0, percent));
-  return (
-    <div className="relative h-28 w-28">
+  const { inputRef, uploading, openPicker, onFile } = useAvatarUpload();
+  const inner = (
+    <>
       <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(#5B5BF5 ${p * 3.6}deg, rgba(127,127,127,0.14) 0deg)` }} />
       <div className="absolute inset-[7px] overflow-hidden rounded-full bg-card">
         {avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={avatarUrl} alt={name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#5B5BF5] to-[#8b3df0] text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</div>}
       </div>
       <span className="absolute -right-1 top-1 rounded-full bg-[#5B5BF5] px-2 py-0.5 text-[11px] font-bold text-white shadow-lg">{p.toFixed(0)}%</span>
-    </div>
+    </>
+  );
+  if (!editable) return <div className="relative h-28 w-28">{inner}</div>;
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
+      <button type="button" onClick={openPicker} disabled={uploading} title="Şəkli dəyişdir"
+        className="group relative h-28 w-28 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card">
+        {inner}
+        <span className="absolute bottom-[7px] right-[7px] z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-[#5B5BF5] text-white shadow-lg transition-transform group-hover:scale-110">
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+        </span>
+        <span className="pointer-events-none absolute inset-[7px] flex items-center justify-center rounded-full bg-black/45 text-[11px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
+          {avatarUrl ? 'Dəyişdir' : 'Şəkil əlavə et'}
+        </span>
+      </button>
+    </>
   );
 }
 function GaugeCard({ title, percent, label, sub }: { title: string; percent: number; label: string; sub?: { label: string; value: string }[] }) {
