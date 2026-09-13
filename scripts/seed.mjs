@@ -83,7 +83,8 @@ async function ensureInternalCompany(adminUid) {
     status: 'active',
     baseCurrency: 'AZN',
     settings: { theme: 'system', language: 'az', fiscalYearStartMonth: 1 },
-    modulesEnabled: [],
+    // Daxili şirkət (konsaltinq firması özü) bütün modullardan istifadə edir
+    modulesEnabled: ['workflow', 'warehouse', 'sales', 'cashbank', 'accounting', 'ifrs', 'hr', 'payroll'],
     createdBy: adminUid,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),

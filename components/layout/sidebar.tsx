@@ -24,7 +24,11 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Pro
   const t = useTranslations('nav');
   const tg = useTranslations('navGroup');
   const { canAccess, isSuperAdmin, active } = useAuth();
-  const enabledModules = new Set<string>((active?.company.modulesEnabled ?? []) as CompanyModule[]);
+  const rawModules = (active?.company.modulesEnabled ?? []) as CompanyModule[];
+  const enabledModules = new Set<string>(rawModules);
+  // Super admin bütün modulları görür; konfiqurasiya edilməmiş (boş) şirkət üçün
+  // də hamısı göstərilir (opt-out) — modullar yalnız açıq şəkildə seçim varsa gizlədilir.
+  const showAllModules = isSuperAdmin || rawModules.length === 0;
 
   const groups = NAV_GROUPS
     .map((g) => ({
@@ -32,7 +36,7 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Pro
       items: g.items.filter((i) => {
         if (i.superAdminOnly) return isSuperAdmin;
         // modulesEnabled ilə söndürülmüş modullar naviqasiyadan gizlədilir
-        if (TOGGLEABLE.has(i.module) && !enabledModules.has(i.module)) return false;
+        if (TOGGLEABLE.has(i.module) && !showAllModules && !enabledModules.has(i.module)) return false;
         return canAccess(i.module);
       }),
     }))
