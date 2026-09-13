@@ -279,6 +279,114 @@ export interface FixedAsset {
   updatedAt?: TS;
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Satış, Faktura — Modul 6
+// ─────────────────────────────────────────────────────────────
+export interface ContactPerson { name: string; phone?: string; email?: string; position?: string }
+
+export interface Customer {
+  id: string;
+  companyId: string;
+  type: 'individual' | 'legal_entity';
+  name: string;
+  legalName?: string | null;
+  taxId?: string | null;
+  customerGroupId?: string | null;
+  contactPersons?: ContactPerson[];
+  billingAddress?: string;
+  shippingAddress?: string;
+  defaultCurrency?: string;
+  paymentTermDays?: number;
+  creditLimit?: number | null;
+  isRelatedParty?: boolean;   // IAS 24 (09 §6.2)
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+export interface CustomerGroup {
+  id: string;
+  companyId: string;
+  name: string;
+  description?: string;
+}
+
+export interface DocLineItem {
+  goodId?: string | null;
+  description: string;
+  quantity: number;
+  unit?: string;
+  unitPrice: number;
+  discountPercent: number;
+  vatRate: number;
+  lineTotal: number;
+}
+
+export type InvoiceStatus = 'draft' | 'sent' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
+
+export interface Invoice {
+  id: string;
+  companyId: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName?: string;
+  sourceOrderId?: string | null;
+  issueDate: string;           // YYYY-MM-DD
+  dueDate: string;
+  lineItems: DocLineItem[];
+  subtotal: number;
+  discountTotal: number;
+  vatTotal: number;
+  grandTotal: number;
+  currency: string;
+  exchangeRateToBaseCurrency?: number;
+  amountPaid: number;
+  amountDue: number;
+  status: InvoiceStatus;
+  departmentId?: string | null;
+  warehouseId?: string | null;
+  journalEntryId?: string | null;
+  notes?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted_to_order';
+export interface SalesQuote {
+  id: string;
+  companyId: string;
+  quoteNumber: string;
+  customerId: string;
+  customerName?: string;
+  issueDate: string;
+  validUntil?: string;
+  lineItems: DocLineItem[];
+  subtotal: number; discountTotal: number; vatTotal: number; grandTotal: number;
+  currency: string;
+  status: QuoteStatus;
+  notes?: string | null;
+  createdAt?: TS; updatedAt?: TS; createdBy?: string;
+}
+
+export type OrderStatus = 'draft' | 'confirmed' | 'fulfilled' | 'invoiced' | 'cancelled';
+export interface SalesOrder {
+  id: string;
+  companyId: string;
+  orderNumber: string;
+  customerId: string;
+  customerName?: string;
+  sourceQuoteId?: string | null;
+  lineItems: DocLineItem[];
+  subtotal: number; discountTotal: number; vatTotal: number; grandTotal: number;
+  currency: string;
+  fulfillmentWarehouseId?: string | null;
+  status: OrderStatus;
+  invoiceId?: string | null;
+  createdAt?: TS; updatedAt?: TS; createdBy?: string;
+}
+
 /**
  * Aktiv membership — auth-provider-in cari company kontekstində hesabladığı
  * birləşdirilmiş giriş məlumatı (rol + effektiv icazələr).
