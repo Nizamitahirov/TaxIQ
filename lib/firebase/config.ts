@@ -9,13 +9,17 @@ import {
 } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 
+// Firebase web config PUBLIC-dir (brauzerə onsuz da göndərilir; təhlükəsizlik
+// Firestore Security Rules + App Check ilə təmin olunur, gizli açar deyil).
+// Ona görə env dəyişənləri yoxdursa (məs. Vercel-də təyin edilməyibsə) taxiq-f2d9d
+// üçün defolt public dəyərlərə keçilir ki, deploy env konfiqurasiyası olmadan da işləsin.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyBdmcXZHaX1A9OAGLSX7RQNEw4tbidE4MA',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'taxiq-f2d9d.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'taxiq-f2d9d',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'taxiq-f2d9d.firebasestorage.app',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '6836696939',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:6836696939:web:15da6814c590c1b9367e2e',
 };
 
 /** Firebase konfiqurasiyasının dolu olub-olmadığını yoxlayır */
