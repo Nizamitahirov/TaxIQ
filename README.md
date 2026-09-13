@@ -15,16 +15,32 @@ Accountant modeli).
 
 ## Hazırkı status (Milestone 1)
 
-| Modul | Status |
-|---|---|
-| **1. Əsas platforma, Auth, RBAC, multi-tenancy** | ✅ Qurulub |
-| **Dashboard** (Platform + Şirkət + rol-əsaslı) | ✅ Qurulub |
-| 2, 4–10 (onboarding, workflow, anbar, satış, kassa/bank, mühasibat, IFRS, HR/payroll) | 🔜 Mərhələli |
+**Bütün 10 modul qurulub və `main`-ə merge olunub.**
 
-Qurulan Modul 1 funksiyaları: çoxmüştərili data modeli (`companyId` izolyasiyası),
-istifadəçi tipləri (super admin / staff / client), **Company Switcher**, sistem rolları +
-icazə matrisi, `admin/admin` bootstrap + məcburi parol dəyişikliyi, audit jurnalı,
-Firestore Security Rules (tenant izolyasiyası), bildirişlər.
+| Modul | Status | Əsas funksiyalar |
+|---|---|---|
+| **1. Platform / Auth / RBAC** | ✅ | Multi-tenancy, Company Switcher, istifadəçi+rol idarəetməsi, audit, bildirişlər |
+| **2. Müştəri onboarding** | ✅ | 6 addımlı sihirbaz, 7 sektor şablonu, şirkət lifecycle, şöbələr |
+| **3. Dashboard / Export** | ✅ | Platform + Şirkət + rol-əsaslı panel, KPI, Excel export framework |
+| **4. Workflow** | ✅ | Workflow tərifləri, şablon kitabxanası, birləşdirilmiş təsdiq inbox-u |
+| **5. Anbar** | ✅ | Mal/xidmət kataloqu, davamlı uçot, orta çəkili dəyərləndirmə, transfer |
+| **6. Satış / Faktura** | ✅ | Müştərilər, fakturalar (→ jurnal), quote→order→invoice, AR aging, çap |
+| **7. Kassa / Bank** | ✅ | Bank/kassa, ödənişlər (→ faktura + jurnal), kreditor fakturalar, kassa kitabı |
+| **8. Mühasibat nüvəsi** | ✅ | AZ MMUS/IFRS Hesablar Planı, ikili yazılış, trial balance, dövrlər, əsas vəsaitlər |
+| **9. IFRS hesabatlar** | ✅ | Balans, Mənfəət-Zərər, Pul axını, Kapital dəyişiklikləri (avtomatik) |
+| **10. HR / Payroll** | ✅ | İşçilər, məzuniyyət, versiyalanan vergi konfiqurasiyası, payroll (→ jurnal), payslip |
+
+### Maliyyə axını (uçdan-uca işləyir)
+Satış/Anbar/Kassa/HR əməliyyatları → **avtomatik ikili jurnal yazıları (Modul 8)** →
+trial balance → **IFRS maliyyə hesabatları (Modul 9)**.
+
+### Cloud Functions tələb edən gələcək fazalar (sənədlənib)
+Bəzi funksiyalar spesifikasiyada MVP/gələcək faza kimi qeyd olunub və Firebase Cloud
+Functions (Blaze planı) deploy-u tələb edir: workflow avtomatik icra mühərriki
+(Firestore triggers + Cloud Tasks), e-qaimə/e-gov API inteqrasiyaları, GrapesJS+Puppeteer
+PDF dizayneri, bank çıxarışı uzlaşdırması, gecə KPI/amortizasiya scheduler-ləri, FIFO
+qat izləməsi. Hazırkı versiyada bunların funksional client-side alternativləri verilib
+(məs. balans yoxlaması postJournalEntry-də, çap window.print ilə, toplu fayl CSV).
 
 ## Quraşdırma
 
