@@ -27,7 +27,7 @@
     "welcome": "Xoş gəldiniz!",
     "invalidCredentials": "Yanlış giriş məlumatları",
     "notConfigured": "Firebase konfiqurasiya edilməyib",
-    "bootstrapHint": "İlk quraşdırma: admin / admin (ilk girişdə parol dəyişdirilməlidir)",
+    "bootstrapHint": "İlk quraşdırma: admin / admin123 (ilk girişdə parol dəyişdirilməlidir)",
     "changePwTitle": "Yeni parol təyin et",
     "changePwSubtitle": "Təhlükəsizlik üçün müvəqqəti parolu dəyişdirməlisiniz",
     "currentPassword": "Cari (müvəqqəti) parol",

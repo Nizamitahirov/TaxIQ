@@ -19,7 +19,9 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 const PROJECT_ID = 'taxiq-f2d9d';
 const ADMIN_EMAIL = 'admin@taxiq.system';
-const ADMIN_PASSWORD = 'admin';
+// Firebase Auth minimum 6 simvol parol tələb edir ('admin' 5 simvol qəbul olunmur).
+// mustChangePassword: true — istifadəçi ilk girişdə onsuz da dəyişməlidir.
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 function loadCredential() {
   const path = process.env.SERVICE_ACCOUNT || process.env.GOOGLE_APPLICATION_CREDENTIALS;
@@ -110,7 +112,8 @@ async function main() {
   const companyId = await ensureInternalCompany(adminUid);
   await ensureCurrencies();
   if (process.env.SEED_DEMO === '1') await ensureDemoData(companyId, adminUid);
-  console.log('\n✅ Seed tamamlandı. Giriş: admin / admin (ilk girişdə parol dəyişdirilməlidir).');
+  console.log(`\n✅ Seed tamamlandı. Giriş: admin / ${ADMIN_PASSWORD} (ilk girişdə parol dəyişdirilməlidir).`);
+  console.log('   ⚠️ Firebase Console → Authentication → Email/Password provayderi aktiv olmalıdır!');
   if (process.env.SEED_DEMO !== '1') console.log('   💡 Nümunə data üçün: SEED_DEMO=1 ilə yenidən çalışdır.');
   process.exit(0);
 }

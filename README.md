@@ -55,7 +55,7 @@ cp .env.example .env.local   # dəyərlər artıq taxiq-f2d9d üçün doldurulub
 #    scripts/taxiq-firebase-setup.sh — Firestore yaradır, API-ları açır, IAM verir
 #    Sonra Console → Authentication → Email/Password → Enable
 
-# 4. Bootstrap seed (admin/admin, Company #1, valyutalar)
+# 4. Bootstrap seed (admin/admin123, Company #1, valyutalar)
 GOOGLE_APPLICATION_CREDENTIALS=./taxiq-service-account.json npm run seed
 
 # 5. İşə sal
@@ -67,7 +67,7 @@ npm run dev
 
 ## İlk giriş
 
-- İstifadəçi adı: **admin** · Parol: **admin**
+- İstifadəçi adı: **admin** · Parol: **admin123**
 - İlk girişdən sonra sistem məcburi parol dəyişikliyinə yönləndirir (01 §3.3).
 
 ## Deploy

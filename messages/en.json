@@ -27,7 +27,7 @@
     "welcome": "Welcome!",
     "invalidCredentials": "Invalid credentials",
     "notConfigured": "Firebase is not configured",
-    "bootstrapHint": "First setup: admin / admin (password must be changed on first login)",
+    "bootstrapHint": "First setup: admin / admin123 (password must be changed on first login)",
     "changePwTitle": "Set a new password",
     "changePwSubtitle": "For security you must change your temporary password",
     "currentPassword": "Current (temporary) password",
