@@ -96,6 +96,12 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // ── Əmək haqqı vergi konfiqurasiyası (qlobal, versiyalanan — 10 §6.1) ──
+    match /payrollTaxConfigs/{id} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // UI icazə ilə gizlədilir; qlobal konfiqurasiya
+    }
+
     // ── Audit jurnalı (01 §10): append-only, silinməz/dəyişməz ──
     match /auditLogs/{id} {
       allow read: if isSuperAdmin() ||

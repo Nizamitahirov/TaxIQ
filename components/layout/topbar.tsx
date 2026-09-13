@@ -36,7 +36,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
       <div className="flex min-w-0 items-center gap-3">
         <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label="Menyu"><Menu /></Button>
         <span className="lg:hidden"><Logo compact /></span>
-        <div className="hidden sm:block"><CompanySwitcher /></div>
+        <CompanySwitcher />
       </div>
 
       <div className="flex items-center gap-1.5">
