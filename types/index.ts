@@ -594,6 +594,116 @@ export interface StockTransfer {
   createdAt?: TS;
 }
 
+// ─────────────────────────────────────────────────────────────
+//  HR və Əmək Haqqı — Modul 10
+// ─────────────────────────────────────────────────────────────
+export type EmployeeStatus = 'active' | 'on_leave' | 'terminated';
+export interface Employee {
+  id: string;
+  companyId: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  fatherName?: string;
+  personalId?: string;        // FİN
+  birthDate?: string;
+  gender?: 'male' | 'female';
+  phone?: string;
+  email?: string;
+  address?: string;
+  position?: string;
+  departmentId?: string | null;
+  employmentType?: 'full_time' | 'part_time' | 'contract';
+  hireDate?: string;
+  contractNumber?: string;
+  contractType?: 'indefinite' | 'fixed_term';
+  contractEndDate?: string | null;
+  baseSalary: number;
+  currency?: string;
+  bankAccountIban?: string;
+  status: EmployeeStatus;
+  terminationDate?: string | null;
+  terminationReason?: string | null;
+  laborContractNotified?: boolean;
+  userId?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+export interface LeaveType {
+  id: string;
+  companyId: string;
+  code: string;
+  name: LocalizedText;
+  paid: boolean;
+  defaultDays: number;
+}
+
+export interface LeaveRequest {
+  id: string;
+  companyId: string;
+  employeeId: string;
+  employeeName?: string;
+  leaveTypeId: string;
+  leaveTypeName?: string;
+  startDate: string;
+  endDate: string;
+  totalDays: number;
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  reason?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+export interface PayrollTaxConfig {
+  id: string;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  minimumWage: number;
+  incomeTaxBrackets: { uptoAmount: number | null; rate: number; fixedAmount: number }[];
+  socialInsurance: { employeeBaseRate: number; employeeBaseThreshold: number; employeeRateAboveThreshold: number; employerRate: number };
+  medicalInsurance: { employeeRateLowerBand: number; lowerBandThreshold: number; employeeRateUpperBand: number; employerRateLowerBand: number; employerRateUpperBand: number };
+  unemploymentInsurance: { employeeRate: number; employerRate: number };
+  notes?: string;
+}
+
+export interface PayrollLine {
+  employeeId: string;
+  employeeName: string;
+  baseSalary: number;
+  overtimePay: number;
+  bonuses: number;
+  otherDeductions: number;
+  grossSalary: number;
+  incomeTax: number;
+  employeeSocialInsurance: number;
+  employeeMedicalInsurance: number;
+  employeeUnemploymentInsurance: number;
+  netSalary: number;
+  employerSocialInsurance: number;
+  employerMedicalInsurance: number;
+  employerUnemploymentInsurance: number;
+  totalEmployerCost: number;
+}
+
+export interface PayrollRun {
+  id: string;
+  companyId: string;
+  periodMonth: number;
+  periodYear: number;
+  status: 'draft' | 'calculated' | 'approved' | 'paid';
+  lines: PayrollLine[];
+  totalGross: number;
+  totalNet: number;
+  totalEmployerCost: number;
+  taxConfigNote?: string;
+  journalEntryId?: string | null;
+  approvedBy?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
 /**
  * Aktiv membership — auth-provider-in cari company kontekstində hesabladığı
  * birləşdirilmiş giriş məlumatı (rol + effektiv icazələr).
