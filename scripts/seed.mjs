@@ -107,10 +107,47 @@ async function ensureCurrencies() {
 async function main() {
   console.log('▶ TaxIQ seed başlayır — layihə:', PROJECT_ID);
   const adminUid = await ensureAdminUser();
-  await ensureInternalCompany(adminUid);
+  const companyId = await ensureInternalCompany(adminUid);
   await ensureCurrencies();
+  if (process.env.SEED_DEMO === '1') await ensureDemoData(companyId, adminUid);
   console.log('\n✅ Seed tamamlandı. Giriş: admin / admin (ilk girişdə parol dəyişdirilməlidir).');
+  if (process.env.SEED_DEMO !== '1') console.log('   💡 Nümunə data üçün: SEED_DEMO=1 ilə yenidən çalışdır.');
   process.exit(0);
+}
+
+/** Opsional nümunə data (SEED_DEMO=1) — UI dərhal dolu görünsün deyə */
+async function ensureDemoData(companyId, adminUid) {
+  const ts = () => FieldValue.serverTimestamp();
+  const exists = await db.collection('customers').where('companyId', '==', companyId).limit(1).get();
+  if (!exists.empty) { console.log('• Demo data artıq var — ötürülür'); return; }
+
+  // Vergi konfiqurasiyası (Firestore versiyası)
+  await db.collection('payrollTaxConfigs').doc('cfg_2026-01-01').set({
+    effectiveFrom: '2026-01-01', effectiveTo: null, minimumWage: 400,
+    incomeTaxBrackets: [{ uptoAmount: 2500, rate: 0.14, fixedAmount: 0 }, { uptoAmount: null, rate: 0.25, fixedAmount: 350 }],
+    socialInsurance: { employeeBaseRate: 0.03, employeeBaseThreshold: 200, employeeRateAboveThreshold: 0.10, employerRate: 0.22 },
+    medicalInsurance: { employeeRateLowerBand: 0.02, lowerBandThreshold: 2500, employeeRateUpperBand: 0.005, employerRateLowerBand: 0.02, employerRateUpperBand: 0.005 },
+    unemploymentInsurance: { employeeRate: 0.005, employerRate: 0.005 },
+    notes: 'AZ 2026 seed — taxes.gov.az-dan təsdiqlənməlidir', createdAt: ts(),
+  }, { merge: true });
+
+  const base = { companyId, createdAt: ts(), updatedAt: ts(), createdBy: adminUid };
+  await db.collection('customers').add({ ...base, type: 'legal_entity', name: 'Bakı Retail Group MMC', taxId: '1234567890', defaultCurrency: 'AZN', paymentTermDays: 30, isActive: true });
+  await db.collection('vendors').add({ ...base, name: 'Anadolu Təchizat MMC', taxId: '9876543210', defaultCurrency: 'AZN', paymentTermDays: 14, isActive: true });
+  await db.collection('warehouses').add({ ...base, name: { az: 'Əsas anbar', en: 'Main warehouse' }, code: 'WH1', type: 'main', isActive: true });
+  await db.collection('bankAccounts').add({ ...base, bankName: 'Kapital Bank', accountName: 'Əsas AZN hesabı', iban: 'AZ00KAPI00000000000000000001', currency: 'AZN', currentBalance: 0, isActive: true });
+  await db.collection('cashRegisters').add({ ...base, name: 'Baş kassa', currency: 'AZN', currentBalance: 0, isActive: true });
+  await db.collection('goods').add({ ...base, type: 'good', sku: 'SKU-001', name: { az: 'Nümunə mal', en: 'Sample good' }, baseUnit: 'ədəd', trackInventory: true, defaultSalePrice: 50, defaultPurchasePrice: 30, vatRate: 18, reorderPoint: 10, isActive: true });
+  await db.collection('goods').add({ ...base, type: 'service', sku: 'SRV-001', name: { az: 'Aylıq mühasibatlıq xidməti', en: 'Monthly accounting' }, baseUnit: 'ay', trackInventory: false, defaultSalePrice: 300, vatRate: 18, isActive: true });
+  await db.collection('employees').add({ ...base, employeeCode: 'EMP-001', firstName: 'Əli', lastName: 'Məmmədov', position: 'Baş mühasib', baseSalary: 2000, currency: 'AZN', status: 'active', laborContractNotified: true });
+  const leaveTypes = [
+    { code: 'annual', name: { az: 'Əsas məzuniyyət', en: 'Annual leave' }, paid: true, defaultDays: 21 },
+    { code: 'sick', name: { az: 'Xəstəlik vərəqəsi', en: 'Sick leave' }, paid: true, defaultDays: 0 },
+    { code: 'unpaid', name: { az: 'Ödənişsiz məzuniyyət', en: 'Unpaid leave' }, paid: false, defaultDays: 0 },
+  ];
+  for (const t of leaveTypes) await db.collection('leaveTypes').add({ companyId, ...t });
+  console.log('✓ Demo data seed edildi (müştəri, təchizatçı, anbar, bank, kassa, 2 mal/xidmət, işçi, məzuniyyət növləri, vergi konfiqurasiyası)');
+  console.log('  Qeyd: Hesablar Planını UI-dan "Mühasibat → Hesablar Planını qur" ilə aktivləşdirin.');
 }
 
 main().catch((e) => { console.error('✖ Seed xətası:', e); process.exit(1); });
