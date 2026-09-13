@@ -704,6 +704,66 @@ export interface PayrollRun {
   createdBy?: string;
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Workflow Management — Modul 4
+// ─────────────────────────────────────────────────────────────
+export type WorkflowTriggerType = 'on_create' | 'on_update' | 'scheduled' | 'manual';
+export type WorkflowActionType = 'send_notification' | 'update_field' | 'create_task' | 'generate_document';
+
+export interface WorkflowAction {
+  type: WorkflowActionType;
+  config: Record<string, unknown>;
+  label?: string;
+}
+
+export interface WorkflowCondition {
+  field: string;
+  operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'is_empty' | 'is_not_empty';
+  value?: string | number;
+}
+
+export interface WorkflowApprovalStep {
+  approverRoleId: string;
+  mode: 'single' | 'sequential' | 'parallel';
+  timeoutHours?: number;
+}
+
+/** workflowDefinitions/{workflowId} — 04 §1.3 (sadələşdirilmiş, form-əsaslı builder) */
+export interface WorkflowDefinition {
+  id: string;
+  companyId: string;
+  name: string;
+  description?: string;
+  category?: 'finance' | 'hr' | 'sales' | 'general';
+  status: 'draft' | 'active' | 'inactive';
+  trigger: {
+    type: WorkflowTriggerType;
+    entityType?: string | null;
+    fieldChangeFilter?: string | null;
+    cron?: string | null;
+  };
+  conditions?: WorkflowCondition[];
+  conditionLogic?: 'AND' | 'OR';
+  approval?: WorkflowApprovalStep | null;
+  actions: WorkflowAction[];
+  version: number;
+  fromTemplateId?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+/** Birləşdirilmiş təsdiq/tapşırıq inbox elementi (alert_list mənbəyi, 04 §5.3 / Fayl 3) */
+export interface PendingApproval {
+  kind: 'leave' | 'payroll' | 'invoice_draft' | 'bill_draft';
+  id: string;
+  title: string;
+  subtitle: string;
+  amount?: number;
+  currency?: string;
+  link: string;
+}
+
 /**
  * Aktiv membership — auth-provider-in cari company kontekstində hesabladığı
  * birləşdirilmiş giriş məlumatı (rol + effektiv icazələr).
