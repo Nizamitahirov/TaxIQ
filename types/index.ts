@@ -606,7 +606,7 @@ export interface Employee {
   lastName: string;
   fatherName?: string;
   personalId?: string;        // FİN
-  birthDate?: string;
+  birthDate?: string | null;
   gender?: 'male' | 'female';
   phone?: string;
   email?: string;
@@ -614,7 +614,7 @@ export interface Employee {
   position?: string;
   departmentId?: string | null;
   employmentType?: 'full_time' | 'part_time' | 'contract';
-  hireDate?: string;
+  hireDate?: string | null;
   contractNumber?: string;
   contractType?: 'indefinite' | 'fixed_term';
   contractEndDate?: string | null;
@@ -623,12 +623,22 @@ export interface Employee {
   bankAccountIban?: string;
   status: EmployeeStatus;
   terminationDate?: string | null;
-  terminationReason?: string | null;
+  terminationReason?: TerminationReason | null;
   laborContractNotified?: boolean;
+  laborContractNotification?: LaborContractNotification;
   userId?: string | null;
   createdAt?: TS;
   updatedAt?: TS;
   createdBy?: string;
+}
+
+export type TerminationReason = 'resignation' | 'mutual_agreement' | 'redundancy' | 'disciplinary' | 'contract_end';
+
+/** Elektron əmək müqaviləsi bildirişi — Əmək Məcəlləsi m.49 (10 §2.2) */
+export interface LaborContractNotification {
+  submittedToEGov: boolean;
+  eGovReferenceNumber?: string | null;
+  submittedAt?: string | null;
 }
 
 export interface LeaveType {
@@ -700,6 +710,140 @@ export interface PayrollRun {
   taxConfigNote?: string;
   journalEntryId?: string | null;
   approvedBy?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+/** İşçi başına aylıq düzəlişlər — overtime/bonus/kəsinti (10 §6.3 addım 1) */
+export interface PayrollAdjustment {
+  id: string;
+  companyId: string;
+  employeeId: string;
+  periodYear: number;
+  periodMonth: number;
+  overtimePay: number;
+  bonuses: number;
+  otherDeductions: number;
+  note?: string;
+  createdAt?: TS;
+}
+
+// ── Məzuniyyət balansları (10 §4.2) ──
+export interface LeaveBalanceItem {
+  leaveTypeId: string;
+  leaveTypeName?: string;
+  entitledDays: number;
+  usedDays: number;
+  remainingDays: number;
+  carriedOver: number;
+}
+export interface LeaveBalance {
+  id: string;              // {employeeId}_{year}
+  companyId: string;
+  employeeId: string;
+  employeeName?: string;
+  year: number;
+  balances: LeaveBalanceItem[];
+  updatedAt?: TS;
+}
+
+// ── Saatlıq icazə (time-off permission) ──
+export type TimePermissionType = 'personal' | 'medical' | 'official' | 'other';
+export interface TimePermission {
+  id: string;
+  companyId: string;
+  employeeId: string;
+  employeeName?: string;
+  date: string;
+  startTime: string;       // HH:mm
+  endTime: string;         // HH:mm
+  hours: number;
+  type: TimePermissionType;
+  paid: boolean;
+  reason?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+// ── Ezamiyyət (business trip) ──
+export interface BusinessTrip {
+  id: string;
+  companyId: string;
+  employeeId: string;
+  employeeName?: string;
+  destination: string;
+  purpose: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  dailyAllowance: number;      // gündəlik norma (per diem)
+  transportCost: number;
+  accommodationCost: number;
+  totalCost: number;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  orderId?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+// ── İş vaxtı uçotu / Tabel (10 §5) ──
+export type TimesheetDayType = 'workday' | 'weekend' | 'public_holiday';
+export type TimesheetStatus = 'present' | 'absent' | 'on_leave' | 'sick';
+export interface MonthlyTimesheet {
+  id: string;                  // {employeeId}_{yearMonth}
+  companyId: string;
+  employeeId: string;
+  employeeName?: string;
+  yearMonth: string;           // YYYY-MM
+  totalWorkedHours: number;
+  totalOvertimeHours: number;
+  workedDays: number;
+  absenceDays: number;
+  leaveDays: number;
+  sickDays: number;
+  status: 'draft' | 'submitted' | 'approved';
+  approvedBy?: string | null;
+  updatedAt?: TS;
+}
+
+// ── HR Əmrləri / decrees (əmrləşdirmə) ──
+export type HROrderType =
+  | 'hire' | 'termination' | 'leave' | 'business_trip'
+  | 'bonus' | 'penalty' | 'transfer' | 'salary_change';
+export interface HROrder {
+  id: string;
+  companyId: string;
+  orderNumber: string;
+  type: HROrderType;
+  employeeId: string;
+  employeeName?: string;
+  orderDate: string;
+  effectiveDate: string;
+  title: string;
+  body: string;
+  meta?: Record<string, unknown>;
+  status: 'draft' | 'issued' | 'cancelled';
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+// ── Xidməti (mülki-hüquqi) müqavilə — service/civil contract ──
+export interface ServiceContract {
+  id: string;
+  companyId: string;
+  contractNumber: string;
+  contractorName: string;
+  contractorId?: string | null;       // FİN (fiziki) / VÖEN (hüquqi)
+  contractorType: 'individual' | 'legal';
+  subject: string;
+  startDate: string;
+  endDate?: string | null;
+  amount: number;
+  currency: string;
+  paymentTerms?: string | null;
+  withholdTax: boolean;        // ödəniş mənbəyində vergi tutulması
+  status: 'draft' | 'active' | 'completed' | 'terminated';
   createdAt?: TS;
   createdBy?: string;
 }
