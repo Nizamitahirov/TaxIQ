@@ -7,6 +7,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { listDocs } from '@/lib/firebase/firestore';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
+import { ExportButton } from '@/components/shared/export-button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -26,7 +27,13 @@ export default function AuditPage() {
 
   return (
     <div>
-      <PageHeader title="Audit jurnalı" subtitle="Bütün kritik əməliyyatların dəyişdirilə bilməyən jurnalı (01 §10)" />
+      <PageHeader title="Audit jurnalı" subtitle="Bütün kritik əməliyyatların dəyişdirilə bilməyən jurnalı (01 §10)"
+        action={<ExportButton filename="audit-jurnali" rows={data ?? []} columns={[
+          { header: 'Tarix', value: (l) => { const t = (l.timestamp as { toMillis?: () => number })?.toMillis?.() ?? null; return t ? formatDateTime(t) : ''; } },
+          { header: 'İstifadəçi', value: (l) => l.userDisplayName ?? l.userId },
+          { header: 'Əməliyyat', value: 'action' },
+          { header: 'Obyekt tipi', value: 'entityType' }, { header: 'Obyekt ID', value: 'entityId' },
+        ]} />} />
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : !data || data.length === 0 ? (

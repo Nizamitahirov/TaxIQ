@@ -6,6 +6,7 @@ import { Loader2, Plus, Landmark, Wallet } from 'lucide-react';
 import {
   listBankAccounts, listCashRegisters, createBankAccount, createCashRegister,
 } from '@/lib/firebase/treasury';
+import { ExportButton } from '@/components/shared/export-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,7 +45,14 @@ export function AccountsTab({ companyId, canCreate, baseCurrency }: TabProps) {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-semibold"><Landmark className="h-4 w-4 text-primary" /> Bank hesabları</h3>
-          {canCreate && <Button size="sm" variant="outline" onClick={() => setMode('bank')}><Plus className="h-4 w-4" /> Bank hesabı</Button>}
+          <div className="flex items-center gap-2">
+            <ExportButton filename="bank-hesablari" rows={banks ?? []} columns={[
+              { header: 'Hesab adı', value: 'accountName' }, { header: 'Bank', value: 'bankName' },
+              { header: 'IBAN', value: 'iban' }, { header: 'Valyuta', value: 'currency' },
+              { header: 'Qalıq', value: (b) => b.currentBalance ?? 0 },
+            ]} />
+            {canCreate && <Button size="sm" variant="outline" onClick={() => setMode('bank')}><Plus className="h-4 w-4" /> Bank hesabı</Button>}
+          </div>
         </div>
         {lb ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -62,7 +70,13 @@ export function AccountsTab({ companyId, canCreate, baseCurrency }: TabProps) {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-semibold"><Wallet className="h-4 w-4 text-primary" /> Kassalar</h3>
-          {canCreate && <Button size="sm" variant="outline" onClick={() => setMode('cash')}><Plus className="h-4 w-4" /> Kassa</Button>}
+          <div className="flex items-center gap-2">
+            <ExportButton filename="kassalar" rows={cash ?? []} columns={[
+              { header: 'Ad', value: 'name' }, { header: 'Valyuta', value: 'currency' },
+              { header: 'Qalıq', value: (c) => c.currentBalance ?? 0 },
+            ]} />
+            {canCreate && <Button size="sm" variant="outline" onClick={() => setMode('cash')}><Plus className="h-4 w-4" /> Kassa</Button>}
+          </div>
         </div>
         {lc ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

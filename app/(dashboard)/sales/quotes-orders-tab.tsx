@@ -7,6 +7,7 @@ import {
   listQuotes, listOrders, listCustomers, createQuote, convertQuoteToOrder, convertOrderToInvoice, getCustomer,
 } from '@/lib/firebase/sales';
 import { EmptyState } from '@/components/shared/empty-state';
+import { ExportButton } from '@/components/shared/export-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,7 +59,13 @@ export function QuotesOrdersTab({ companyId, canCreate, actorUid, baseCurrency }
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold">Kommersiya təklifləri</h3>
-          {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!customers || customers.length === 0}><Plus className="h-4 w-4" /> Yeni təklif</Button>}
+          <div className="flex items-center gap-2">
+            <ExportButton filename="teklifler" rows={quotes ?? []} columns={[
+              { header: 'Nömrə', value: 'quoteNumber' }, { header: 'Müştəri', value: 'customerName' },
+              { header: 'Yekun', value: 'grandTotal' }, { header: 'Valyuta', value: 'currency' }, { header: 'Status', value: 'status' },
+            ]} />
+            {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!customers || customers.length === 0}><Plus className="h-4 w-4" /> Yeni təklif</Button>}
+          </div>
         </div>
         {lq ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (quotes ?? []).length === 0 ? <EmptyState title="Təklif yoxdur" /> : (
           <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
@@ -81,7 +88,13 @@ export function QuotesOrdersTab({ companyId, canCreate, actorUid, baseCurrency }
       </div>
 
       <div>
-        <h3 className="mb-3 font-semibold">Satış sifarişləri</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold">Satış sifarişləri</h3>
+          <ExportButton filename="sifarisler" rows={orders ?? []} columns={[
+            { header: 'Nömrə', value: 'orderNumber' }, { header: 'Müştəri', value: 'customerName' },
+            { header: 'Yekun', value: 'grandTotal' }, { header: 'Valyuta', value: 'currency' }, { header: 'Status', value: 'status' },
+          ]} />
+        </div>
         {lo ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (orders ?? []).length === 0 ? <EmptyState title="Sifariş yoxdur" /> : (
           <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
             <Table>

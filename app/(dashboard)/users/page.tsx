@@ -7,6 +7,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { listUsers } from '@/lib/firebase/users';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
+import { ExportButton } from '@/components/shared/export-button';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,7 +41,14 @@ export default function UsersPage() {
       <PageHeader
         title="İstifadəçilər"
         subtitle="Platform, staff və müştəri istifadəçiləri (01 §3.3)"
-        action={<Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Yeni istifadəçi</Button>}
+        action={<div className="flex items-center gap-2">
+          <ExportButton filename="istifadeciler" rows={data ?? []} columns={[
+            { header: 'Ad', value: (u) => u.displayName ?? '' }, { header: 'E-poçt', value: 'email' },
+            { header: 'Tip', value: (u) => TYPE_LABEL[u.userType] ?? u.userType }, { header: 'Status', value: 'status' },
+            { header: 'Son giriş', value: (u) => { const t = toMillis(u.lastLoginAt); return t ? formatDateTime(t) : ''; } },
+          ]} />
+          <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Yeni istifadəçi</Button>
+        </div>}
       />
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>

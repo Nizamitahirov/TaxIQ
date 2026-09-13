@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Lock, Unlock, Plus } from 'lucide-react';
 import { listPeriods, ensurePeriod, closePeriod, reopenPeriod } from '@/lib/firebase/accounting';
+import { ExportButton } from '@/components/shared/export-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -44,12 +45,19 @@ export function PeriodsTab({ companyId, canManage, actorUid }: { companyId: stri
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Bağlı dövrə yazı aparıla bilməz; yenidən açma səbəb + audit tələb edir (08 §4)</p>
-        {canManage && (
-          <div className="flex items-end gap-2">
-            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-40" />
-            <Button size="sm" onClick={addPeriod} disabled={busy}><Plus className="h-4 w-4" /> Dövr aç</Button>
-          </div>
-        )}
+        <div className="flex items-end gap-2">
+          <ExportButton filename="muhasibat-dovrleri" rows={data ?? []} columns={[
+            { header: 'Dövr', value: (p) => `${p.fiscalYear}-${String(p.periodNumber).padStart(2, '0')}` },
+            { header: 'Başlanğıc', value: 'periodStart' }, { header: 'Son', value: 'periodEnd' },
+            { header: 'Status', value: (p) => (p.status === 'open' ? 'açıq' : 'bağlı') },
+          ]} />
+          {canManage && (
+            <>
+              <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="w-40" />
+              <Button size="sm" onClick={addPeriod} disabled={busy}><Plus className="h-4 w-4" /> Dövr aç</Button>
+            </>
+          )}
+        </div>
       </div>
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">

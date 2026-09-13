@@ -7,6 +7,7 @@ import {
   listTransfers, listWarehouses, listGoods, createTransfer, shipTransfer, receiveTransfer,
 } from '@/lib/firebase/inventory';
 import { EmptyState } from '@/components/shared/empty-state';
+import { ExportButton } from '@/components/shared/export-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,7 +39,11 @@ export function TransfersTab({ companyId, canCreate, actorUid }: TabProps) {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-2">
+        <ExportButton filename="transferler" rows={data ?? []} columns={[
+          { header: 'Mənbə', value: (t) => whName(t.fromWarehouseId) }, { header: 'Təyinat', value: (t) => whName(t.toWarehouseId) },
+          { header: 'Mal sayı', value: (t) => t.items.length }, { header: 'Status', value: 'status' },
+        ]} />
         {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={(warehouses?.length ?? 0) < 2}><Plus className="h-4 w-4" /> Yeni transfer</Button>}
       </div>
       {(warehouses?.length ?? 0) < 2 && <p className="mb-3 text-xs text-warning-foreground">Transfer üçün ən azı 2 anbar lazımdır.</p>}

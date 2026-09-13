@@ -8,6 +8,7 @@ import { listCompanies } from '@/lib/firebase/companies';
 import { SECTOR_MAP } from '@/lib/sectors';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
+import { ExportButton } from '@/components/shared/export-button';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -38,7 +39,15 @@ export default function CompaniesPage() {
       <PageHeader
         title="Şirkətlər"
         subtitle="Bütün müştəri şirkətləri və TaxIQ-ın öz profili (Company #1)"
-        action={canCreate && <Button asChild><Link href="/companies/new"><Plus className="h-4 w-4" /> Yeni müştəri</Link></Button>}
+        action={<div className="flex items-center gap-2">
+          <ExportButton filename="sirketler" rows={data ?? []} columns={[
+            { header: 'Ad', value: 'name' }, { header: 'VÖEN', value: (c) => c.taxId ?? '' },
+            { header: 'Sektor', value: (c) => SECTOR_MAP[c.sector]?.name.az ?? c.sector },
+            { header: 'Valyuta', value: 'baseCurrency' }, { header: 'Status', value: 'status' },
+            { header: 'Daxili', value: (c) => (c.isInternal ? 'Bəli' : 'Xeyr') },
+          ]} />
+          {canCreate && <Button asChild><Link href="/companies/new"><Plus className="h-4 w-4" /> Yeni müştəri</Link></Button>}
+        </div>}
       />
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>

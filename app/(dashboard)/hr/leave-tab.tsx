@@ -7,6 +7,7 @@ import {
   listLeaveRequests, listLeaveTypes, seedLeaveTypes, createLeaveRequest, decideLeaveRequest, listEmployees,
 } from '@/lib/firebase/hr';
 import { EmptyState } from '@/components/shared/empty-state';
+import { ExportButton } from '@/components/shared/export-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +45,11 @@ export function LeaveTab({ companyId, canCreate, actorUid, canApprove }: Props) 
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Əmək Məcəlləsi minimumlarına uyğun növlər (10 §4)</p>
         <div className="flex gap-2">
+          <ExportButton filename="mezuniyyet-telebleri" rows={data ?? []} columns={[
+            { header: 'İşçi', value: 'employeeName' }, { header: 'Növ', value: 'leaveTypeName' },
+            { header: 'Başlanğıc', value: 'startDate' }, { header: 'Son', value: 'endDate' },
+            { header: 'Gün', value: 'totalDays' }, { header: 'Status', value: 'status' },
+          ]} />
           {(types ?? []).length === 0 && <Button size="sm" variant="outline" onClick={seed}><Sparkles className="h-4 w-4" /> Növləri qur</Button>}
           {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!types?.length}><Plus className="h-4 w-4" /> Məzuniyyət tələbi</Button>}
         </div>
