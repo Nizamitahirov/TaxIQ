@@ -1,0 +1,132 @@
+rules_version = '2';
+
+// ════════════════════════════════════════════════════════════════════
+//  TaxIQ Firestore Security Rules — 01 §2.2 / §2.7
+//  Əsl təhlükəsizlik sərhədi: çoxmüştərili (multi-tenant) izolyasiya.
+//  Hər biznes sənədi məcburi `companyId` daşıyır; giriş accessibleCompanyIds
+//  denormallaşdırılmış massivi ilə yoxlanılır (users/{uid}).
+// ════════════════════════════════════════════════════════════════════
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && userDoc().userType == 'platform_super_admin';
+    }
+
+    // companyId həmin istifadəçinin əlçatan şirkətləri arasındadırmı?
+    function hasCompanyAccess(companyId) {
+      return isSignedIn() && (
+        isSuperAdmin() ||
+        (userDoc().accessibleCompanyIds != null && companyId in userDoc().accessibleCompanyIds) ||
+        userDoc().homeCompanyId == companyId
+      );
+    }
+
+    // companyId dəyişdirilə bilməz (cross-tenant sızmanın qarşısı)
+    function companyIdUnchanged() {
+      return request.resource.data.companyId == resource.data.companyId;
+    }
+
+    // ── Platform konfiqurasiyası ──
+    match /platformConfig/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // ── Şirkətlər (01 §2.3) ──
+    match /companies/{companyId} {
+      allow read: if hasCompanyAccess(companyId);
+      allow create, delete: if isSuperAdmin();
+      allow update: if isSuperAdmin() || hasCompanyAccess(companyId);
+    }
+
+    // ── İstifadəçilər (01 §2.4) ──
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isSuperAdmin());
+      // İstifadəçi öz profilinin yalnız seçilmiş sahələrini yeniləyə bilər
+      allow update: if isSuperAdmin() ||
+        (request.auth.uid == uid &&
+         request.resource.data.userType == resource.data.userType &&
+         request.resource.data.accessibleCompanyIds == resource.data.accessibleCompanyIds);
+      allow create, delete: if isSuperAdmin();
+    }
+
+    // ── Staff↔Company↔Rol təyinatı (01 §2.5) ──
+    match /userCompanyAccess/{id} {
+      allow read: if isSignedIn() && (isSuperAdmin() ||
+        resource.data.userId == request.auth.uid ||
+        hasCompanyAccess(resource.data.companyId));
+      allow write: if isSuperAdmin() || hasCompanyAccess(request.resource.data.companyId);
+    }
+
+    // ── Rollar (01 §4) ──
+    match /roles/{roleId} {
+      allow read: if isSignedIn();
+      // Sistem rolları toxunulmaz; custom rollar şirkət girişi olanlar tərəfindən
+      allow create: if isSuperAdmin() ||
+        (request.resource.data.type == 'custom' && hasCompanyAccess(request.resource.data.companyId));
+      allow update, delete: if isSuperAdmin() ||
+        (resource.data.type == 'custom' && hasCompanyAccess(resource.data.companyId));
+    }
+
+    // ── İcazə kataloqu (statik seed) ──
+    match /permissions/{permId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // ── Valyutalar (qlobal, 01 §8.1) ──
+    match /currencies/{code} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    // ── Audit jurnalı (01 §10): append-only, silinməz/dəyişməz ──
+    match /auditLogs/{id} {
+      allow read: if isSuperAdmin() ||
+        (isSignedIn() && resource.data.companyId != null && hasCompanyAccess(resource.data.companyId));
+      allow create: if isSignedIn();
+      allow update, delete: if false; // heç vaxt
+    }
+
+    // ── Bildirişlər (01 §9) ──
+    match /notifications/{id} {
+      allow read, update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── Dashboard-lar (03 §1.2) ──
+    match /dashboards/{id} {
+      allow read: if hasCompanyAccess(resource.data.companyId);
+      allow create: if hasCompanyAccess(request.resource.data.companyId);
+      allow update, delete: if hasCompanyAccess(resource.data.companyId) && companyIdUnchanged();
+    }
+
+    // ── dailyAggregates (03 §2.7): yalnız oxuma (Cloud Function yazır) ──
+    match /dailyAggregates/{id} {
+      allow read: if hasCompanyAccess(resource.data.companyId);
+      allow write: if isSuperAdmin(); // istehsalatda: yalnız service account
+    }
+
+    // ── Ümumi biznes kolleksiyaları (Modul 5–10) ──
+    //  Hər sənəd məcburi companyId daşıyır; giriş şirkət əsaslı izolyasiya ilə.
+    match /{collection}/{docId} {
+      allow read: if isSignedIn() &&
+        resource.data.companyId != null && hasCompanyAccess(resource.data.companyId);
+      allow create: if isSignedIn() &&
+        request.resource.data.companyId != null && hasCompanyAccess(request.resource.data.companyId);
+      allow update: if isSignedIn() &&
+        hasCompanyAccess(resource.data.companyId) && companyIdUnchanged();
+      allow delete: if isSignedIn() && hasCompanyAccess(resource.data.companyId);
+    }
+  }
+}

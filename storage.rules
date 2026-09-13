@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// TaxIQ Cloud Storage — loqolar, sənəd şablonları, ixrac faylları, işçi sənədləri.
+// Autentifikasiya tələb olunur; detallı şirkət-əsaslı yol izolyasiyası Modul 2+ ilə
+// genişləndiriləcək (companies/{companyId}/... yol strukturu).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
