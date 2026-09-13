@@ -1,5 +1,5 @@
 import { where } from 'firebase/firestore';
-import { listDocs, getDocById } from './firestore';
+import { listDocs, getDocById, updateDocById } from './firestore';
 import type { Company } from '@/types';
 
 export async function getCompany(id: string): Promise<Company | null> {
@@ -8,6 +8,17 @@ export async function getCompany(id: string): Promise<Company | null> {
 
 export async function listCompanies(): Promise<Company[]> {
   return listDocs<Company>('companies');
+}
+
+export async function updateCompany(id: string, data: Partial<Company>): Promise<void> {
+  return updateDocById('companies', id, data as Record<string, unknown>);
+}
+
+/** VÖEN unikallıq yoxlaması — 02 §1.2 / §8 */
+export async function isTaxIdUnique(taxId: string, exceptId?: string): Promise<boolean> {
+  if (!taxId.trim()) return true;
+  const matches = await listDocs<Company>('companies', [where('taxId', '==', taxId.trim())]);
+  return matches.filter((c) => c.id !== exceptId).length === 0;
 }
 
 /** Verilmiş id-lərə uyğun şirkətlər (staff-in əlçatan şirkətləri) */

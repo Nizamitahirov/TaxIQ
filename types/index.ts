@@ -48,9 +48,14 @@ export interface AppUser {
   createdBy?: string;
 }
 
-export type CompanyStatus = 'active' | 'suspended' | 'archived';
+export type CompanyStatus = 'draft' | 'active' | 'suspended' | 'archived';
 export type Sector =
-  | 'manufacturing' | 'retail' | 'hospitality' | 'services' | 'trade' | 'construction' | 'other';
+  | 'manufacturing' | 'retail' | 'hospitality' | 'services'
+  | 'wholesale_distribution' | 'trade' | 'construction' | 'other';
+
+/** Modul açarları (modulesEnabled üçün) — 02 §2.2 */
+export type CompanyModule =
+  | 'workflow' | 'warehouse' | 'sales' | 'cashbank' | 'accounting' | 'ifrs' | 'hr' | 'payroll';
 
 export interface CompanySettings {
   theme: 'light' | 'dark' | 'system';
@@ -75,10 +80,40 @@ export interface Company {
   phone?: string;
   email?: string;
   settings: CompanySettings;
-  modulesEnabled?: string[];
+  modulesEnabled?: CompanyModule[];
+  // ── 02 §1.2 əlavə profil sahələri ──
+  legalForm?: string;            // MMC, ASC, Fərdi Sahibkar, ...
+  directorName?: string;
+  brandColor?: string;           // hex — PDF başlıq zolağı üçün
+  totalRooms?: number | null;    // otelçilik KPI (RevPAR/ADR) üçün
+  customFieldValues?: Record<string, string | number | boolean>;
+  statusReason?: string;         // son status dəyişikliyinin səbəbi (02 §6.3)
   createdAt?: TS;
   updatedAt?: TS;
   createdBy?: string;
+}
+
+/** departments/{departmentId} — 02 §4 */
+export interface Department {
+  id: string;
+  companyId: string;
+  name: LocalizedText;
+  code: string;
+  parentDepartmentId?: string | null;
+  type: 'department' | 'cost_center' | 'project';
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
+/** companyDrafts/{draftId} — 02 §1.3 (yarımçıq qeydiyyat) */
+export interface CompanyDraft {
+  id: string;
+  createdBy: string;
+  lastStep: number;
+  data: Record<string, unknown>;
+  createdAt?: TS;
+  updatedAt?: TS;
 }
 
 /** userCompanyAccess/{autoId} — 01 §2.5 */

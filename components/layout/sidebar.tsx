@@ -6,8 +6,12 @@ import { useTranslations } from 'next-intl';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { NAV_GROUPS } from '@/lib/nav';
 import { useAuth } from '@/components/providers/auth-provider';
+import type { CompanyModule } from '@/types';
 import { Logo } from './logo';
 import { cn } from '@/lib/utils/cn';
+
+// modulesEnabled ilə idarə olunan modullar (02 §2.2/§3) — qalanları platform nüvəsidir
+const TOGGLEABLE = new Set<string>(['workflow', 'warehouse', 'sales', 'cashbank', 'accounting', 'ifrs', 'hr', 'payroll']);
 
 interface Props {
   onNavigate?: () => void;
@@ -19,12 +23,18 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Pro
   const pathname = usePathname();
   const t = useTranslations('nav');
   const tg = useTranslations('navGroup');
-  const { canAccess, isSuperAdmin } = useAuth();
+  const { canAccess, isSuperAdmin, active } = useAuth();
+  const enabledModules = new Set<string>((active?.company.modulesEnabled ?? []) as CompanyModule[]);
 
   const groups = NAV_GROUPS
     .map((g) => ({
       ...g,
-      items: g.items.filter((i) => (i.superAdminOnly ? isSuperAdmin : canAccess(i.module))),
+      items: g.items.filter((i) => {
+        if (i.superAdminOnly) return isSuperAdmin;
+        // modulesEnabled ilə söndürülmüş modullar naviqasiyadan gizlədilir
+        if (TOGGLEABLE.has(i.module) && !enabledModules.has(i.module)) return false;
+        return canAccess(i.module);
+      }),
     }))
     .filter((g) => g.items.length > 0);
 

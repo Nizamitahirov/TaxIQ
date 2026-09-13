@@ -44,8 +44,15 @@ service cloud.firestore {
     // ── Şirkətlər (01 §2.3) ──
     match /companies/{companyId} {
       allow read: if hasCompanyAccess(companyId);
-      allow create, delete: if isSuperAdmin();
+      allow create: if isSuperAdmin();
       allow update: if isSuperAdmin() || hasCompanyAccess(companyId);
+      allow delete: if false; // 02 §6.2 — heç vaxt fiziki silinmir (yalnız archived)
+    }
+
+    // ── Müştəri qeydiyyat draft-ları (02 §1.3) ──
+    match /companyDrafts/{draftId} {
+      allow read, write: if isSignedIn() &&
+        (isSuperAdmin() || request.auth.uid == resource.data.createdBy || request.auth.uid == request.resource.data.createdBy);
     }
 
     // ── İstifadəçilər (01 §2.4) ──
