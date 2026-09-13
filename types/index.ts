@@ -387,6 +387,118 @@ export interface SalesOrder {
   createdAt?: TS; updatedAt?: TS; createdBy?: string;
 }
 
+// ─────────────────────────────────────────────────────────────
+//  Kassa, Bank, Xəzinədarlıq — Modul 7
+// ─────────────────────────────────────────────────────────────
+export interface BankAccount {
+  id: string;
+  companyId: string;
+  bankName: string;
+  accountName: string;
+  iban?: string;
+  swiftCode?: string | null;
+  currency: string;
+  currentBalance: number;
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
+export interface CashRegister {
+  id: string;
+  companyId: string;
+  name: string;
+  departmentId?: string | null;
+  currency: string;
+  currentBalance: number;
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
+export type CashTxnCategory = 'sales_receipt' | 'expense' | 'owner_contribution' | 'bank_deposit' | 'bank_withdrawal' | 'other';
+export interface CashTransaction {
+  id: string;
+  companyId: string;
+  cashRegisterId: string;
+  type: 'cash_in' | 'cash_out';
+  amount: number;
+  currency: string;
+  category: CashTxnCategory;
+  relatedDocumentType?: string | null;
+  relatedDocumentId?: string | null;
+  transactionDate: string;
+  note?: string | null;
+  journalEntryId?: string | null;
+  performedBy?: string;
+  createdAt?: TS;
+}
+
+export interface PaymentAllocation { invoiceType: 'salesInvoice' | 'purchaseBill'; invoiceId: string; invoiceNumber?: string; allocatedAmount: number }
+
+export interface Payment {
+  id: string;
+  companyId: string;
+  direction: 'incoming' | 'outgoing';
+  method: 'cash' | 'bank_transfer' | 'card';
+  sourceAccountRef: { type: 'bank' | 'cash'; id: string };
+  counterpartyRef: { type: 'customer' | 'vendor'; id: string; name?: string };
+  amount: number;
+  currency: string;
+  exchangeRateToBaseCurrency?: number;
+  paymentDate: string;
+  allocations: PaymentAllocation[];
+  unallocatedAmount: number;
+  status: 'completed' | 'pending' | 'failed' | 'cancelled';
+  journalEntryId?: string | null;
+  note?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+export interface Vendor {
+  id: string;
+  companyId: string;
+  name: string;
+  taxId?: string | null;
+  phone?: string;
+  email?: string;
+  address?: string;
+  iban?: string;
+  bankName?: string;
+  defaultCurrency?: string;
+  paymentTermDays?: number;
+  isRelatedParty?: boolean;
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
+export type BillStatus = 'draft' | 'approved' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
+export interface PurchaseBill {
+  id: string;
+  companyId: string;
+  billNumber: string;
+  vendorId: string;
+  vendorName?: string;
+  vendorInvoiceReference?: string;
+  issueDate: string;
+  dueDate: string;
+  lineItems: DocLineItem[];
+  subtotal: number;
+  vatTotal: number;
+  grandTotal: number;
+  currency: string;
+  amountPaid: number;
+  amountDue: number;
+  status: BillStatus;
+  warehouseId?: string | null;
+  journalEntryId?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
 /**
  * Aktiv membership — auth-provider-in cari company kontekstində hesabladığı
  * birləşdirilmiş giriş məlumatı (rol + effektiv icazələr).
