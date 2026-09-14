@@ -18,7 +18,7 @@ import { LocaleSwitcher } from './locale-switcher';
 import { NotificationBell } from './notification-bell';
 import { ThemeToggle } from './theme-toggle';
 
-export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
+export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: () => void; showMenuButton?: boolean }) {
   const t = useTranslations('common');
   const router = useRouter();
   const { profile, firebaseUser, active } = useAuth();
@@ -34,7 +34,7 @@ export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-md lg:px-6">
       <div className="flex min-w-0 items-center gap-3">
-        <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label="Menyu"><Menu /></Button>
+        {showMenuButton && <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label="Menyu"><Menu /></Button>}
         <span className="lg:hidden"><Logo compact /></span>
         <CompanySwitcher />
       </div>

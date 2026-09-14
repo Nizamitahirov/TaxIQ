@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Sidebar } from '@/components/layout/sidebar';
@@ -11,8 +11,11 @@ import { cn } from '@/lib/utils/cn';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { firebaseUser, loading, mustChangePassword } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  // Launcher (hub) səhifəsində sol menyu göstərilmir — modula keçəndən sonra görünür
+  const hideSidebar = pathname === '/launch';
 
   // Route guard — 01 §3.2 / §3.3
   useEffect(() => {
@@ -43,13 +46,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className={cn('hidden shrink-0 border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-in-out lg:block', collapsed ? 'w-[76px]' : 'w-64')}>
-        <div className="sticky top-0 h-screen">
-          <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapse} />
-        </div>
-      </aside>
+      {!hideSidebar && (
+        <aside className={cn('hidden shrink-0 border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-in-out lg:block', collapsed ? 'w-[76px]' : 'w-64')}>
+          <div className="sticky top-0 h-screen">
+            <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapse} />
+          </div>
+        </aside>
+      )}
 
-      {mobileOpen && (
+      {!hideSidebar && mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in-0" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 h-full w-64 bg-sidebar shadow-xl animate-in slide-in-from-left">
@@ -59,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar onMenuClick={() => setMobileOpen(true)} />
+        <Topbar onMenuClick={() => setMobileOpen(true)} showMenuButton={!hideSidebar} />
         <main className="flex-1 p-4 lg:p-6">
           <div className="mx-auto w-full max-w-[1600px]">{children}</div>
         </main>
