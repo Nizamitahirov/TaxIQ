@@ -1,14 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowUpRight, Plus, Loader2, Check, Trash2, Camera, ListChecks, Sparkles, CalendarDays, ImagePlus,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
-import { AREAS, itemsForArea } from '@/lib/areas';
+import { AREAS, itemsForArea, type AreaDef } from '@/lib/areas';
 import { usePermittedNavItems } from '@/components/layout/use-nav';
+import { loadCardStyle, type CardStyle } from '@/lib/dashboard/card-style';
+import type { NavItem } from '@/lib/nav';
 import { listMyTasks, createTask, toggleTask, deleteTask, completionPercent } from '@/lib/firebase/tasks';
 import { useAvatarUpload, useCoverUpload } from '@/components/shared/use-avatar-upload';
 import { SetupChecklist } from '@/components/shell/setup-checklist';
@@ -32,6 +34,9 @@ export default function LaunchPage() {
   const now = new Date();
   const greet = now.getHours() < 12 ? 'Sabahınız xeyir' : now.getHours() < 18 ? 'Günortanız xeyir' : 'Axşamınız xeyir';
   const companyId = active?.companyId;
+
+  const [cardStyle, setCardStyle] = useState<CardStyle>('gradient');
+  useEffect(() => { setCardStyle(loadCardStyle()); }, []);
 
   const permittedHrefs = new Set(usePermittedNavItems().map((i) => i.href));
   const areas = useMemo(() => AREAS.map((a) => {
@@ -59,32 +64,7 @@ export default function LaunchPage() {
           <p className="mt-1 text-sm text-muted-foreground">Bir iş sahəsi seçin — yalnız ona aid modullar və menyu göstəriləcək.</p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            {areas.map((a) => (
-              <Link key={a.key} href={a.landing}
-                className="group relative overflow-hidden rounded-3xl p-5 text-white shadow-lg transition-all duration-300 hover:-translate-y-1"
-                style={{ boxShadow: `0 20px 45px -20px ${a.glow}` }}>
-                <div className={cn('absolute inset-0 bg-gradient-to-br', a.gradient)} />
-                <div aria-hidden className="absolute -right-8 -top-10 h-36 w-36 rounded-full bg-white/10 blur-2xl transition-transform duration-500 group-hover:scale-125" />
-                <div className="relative flex h-full flex-col">
-                  <div className="flex items-start justify-between">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 ring-1 ring-white/30 backdrop-blur-sm">
-                      <a.icon className="h-6 w-6" />
-                    </span>
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
-                      <ArrowUpRight className="h-4 w-4" />
-                    </span>
-                  </div>
-                  <p className="mt-4 text-lg font-bold leading-tight">{a.label}</p>
-                  <p className="mt-1 text-sm text-white/80">{a.desc}</p>
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    {a.items.slice(0, 4).map((it) => (
-                      <span key={it.href} className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white/90">{it.labelKey === 'sectorTemplates' ? 'Şablonlar' : LABELS[it.labelKey] ?? it.labelKey}</span>
-                    ))}
-                    {a.items.length > 4 && <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white/90">+{a.items.length - 4}</span>}
-                  </div>
-                </div>
-              </Link>
-            ))}
+            {areas.map((a) => <AreaCard key={a.key} a={a} style={cardStyle} />)}
           </div>
         </div>
 
@@ -103,6 +83,54 @@ const LABELS: Record<string, string> = {
   audit: 'Audit', warehouse: 'Anbar', sales: 'Satış', cashbank: 'Kassa/Bank', accounting: 'Mühasibat', ifrs: 'IFRS',
   hr: 'Kadrlar', payroll: 'Əmək haqqı', workflow: 'Workflow', reports: 'Hesabatlar', settings: 'Parametrlər', hse: 'SƏTƏM', tasks: 'Tapşırıqlar',
 };
+const chipLabel = (labelKey: string) => labelKey === 'sectorTemplates' ? 'Şablonlar' : LABELS[labelKey] ?? labelKey;
+
+// ── Bölmə kartı — iki görünüş: rəngli gradient / ağ + abstrakt ──
+function AreaCard({ a, style }: { a: AreaDef & { items: NavItem[] }; style: CardStyle }) {
+  const Icon = a.icon;
+  if (style === 'minimal') {
+    return (
+      <Link href={a.landing}
+        className="group relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg">
+        {/* abstrakt elementlər */}
+        <div aria-hidden className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full opacity-50 blur-2xl transition-transform duration-500 group-hover:scale-125" style={{ background: a.glow }} />
+        <Icon aria-hidden strokeWidth={1} className="pointer-events-none absolute -bottom-5 -right-4 h-28 w-28 text-foreground/[0.035]" />
+        <div className="relative flex h-full flex-col">
+          <div className="flex items-start justify-between">
+            <span className={cn('flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm', a.gradient)}><Icon className="h-6 w-6" /></span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors group-hover:text-primary"><ArrowUpRight className="h-4 w-4" /></span>
+          </div>
+          <p className="mt-4 text-lg font-bold leading-tight">{a.label}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{a.desc}</p>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {a.items.slice(0, 4).map((it) => <span key={it.href} className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{chipLabel(it.labelKey)}</span>)}
+            {a.items.length > 4 && <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">+{a.items.length - 4}</span>}
+          </div>
+        </div>
+      </Link>
+    );
+  }
+  return (
+    <Link href={a.landing}
+      className="group relative overflow-hidden rounded-3xl p-5 text-white shadow-lg transition-all duration-300 hover:-translate-y-1"
+      style={{ boxShadow: `0 20px 45px -20px ${a.glow}` }}>
+      <div className={cn('absolute inset-0 bg-gradient-to-br', a.gradient)} />
+      <div aria-hidden className="absolute -right-8 -top-10 h-36 w-36 rounded-full bg-white/10 blur-2xl transition-transform duration-500 group-hover:scale-125" />
+      <div className="relative flex h-full flex-col">
+        <div className="flex items-start justify-between">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 ring-1 ring-white/30 backdrop-blur-sm"><Icon className="h-6 w-6" /></span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"><ArrowUpRight className="h-4 w-4" /></span>
+        </div>
+        <p className="mt-4 text-lg font-bold leading-tight">{a.label}</p>
+        <p className="mt-1 text-sm text-white/80">{a.desc}</p>
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {a.items.slice(0, 4).map((it) => <span key={it.href} className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white/90">{chipLabel(it.labelKey)}</span>)}
+          {a.items.length > 4 && <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white/90">+{a.items.length - 4}</span>}
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 // Default abstract "avatract" mesh gradient (üzlük şəkli yoxdursa)
 const DEFAULT_COVER = {

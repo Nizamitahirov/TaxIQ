@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Save, Building2, Coins, Receipt, User } from 'lucide-react';
+import { Loader2, Save, Building2, Coins, Receipt, User, LayoutGrid } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { loadCardStyle, saveCardStyle, type CardStyle } from '@/lib/dashboard/card-style';
 import { listDocs } from '@/lib/firebase/firestore';
 import { getActiveTaxConfig, saveTaxConfig } from '@/lib/firebase/hr';
 import { PageHeader } from '@/components/shared/page-header';
@@ -130,6 +131,9 @@ function TaxTab({ canManage }: { canManage: boolean }) {
 function PrefsTab() {
   const { profile } = useAuth();
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem('theme') ?? 'system'; } catch { return 'system'; } });
+  const [cardStyle, setCardStyle] = useState<CardStyle>('gradient');
+  useEffect(() => { setCardStyle(loadCardStyle()); }, []);
+  function applyCardStyle(s: CardStyle) { setCardStyle(s); saveCardStyle(s); }
   function apply(next: string) {
     setTheme(next);
     try {
@@ -151,7 +155,31 @@ function PrefsTab() {
         <Label>Dil</Label>
         <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setLang('az')}>🇦🇿 Azərbaycanca</Button><Button variant="outline" size="sm" onClick={() => setLang('en')}>🇬🇧 English</Button></div>
       </div>
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> Bölmə kartlarının görünüşü <span className="font-normal text-muted-foreground">(Bölmələr səhifəsi)</span></Label>
+        <div className="grid max-w-md grid-cols-2 gap-3">
+          <CardStyleOption active={cardStyle === 'gradient'} onClick={() => applyCardStyle('gradient')} label="Rəngli">
+            <div className="h-full w-full rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]" />
+          </CardStyleOption>
+          <CardStyleOption active={cardStyle === 'minimal'} onClick={() => applyCardStyle('minimal')} label="Sadə (ağ + abstrakt)">
+            <div className="relative h-full w-full overflow-hidden rounded-lg border border-border bg-card">
+              <div className="absolute -right-2 -top-3 h-10 w-10 rounded-full opacity-50 blur-lg" style={{ background: 'rgba(99,102,241,0.5)' }} />
+              <div className="absolute left-2 top-2 h-4 w-4 rounded-md bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]" />
+            </div>
+          </CardStyleOption>
+        </div>
+        <p className="text-xs text-muted-foreground">Dəyişiklik Bölmələr səhifəsinə keçəndə tətbiq olunur.</p>
+      </div>
     </CardContent></Card>
+  );
+}
+
+function CardStyleOption({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} className={`rounded-xl border p-2 text-left transition-colors ${active ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/40'}`}>
+      <div className="h-16 w-full">{children}</div>
+      <p className={`mt-2 text-xs font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>{label}</p>
+    </button>
   );
 }
 
