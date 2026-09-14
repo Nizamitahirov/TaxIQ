@@ -347,10 +347,43 @@ export interface Invoice {
   departmentId?: string | null;
   warehouseId?: string | null;
   journalEntryId?: string | null;
+  /** e-Qaimə (STS) — 06 §5 */
+  eInvoice?: { submittedToSTS: boolean; stsReferenceNumber?: string | null; submittedAt?: string | null };
+  documentTemplateId?: string | null;
   notes?: string | null;
   createdAt?: TS;
   updatedAt?: TS;
   createdBy?: string;
+}
+
+/** documentTemplates/{id} — Sənəd (Blank) Dizayneri, merge-tag şablonu (06 §6) */
+export interface DocumentTemplate {
+  id: string;
+  companyId: string;
+  type: 'invoice' | 'quote' | 'order' | 'contract';
+  name: string;
+  htmlContent: string;         // {{tag}} və {{#each lineItems}}...{{/each}} sintaksisi ilə
+  isDefault: boolean;
+  createdBy?: string;
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
+/** recurringInvoiceTemplates/{id} — Təkrarlanan fakturalar (06 §4) */
+export interface RecurringInvoiceTemplate {
+  id: string;
+  companyId: string;
+  customerId: string;
+  customerName?: string;
+  lineItems: DocLineItem[];
+  frequency: 'monthly' | 'quarterly' | 'annually';
+  nextRunDate: string;         // YYYY-MM-DD
+  endDate?: string | null;
+  isActive: boolean;
+  lastGeneratedInvoiceId?: string | null;
+  lastGeneratedAt?: string | null;
+  createdBy?: string;
+  createdAt?: TS;
 }
 
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired' | 'converted_to_order';

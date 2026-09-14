@@ -8,6 +8,8 @@ import { InvoicesTab } from './invoices-tab';
 import { CustomersTab } from './customers-tab';
 import { QuotesOrdersTab } from './quotes-orders-tab';
 import { AgingTab } from './aging-tab';
+import { RecurringTab } from './recurring-tab';
+import { TemplatesTab } from './templates-tab';
 
 export default function SalesPage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
@@ -27,11 +29,15 @@ export default function SalesPage() {
           <TabsTrigger value="invoices">Fakturalar</TabsTrigger>
           <TabsTrigger value="customers">Müştərilər</TabsTrigger>
           <TabsTrigger value="chain">Təklif / Sifariş</TabsTrigger>
+          <TabsTrigger value="recurring">Təkrarlanan</TabsTrigger>
+          <TabsTrigger value="templates">Şablonlar</TabsTrigger>
           <TabsTrigger value="aging">Debitor yaş analizi</TabsTrigger>
         </TabsList>
         <TabsContent value="invoices"><InvoicesTab companyId={companyId} canCreate={canCreate} actorUid={profile?.uid ?? ''} baseCurrency={base} company={active!.company} /></TabsContent>
         <TabsContent value="customers"><CustomersTab companyId={companyId} canCreate={canCreate} actorUid={profile?.uid ?? ''} baseCurrency={base} /></TabsContent>
         <TabsContent value="chain"><QuotesOrdersTab companyId={companyId} canCreate={canCreate} actorUid={profile?.uid ?? ''} baseCurrency={base} /></TabsContent>
+        <TabsContent value="recurring"><RecurringTab companyId={companyId} canCreate={canCreate} actorUid={profile?.uid ?? ''} baseCurrency={base} /></TabsContent>
+        <TabsContent value="templates"><TemplatesTab companyId={companyId} canCreate={canCreate} actorUid={profile?.uid ?? ''} /></TabsContent>
         <TabsContent value="aging"><AgingTab companyId={companyId} baseCurrency={base} /></TabsContent>
       </Tabs>
     </div>

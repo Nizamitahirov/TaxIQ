@@ -2,12 +2,13 @@ import {
   runTransaction, doc, collection, serverTimestamp, where, orderBy,
 } from 'firebase/firestore';
 import { getDb } from './config';
-import { listByCompany, getDocById, createDoc, updateDocById } from './firestore';
+import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById } from './firestore';
 import { fireWorkflows } from '@/lib/workflow/engine';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
 import type {
   Customer, CustomerGroup, DocLineItem, Invoice, SalesQuote, SalesOrder,
+  DocumentTemplate, RecurringInvoiceTemplate,
 } from '@/types';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -230,6 +231,83 @@ export async function convertOrderToInvoice(order: SalesOrder, customer: Custome
 
 export async function getCustomer(id: string): Promise<Customer | null> {
   return getDocById<Customer>('customers', id);
+}
+
+// ── e-Qaimə (STS) statusu (06 §5) ───────────────────────────
+export async function markEInvoiceSubmitted(invoice: Invoice, stsRef: string, actorUid: string): Promise<void> {
+  await updateDocById('invoices', invoice.id, {
+    eInvoice: { submittedToSTS: true, stsReferenceNumber: stsRef, submittedAt: new Date().toISOString().slice(0, 10) },
+  });
+  await logAudit({ companyId: invoice.companyId, userId: actorUid, action: 'EINVOICE_SUBMITTED', entityType: 'invoice', entityId: invoice.id, after: { stsRef } });
+}
+
+/** Vaxtı keçmiş fakturaların statusunu yenilə (06 §3.2, Cloud Scheduler alternativi) */
+export async function refreshOverdue(companyId: string): Promise<number> {
+  const invoices = await listByCompany<Invoice>('invoices', companyId);
+  const today = new Date().toISOString().slice(0, 10);
+  let n = 0;
+  for (const inv of invoices) {
+    if (['sent', 'partially_paid'].includes(inv.status) && inv.dueDate < today && (inv.amountDue ?? 0) > 0) {
+      await updateDocById('invoices', inv.id, { status: 'overdue' });
+      n++;
+    }
+  }
+  return n;
+}
+
+// ── Sənəd şablonları (06 §6) ────────────────────────────────
+export const listDocumentTemplates = (companyId: string) => listByCompany<DocumentTemplate>('documentTemplates', companyId);
+export const createDocumentTemplate = (d: Omit<DocumentTemplate, 'id'>) => createDoc('documentTemplates', d as Record<string, unknown>);
+export const updateDocumentTemplate = (id: string, d: Partial<DocumentTemplate>) => updateDocById('documentTemplates', id, d as Record<string, unknown>);
+export const deleteDocumentTemplate = (id: string) => deleteDocById('documentTemplates', id);
+/** Bir tip üçün yalnız 1 defolt — digərlərini söndür */
+export async function setDefaultTemplate(companyId: string, tpl: DocumentTemplate): Promise<void> {
+  const all = await listByCompany<DocumentTemplate>('documentTemplates', companyId);
+  for (const t of all) if (t.type === tpl.type && t.isDefault && t.id !== tpl.id) await updateDocById('documentTemplates', t.id, { isDefault: false });
+  await updateDocById('documentTemplates', tpl.id, { isDefault: true });
+}
+
+// ── Təkrarlanan fakturalar (06 §4) ──────────────────────────
+export const listRecurringTemplates = (companyId: string) => listByCompany<RecurringInvoiceTemplate>('recurringInvoiceTemplates', companyId, [orderBy('createdAt', 'desc')]);
+export const createRecurringTemplate = (d: Omit<RecurringInvoiceTemplate, 'id'>) => createDoc('recurringInvoiceTemplates', d as Record<string, unknown>);
+export const updateRecurringTemplate = (id: string, d: Partial<RecurringInvoiceTemplate>) => updateDocById('recurringInvoiceTemplates', id, d as Record<string, unknown>);
+export const deleteRecurringTemplate = (id: string) => deleteDocById('recurringInvoiceTemplates', id);
+
+function advanceDate(iso: string, freq: RecurringInvoiceTemplate['frequency']): string {
+  const d = new Date(iso);
+  if (freq === 'monthly') d.setMonth(d.getMonth() + 1);
+  else if (freq === 'quarterly') d.setMonth(d.getMonth() + 3);
+  else d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Vaxtı çatan təkrarlanan şablonlardan yeni fakturalar yaradır (client-side scheduler alternativi) */
+export async function generateDueRecurringInvoices(companyId: string, actorUid: string): Promise<number> {
+  const templates = await listRecurringTemplates(companyId);
+  const today = new Date().toISOString().slice(0, 10);
+  let created = 0;
+  for (const t of templates) {
+    if (!t.isActive) continue;
+    if (t.endDate && t.nextRunDate > t.endDate) continue;
+    // Vaxtı çatan bütün dövrləri yarat (buraxılmış aylar da)
+    let next = t.nextRunDate;
+    let lastId = t.lastGeneratedInvoiceId ?? null;
+    while (next <= today && (!t.endDate || next <= t.endDate)) {
+      const customer = await getCustomer(t.customerId);
+      lastId = await createInvoice({
+        companyId, customerId: t.customerId, customerName: t.customerName ?? customer?.name ?? '',
+        issueDate: next, paymentTermDays: customer?.paymentTermDays ?? 0, currency: (customer?.defaultCurrency ?? 'AZN'),
+        lineItems: t.lineItems.map((l) => ({ goodId: l.goodId ?? null, description: l.description, quantity: l.quantity, unit: l.unit, unitPrice: l.unitPrice, discountPercent: l.discountPercent, vatRate: l.vatRate })),
+        createdBy: actorUid,
+      });
+      created++;
+      next = advanceDate(next, t.frequency);
+    }
+    if (created > 0 || next !== t.nextRunDate) {
+      await updateRecurringTemplate(t.id, { nextRunDate: next, lastGeneratedInvoiceId: lastId, lastGeneratedAt: today });
+    }
+  }
+  return created;
 }
 
 export { where };
