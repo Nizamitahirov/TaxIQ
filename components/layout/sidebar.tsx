@@ -18,9 +18,10 @@ interface Props {
   onNavigate?: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  hideHeader?: boolean;
 }
 
-export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Props) {
+export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse, hideHeader = false }: Props) {
   const pathname = usePathname();
   const t = useTranslations('nav');
   const tg = useTranslations('navGroup');
@@ -49,18 +50,20 @@ export function Sidebar({ onNavigate, collapsed = false, onToggleCollapse }: Pro
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className={cn('flex h-16 shrink-0 items-center border-b border-sidebar-border', collapsed ? 'justify-center px-2' : 'justify-between px-5')}>
-        <Link href="/launch" onClick={onNavigate} aria-label="TaxIQ" className="transition-opacity hover:opacity-80">
-          <Logo compact={collapsed} />
-        </Link>
-        {onToggleCollapse && !collapsed && (
-          <button onClick={onToggleCollapse} className="hidden h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground lg:flex" aria-label="Menyunu yığ" title="Menyunu yığ">
-            <PanelLeftClose className="h-[18px] w-[18px]" />
-          </button>
-        )}
-      </div>
+      {!hideHeader && (
+        <div className={cn('flex h-16 shrink-0 items-center border-b border-sidebar-border', collapsed ? 'justify-center px-2' : 'justify-between px-5')}>
+          <Link href="/launch" onClick={onNavigate} aria-label="TaxIQ" className="transition-opacity hover:opacity-80">
+            <Logo compact={collapsed} />
+          </Link>
+          {onToggleCollapse && !collapsed && (
+            <button onClick={onToggleCollapse} className="hidden h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground lg:flex" aria-label="Menyunu yığ" title="Menyunu yığ">
+              <PanelLeftClose className="h-[18px] w-[18px]" />
+            </button>
+          )}
+        </div>
+      )}
 
-      {onToggleCollapse && collapsed && (
+      {!hideHeader && onToggleCollapse && collapsed && (
         <div className="flex justify-center py-3">
           <button onClick={onToggleCollapse} className="flex h-10 w-10 items-center justify-center rounded-lg text-sidebar-foreground/55 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground" aria-label="Menyunu genişləndir" title="Menyunu genişləndir">
             <PanelLeftOpen className="h-[18px] w-[18px]" />

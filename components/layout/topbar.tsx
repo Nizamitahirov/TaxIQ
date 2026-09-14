@@ -3,9 +3,12 @@
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { LogOut, Menu, Settings, User } from 'lucide-react';
+import { LogOut, Menu, Settings, User, Search } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { logout } from '@/lib/firebase/auth';
+import { useShell } from '@/components/shell/shell-provider';
+import { Breadcrumbs } from '@/components/shell/breadcrumbs';
+import { CreateMenu } from '@/components/shell/create-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -22,6 +25,7 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
   const t = useTranslations('common');
   const router = useRouter();
   const { profile, firebaseUser, active } = useAuth();
+  const { openPalette } = useShell();
 
   const name = profile?.displayName || firebaseUser?.email || 'İstifadəçi';
   const initials = name.slice(0, 2).toUpperCase();
@@ -33,13 +37,22 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-md lg:px-6">
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2.5">
         {showMenuButton && <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label="Menyu"><Menu /></Button>}
         <span className="lg:hidden"><Logo compact /></span>
         <CompanySwitcher />
+        <span className="hidden h-5 w-px bg-border md:block" />
+        <Breadcrumbs />
       </div>
 
       <div className="flex items-center gap-1.5">
+        <button onClick={() => openPalette('all')} aria-label="Axtar (⌘K)"
+          className="hidden h-9 items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-secondary md:flex">
+          <Search className="h-4 w-4" /> <span>Axtar…</span>
+          <kbd className="ml-2 rounded border border-border bg-background px-1.5 text-[10px] font-medium">⌘K</kbd>
+        </button>
+        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => openPalette('all')} aria-label="Axtar"><Search className="h-5 w-5" /></Button>
+        <CreateMenu />
         <ThemeToggle />
         <LocaleSwitcher />
         <NotificationBell />
