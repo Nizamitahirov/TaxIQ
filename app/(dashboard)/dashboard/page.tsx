@@ -40,7 +40,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      {isSuperAdmin && <PlatformSection greet={greet} firstName={firstName} todayStr={todayStr} />}
+      {isSuperAdmin && <PlatformSection greet={greet} firstName={firstName} todayStr={todayStr} avatarUrl={profile?.avatarUrl ?? undefined} />}
       {active && <CompanySection companyId={active.companyId} company={active.company} roleName={active.roleName}
         greet={greet} firstName={firstName} todayStr={todayStr} avatarUrl={profile?.avatarUrl ?? undefined}
         canViewSalary={can('hr.employee.salary.view')} showHero={!isSuperAdmin} uid={profile?.uid ?? ''} />}
@@ -52,11 +52,11 @@ export default function DashboardPage() {
 }
 
 // ═══════════ PLATFORM ═══════════
-function PlatformSection({ greet, firstName, todayStr }: { greet: string; firstName: string; todayStr: string }) {
+function PlatformSection({ greet, firstName, todayStr, avatarUrl }: { greet: string; firstName: string; todayStr: string; avatarUrl?: string }) {
   const { data, isLoading } = useQuery({ queryKey: ['platform-metrics'], queryFn: loadPlatformMetrics });
   return (
     <div className="flex flex-col gap-6">
-      <Hero title={`${greet}, ${firstName} 👋`} sub={`${todayStr} · Platform İdarə Paneli`} label="TaxIQ · Super Admin" cta={{ href: '/companies/new', label: 'Yeni müştəri' }} />
+      <Hero title={`${greet}, ${firstName} 👋`} sub={`${todayStr} · Platform İdarə Paneli`} label="TaxIQ · Super Admin" cta={{ href: '/companies/new', label: 'Yeni müştəri' }} avatar={{ name: firstName, avatarUrl, editable: true }} />
       {isLoading || !data ? <KpiSkeleton /> : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -340,17 +340,46 @@ function CustomizeDialog({ open, onOpenChange, cfg, onApply }: { open: boolean; 
 }
 
 // ── Ortaq komponentlər (Uperp tərzi) ──
-function Hero({ title, sub, label, cta }: { title: string; sub: string; label: string; cta: { href: string; label: string } }) {
+function Hero({ title, sub, label, cta, avatar }: { title: string; sub: string; label: string; cta: { href: string; label: string }; avatar?: { name: string; avatarUrl?: string; editable?: boolean } }) {
   return (
     <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#6b5cf2] via-[#6a4cf3] to-[#8b3df0] p-7 text-white shadow-[0_24px_70px_-24px_rgba(91,91,245,0.6)] lg:p-9">
       <div aria-hidden className="pointer-events-none absolute inset-0"><Sparkles className="absolute right-8 top-4 h-40 w-40 text-white/[0.12]" strokeWidth={1} /><div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" /></div>
-      <div className="relative max-w-xl">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70">{label}</p>
-        <h1 className="mt-3 text-3xl font-bold leading-[1.1] tracking-tight lg:text-[2.7rem]">{title}</h1>
-        <p className="mt-2 text-sm text-white/75">{sub}</p>
-        <Link href={cta.href} className="mt-6 inline-flex items-center gap-2.5 rounded-full bg-[#0d0d14] py-2.5 pl-5 pr-2.5 text-sm font-semibold text-white transition-transform hover:scale-105">{cta.label}<span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15"><ArrowRight className="h-4 w-4" /></span></Link>
+      <div className="relative flex items-center justify-between gap-6">
+        <div className="min-w-0 max-w-xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70">{label}</p>
+          <h1 className="mt-3 text-3xl font-bold leading-[1.1] tracking-tight lg:text-[2.7rem]">{title}</h1>
+          <p className="mt-2 text-sm text-white/75">{sub}</p>
+          <Link href={cta.href} className="mt-6 inline-flex items-center gap-2.5 rounded-full bg-[#0d0d14] py-2.5 pl-5 pr-2.5 text-sm font-semibold text-white transition-transform hover:scale-105">{cta.label}<span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15"><ArrowRight className="h-4 w-4" /></span></Link>
+        </div>
+        {avatar && <div className="hidden shrink-0 sm:block"><HeroAvatar name={avatar.name} avatarUrl={avatar.avatarUrl} editable={avatar.editable} /></div>}
       </div>
     </section>
+  );
+}
+
+/** Rəngli hero blokunun sağında yerləşən, yüklənə bilən profil şəkli */
+function HeroAvatar({ name, avatarUrl, editable }: { name: string; avatarUrl?: string; editable?: boolean }) {
+  const { inputRef, uploading, openPicker, onFile } = useAvatarUpload();
+  const photo = avatarUrl
+    ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+    : <div className="flex h-full w-full items-center justify-center bg-white/15 text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</div>;
+  if (!editable) {
+    return <div className="h-24 w-24 overflow-hidden rounded-full ring-4 ring-white/25 lg:h-28 lg:w-28">{photo}</div>;
+  }
+  return (
+    <>
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
+      <button type="button" onClick={openPicker} disabled={uploading} title="Şəkli dəyişdir"
+        className="group relative h-24 w-24 rounded-full outline-none ring-4 ring-white/25 transition hover:ring-white/50 focus-visible:ring-white lg:h-28 lg:w-28">
+        <span className="block h-full w-full overflow-hidden rounded-full">{photo}</span>
+        <span className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#6a4cf3] bg-white text-[#5B5BF5] shadow-lg transition-transform group-hover:scale-110">
+          {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+        </span>
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-full bg-black/45 text-[11px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
+          {avatarUrl ? 'Dəyişdir' : 'Şəkil əlavə et'}
+        </span>
+      </button>
+    </>
   );
 }
 function KpiCard({ icon: Icon, tint, label, value, sub }: { icon: typeof Wallet; tint: string; label: string; value: string; sub?: string }) {
