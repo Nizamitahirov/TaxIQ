@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { LogOut, Menu, Settings, User, Search } from 'lucide-react';
+import { LogOut, Menu, Settings, User, Search, Keyboard, Compass } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { logout } from '@/lib/firebase/auth';
 import { useShell } from '@/components/shell/shell-provider';
@@ -30,7 +30,7 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
   const t = useTranslations('common');
   const router = useRouter();
   const { profile, firebaseUser, active } = useAuth();
-  const { openPalette } = useShell();
+  const { openPalette, openHelp, openTour } = useShell();
   const { year, setYear } = usePeriod();
   const { density, toggle: toggleDensity } = useDensity();
   const nowYear = new Date().getFullYear();
@@ -97,6 +97,9 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
               {density === 'compact' ? <Rows4 className="h-4 w-4" /> : <Rows3 className="h-4 w-4" />}
               {density === 'compact' ? 'Rahat görünüş' : 'Sıx görünüş'}
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={(e) => { e.preventDefault(); openTour(); }}><Compass className="h-4 w-4" /> Təqdimat turu</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.preventDefault(); openHelp(); }}><Keyboard className="h-4 w-4" /> Qısayollar</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-danger">
               <LogOut className="h-4 w-4" /> {t('logout')}

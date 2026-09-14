@@ -5,10 +5,13 @@ import { useRouter } from 'next/navigation';
 import { PeriodProvider } from '@/components/providers/period-provider';
 import { CommandPalette } from './command-palette';
 import { ShortcutsHelp } from './shortcuts-help';
+import { WelcomeTour } from './welcome-tour';
 
-interface ShellCtx { openPalette: (mode?: 'all' | 'create') => void }
-const Ctx = createContext<ShellCtx>({ openPalette: () => {} });
+interface ShellCtx { openPalette: (mode?: 'all' | 'create') => void; openHelp: () => void; openTour: () => void }
+const Ctx = createContext<ShellCtx>({ openPalette: () => {}, openHelp: () => {}, openTour: () => {} });
 export const useShell = () => useContext(Ctx);
+
+const TOUR_KEY = 'taxiq.onboarded';
 
 // g-prefiksli naviqasiya qısayolları
 const GOTO: Record<string, string> = {
@@ -21,10 +24,22 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'all' | 'create'>('all');
   const [helpOpen, setHelpOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const gPending = useRef(false);
   const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const openPalette = useCallback((m: 'all' | 'create' = 'all') => { setMode(m); setOpen(true); }, []);
+  const openHelp = useCallback(() => setHelpOpen(true), []);
+  const openTour = useCallback(() => setTourOpen(true), []);
+
+  // İlk giriş — təqdimat turu bir dəfə göstərilir
+  useEffect(() => {
+    try { if (!localStorage.getItem(TOUR_KEY)) setTourOpen(true); } catch { /* ignore */ }
+  }, []);
+  const closeTour = useCallback(() => {
+    setTourOpen(false);
+    try { localStorage.setItem(TOUR_KEY, '1'); } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -48,11 +63,12 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   }, [openPalette, router]);
 
   return (
-    <Ctx.Provider value={{ openPalette }}>
+    <Ctx.Provider value={{ openPalette, openHelp, openTour }}>
       <PeriodProvider>
         {children}
         <CommandPalette open={open} onOpenChange={setOpen} mode={mode} />
         <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+        <WelcomeTour open={tourOpen} onClose={closeTour} />
       </PeriodProvider>
     </Ctx.Provider>
   );

@@ -11,6 +11,7 @@ import { AREAS, itemsForArea } from '@/lib/areas';
 import type { NavItem } from '@/lib/nav';
 import { listMyTasks, createTask, toggleTask, deleteTask, completionPercent } from '@/lib/firebase/tasks';
 import { useAvatarUpload } from '@/components/shared/use-avatar-upload';
+import { SetupChecklist } from '@/components/shell/setup-checklist';
 import type { CompanyModule, UserTask } from '@/types';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
@@ -57,6 +58,8 @@ export default function LaunchPage() {
       <div className="mb-6 flex items-center gap-2 text-sm font-medium text-primary">
         <Sparkles className="h-4 w-4" /> TaxIQ · İş sahələri
       </div>
+
+      <SetupChecklist />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {/* SOL — bölmə blokları */}
