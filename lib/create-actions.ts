@@ -1,6 +1,6 @@
 import {
   FileText, UserPlus, BookOpen, Users2, Package, Wallet, Building2, FileSpreadsheet,
-  Workflow, HardHat, type LucideIcon,
+  Workflow, HardHat, ListChecks, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 import type { AreaKey } from '@/lib/nav';
@@ -22,6 +22,7 @@ export const CREATE_ACTIONS: CreateAction[] = [
   { label: 'Yeni işçi', href: '/hr', module: 'hr', area: 'hr', icon: UserPlus },
   { label: 'Yeni hesabat', href: '/reports', module: 'reports', area: 'reports', icon: FileSpreadsheet },
   { label: 'SƏTƏM sənədi / təlim qeydi', href: '/hse', module: 'hse', area: 'hse', icon: HardHat },
+  { label: 'Yeni tapşırıq', href: '/tasks', module: 'dashboard', area: 'settings', icon: ListChecks },
   { label: 'Yeni workflow', href: '/workflow', module: 'workflow', area: 'settings', icon: Workflow },
   { label: 'Yeni istifadəçi', href: '/users', module: 'users', area: 'settings', icon: Users2 },
   { label: 'Yeni müştəri (şirkət)', href: '/companies/new', module: 'companies', area: 'settings', icon: Building2 },

@@ -75,7 +75,8 @@
     "reports": "Hesabatlar",
     "settings": "Tənzimləmələr",
     "sectorTemplates": "Sektor Şablonları",
-    "hse": "SƏTƏM uçotu"
+    "hse": "SƏTƏM uçotu",
+    "tasks": "Tapşırıqlar"
   },
   "dashboard": {
     "greetingMorning": "Sabahınız xeyir",

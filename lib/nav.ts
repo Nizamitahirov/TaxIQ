@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Building2, UserCog, ShieldCheck, ScrollText,
   Warehouse, Store, Wallet, BookOpen, BarChart3, Users2, Workflow,
-  FileSpreadsheet, Settings, Layers, HardHat, type LucideIcon,
+  FileSpreadsheet, Settings, Layers, HardHat, ListChecks, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
@@ -73,6 +73,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     labelKey: 'tools',
     items: [
+      { href: '/tasks', labelKey: 'tasks', icon: ListChecks, module: 'dashboard', area: 'settings' },
       { href: '/workflow', labelKey: 'workflow', icon: Workflow, module: 'workflow', area: 'settings' },
       { href: '/reports', labelKey: 'reports', icon: FileSpreadsheet, module: 'reports', area: 'reports' },
       { href: '/settings', labelKey: 'settings', icon: Settings, module: 'settings', area: 'settings' },

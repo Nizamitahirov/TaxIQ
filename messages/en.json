@@ -75,7 +75,8 @@
     "reports": "Reports",
     "settings": "Settings",
     "sectorTemplates": "Sector Templates",
-    "hse": "HSE"
+    "hse": "HSE",
+    "tasks": "Tasks"
   },
   "dashboard": {
     "greetingMorning": "Good morning",

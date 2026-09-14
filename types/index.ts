@@ -366,16 +366,23 @@ export interface FinancialStatementTemplate {
   updatedAt?: TS;
 }
 
-/** userTasks/{id} — kiçik tapşırıq idarəetməsi (modul launcher) */
+/** userTasks/{id} — tapşırıq idarəetməsi (launcher paneli + /tasks advanced) */
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
 export interface UserTask {
   id: string;
   companyId: string;
   title: string;
-  done: boolean;
+  description?: string | null;
+  status: TaskStatus;
+  done: boolean;                   // status==='done' güzgüsü (ring/geriyə uyğunluq)
   priority: 'low' | 'medium' | 'high';
   dueDate?: string | null;         // "YYYY-MM-DD"
+  labels?: string[];
   assignedToUid: string;
+  assigneeName?: string | null;
   createdBy: string;
+  createdByName?: string | null;
+  order?: number;                  // kanban sıralaması
   createdAt?: TS;
   completedAt?: TS | null;
 }

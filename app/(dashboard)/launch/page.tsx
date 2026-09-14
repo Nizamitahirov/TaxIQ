@@ -89,7 +89,7 @@ export default function LaunchPage() {
         </div>
 
         {/* SAĞ — profil ring + tapşırıqlar */}
-        <aside className="flex flex-col gap-5">
+        <aside className="flex min-h-0 flex-col gap-5">
           <ProfileRing name={firstName} roleName={isSuperAdmin ? 'Platform Super Admin' : (active?.roleName ?? 'İstifadəçi')} avatarUrl={profile?.avatarUrl ?? undefined} coverUrl={profile?.coverUrl ?? undefined} percent={pct} openCount={openCount} total={(tasks ?? []).length} />
           <TaskPanel companyId={companyId} uid={profile?.uid} tasks={tasks} />
         </aside>
@@ -101,7 +101,7 @@ export default function LaunchPage() {
 const LABELS: Record<string, string> = {
   dashboard: 'Dashboard', companies: 'Şirkətlər', clients: 'Müştərilər', users: 'İstifadəçilər', roles: 'Rollar',
   audit: 'Audit', warehouse: 'Anbar', sales: 'Satış', cashbank: 'Kassa/Bank', accounting: 'Mühasibat', ifrs: 'IFRS',
-  hr: 'Kadrlar', payroll: 'Əmək haqqı', workflow: 'Workflow', reports: 'Hesabatlar', settings: 'Parametrlər', hse: 'SƏTƏM',
+  hr: 'Kadrlar', payroll: 'Əmək haqqı', workflow: 'Workflow', reports: 'Hesabatlar', settings: 'Parametrlər', hse: 'SƏTƏM', tasks: 'Tapşırıqlar',
 };
 
 // Default abstract "avatract" mesh gradient (üzlük şəkli yoxdursa)
@@ -192,14 +192,15 @@ function TaskPanel({ companyId, uid, tasks }: { companyId?: string; uid?: string
   const sorted = [...(tasks ?? [])].sort((a, b) => Number(a.done) - Number(b.done));
 
   return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-soft">
+    <div className="flex min-h-[320px] flex-1 flex-col rounded-3xl border border-border bg-card p-5 shadow-soft">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm font-bold"><ListChecks className="h-4 w-4 text-primary" /> Tapşırıqlarım</h2>
+        <Link href="/tasks" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">Ətraflı <ArrowUpRight className="h-3.5 w-3.5" /></Link>
       </div>
       {!companyId ? (
         <p className="py-6 text-center text-xs text-muted-foreground">Tapşırıqlar üçün aktiv şirkət seçin.</p>
       ) : (
-        <>
+        <div className="flex min-h-0 flex-1 flex-col">
           <div className="mb-3 space-y-2">
             <Input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Yeni tapşırıq…" className="h-9" />
             <div className="flex gap-2">
@@ -212,7 +213,7 @@ function TaskPanel({ companyId, uid, tasks }: { companyId?: string; uid?: string
               </button>
             </div>
           </div>
-          <ul className="space-y-1.5">
+          <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto [scrollbar-width:thin]">
             {sorted.length === 0 ? <li className="py-6 text-center text-xs text-muted-foreground">Hələ tapşırıq yoxdur — yuxarıdan əlavə edin.</li> : sorted.map((t) => (
               <li key={t.id} className="group flex items-center gap-2.5 rounded-xl border border-border/60 px-3 py-2 transition-colors hover:bg-secondary/40">
                 <button onClick={() => toggle(t)} className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors', t.done ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary')}>
@@ -225,7 +226,10 @@ function TaskPanel({ companyId, uid, tasks }: { companyId?: string; uid?: string
               </li>
             ))}
           </ul>
-        </>
+          <Link href="/tasks" className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/40 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary">
+            Bütün tapşırıqlar (Lövhə · Siyahı · Hesabat) <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
       )}
     </div>
   );
