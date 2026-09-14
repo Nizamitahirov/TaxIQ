@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, AlertTriangle } from 'lucide-react';
+import { Loader2, Plus, AlertTriangle, ScanBarcode } from 'lucide-react';
 import {
   listStockBalances, listGoods, listWarehouses, postMovement, issueWithCogs, lowStockItems,
+  goodValuationMethod, toBaseUnit, goodUnits,
 } from '@/lib/firebase/inventory';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
+import { BarcodeScanner } from '@/components/shared/barcode-scanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
 import { formatCurrency, formatNumber } from '@/lib/utils/format';
-import type { MovementType } from '@/types';
+import type { MovementType, Good } from '@/types';
 
 interface TabProps { companyId: string; canCreate: boolean; actorUid: string; baseCurrency: string }
 
@@ -100,28 +102,40 @@ const OPS: { value: MovementType; label: string; isIn: boolean }[] = [
 
 function OperationDialog({ open, onOpenChange, companyId, actorUid, baseCurrency, goods, warehouses, onSaved }: {
   open: boolean; onOpenChange: (o: boolean) => void; companyId: string; actorUid: string; baseCurrency: string;
-  goods: { id: string; name: { az: string } }[]; warehouses: { id: string; name: { az: string } }[]; onSaved: () => void;
+  goods: Good[]; warehouses: { id: string; name: { az: string } }[]; onSaved: () => void;
 }) {
   const [op, setOp] = useState<MovementType>('purchase_in');
   const [warehouseId, setWarehouseId] = useState('');
   const [goodId, setGoodId] = useState('');
   const [qty, setQty] = useState('');
+  const [unit, setUnit] = useState('');
   const [unitCost, setUnitCost] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
+  const [scan, setScan] = useState(false);
   const opDef = OPS.find((o) => o.value === op)!;
+  const good = goods.find((g) => g.id === goodId);
+  const units = good ? goodUnits(good) : [];
+  const activeUnit = unit || good?.baseUnit || '';
+  const baseQty = good ? toBaseUnit(good, activeUnit, Number(qty) || 0) : Number(qty) || 0;
+
+  function selectGood(id: string) { setGoodId(id); setUnit(goods.find((g) => g.id === id)?.baseUnit ?? ''); }
+  function onScan(code: string) {
+    const g = goods.find((x) => x.barcode === code);
+    if (g) { selectGood(g.id); toast.success('Mal tapıldı', g.name.az); }
+    else toast.error('Bu barkodla mal tapılmadı', code);
+  }
 
   async function save() {
-    const g = goods.find((x) => x.id === goodId); const w = warehouses.find((x) => x.id === warehouseId);
-    const q = Number(qty) || 0;
-    if (!g || !w || q <= 0) { toast.error('Anbar, mal və miqdar tələb olunur'); return; }
+    const g = good; const w = warehouses.find((x) => x.id === warehouseId);
+    if (!g || !w || baseQty <= 0) { toast.error('Anbar, mal və miqdar tələb olunur'); return; }
     setSaving(true);
     try {
-      const common = { companyId, warehouseId, warehouseName: w.name.az, goodId, goodName: g.name.az, movementType: op, quantity: q, movementDate: date, performedBy: actorUid, unitCost: opDef.isIn ? (Number(unitCost) || 0) : null };
+      const common = { companyId, warehouseId, warehouseName: w.name.az, goodId, goodName: g.name.az, movementType: op, quantity: baseQty, valuationMethod: goodValuationMethod(g), movementDate: date, performedBy: actorUid, unitCost: opDef.isIn ? (Number(unitCost) || 0) : null };
       if (op === 'sale_out') await issueWithCogs({ ...common, baseCurrency });
       else await postMovement(common);
       toast.success('Hərəkət qeyd edildi', op === 'sale_out' ? 'COGS jurnal yazısı yaradıldı' : undefined);
-      setGoodId(''); setQty(''); setUnitCost('');
+      setGoodId(''); setQty(''); setUnitCost(''); setUnit('');
       onSaved(); onOpenChange(false);
     } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
@@ -142,18 +156,27 @@ function OperationDialog({ open, onOpenChange, companyId, actorUid, baseCurrency
                 <SelectContent>{warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.name.az}</SelectItem>)}</SelectContent></Select>
             </div>
             <div className="space-y-2"><Label>Mal</Label>
-              <Select value={goodId} onValueChange={setGoodId}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
-                <SelectContent>{goods.map((g) => <SelectItem key={g.id} value={g.id}>{g.name.az}</SelectItem>)}</SelectContent></Select>
+              <div className="flex gap-1">
+                <Select value={goodId} onValueChange={selectGood}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
+                  <SelectContent>{goods.map((g) => <SelectItem key={g.id} value={g.id}>{g.name.az}</SelectItem>)}</SelectContent></Select>
+                <Button type="button" variant="outline" size="icon" onClick={() => setScan(true)} title="Barkod skan"><ScanBarcode className="h-4 w-4" /></Button>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
             <div className="space-y-2"><Label>Miqdar</Label><Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Vahid</Label>
+              <Select value={activeUnit} onValueChange={setUnit} disabled={!good}><SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
+            </div>
             {opDef.isIn && <div className="space-y-2"><Label>Vahid qiymət</Label><Input type="number" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} /></div>}
             <div className="space-y-2"><Label>Tarix</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
           </div>
+          {good && activeUnit !== good.baseUnit && <p className="text-xs text-muted-foreground">= {formatNumber(baseQty, 2)} {good.baseUnit} (baza vahid) · metod: {goodValuationMethod(good) === 'fifo' ? 'FIFO' : 'orta çəkili'}</p>}
         </div>
         <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} Qeyd et</Button></DialogFooter>
       </DialogContent>
+      <BarcodeScanner open={scan} onOpenChange={setScan} onDetected={onScan} />
     </Dialog>
   );
 }

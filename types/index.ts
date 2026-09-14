@@ -521,6 +521,8 @@ export interface Good {
   description?: LocalizedText;
   categoryId?: string | null;
   baseUnit: string;
+  /** Alternativ vahidlər — factor = 1 alt vahiddə neçə baseUnit (05 §2, vahid çevrilməsi) */
+  unitConversions?: { code: string; factor: number }[];
   trackInventory: boolean;
   valuationMethodOverride?: 'fifo' | 'weighted_average' | null;
   defaultPurchasePrice?: number | null;
@@ -578,7 +580,51 @@ export interface StockBalance {
   quantityOnHand: number;
   averageCost: number;
   totalValue: number;
+  /** FIFO qatları (yalnız fifo metodlu mallarda; ən köhnə əvvəldə) — 05 §4.2 */
+  layers?: { qty: number; unitCost: number; date: string }[];
   lastMovementAt?: TS;
+}
+
+// ── İnventarizasiya (stocktake, 05 §6) ──
+export interface StockCountLine {
+  goodId: string;
+  goodName?: string;
+  systemQty: number;           // sistem qalığı (snapshot)
+  countedQty: number;          // fiziki sayım
+  unitCost: number;
+  variance: number;            // countedQty − systemQty
+}
+export interface StockCount {
+  id: string;
+  companyId: string;
+  warehouseId: string;
+  warehouseName?: string;
+  countDate: string;
+  status: 'draft' | 'completed' | 'cancelled';
+  lines: StockCountLine[];
+  note?: string | null;
+  createdBy?: string;
+  completedAt?: string | null;
+  createdAt?: TS;
+}
+
+// ── Qiymət siyahıları (05 §2, B2B qiymətlər) ──
+export interface PriceListEntry {
+  goodId: string;
+  goodName?: string;
+  minQty: number;              // bu miqdardan başlayaraq tətbiq olunur (tier)
+  price: number;
+}
+export interface PriceList {
+  id: string;
+  companyId: string;
+  name: string;
+  customerGroupId?: string | null;   // null = ümumi siyahı
+  currency: string;
+  entries: PriceListEntry[];
+  isActive: boolean;
+  createdBy?: string;
+  createdAt?: TS;
 }
 
 export interface StockTransfer {

@@ -8,6 +8,8 @@ import { CatalogTab } from './catalog-tab';
 import { StockTab } from './stock-tab';
 import { MovementsTab } from './movements-tab';
 import { TransfersTab } from './transfers-tab';
+import { StocktakeTab } from './stocktake-tab';
+import { PriceListsTab } from './pricelists-tab';
 
 export default function WarehousePage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
@@ -30,11 +32,15 @@ export default function WarehousePage() {
           <TabsTrigger value="catalog">Kataloq</TabsTrigger>
           <TabsTrigger value="movements">Hərəkətlər</TabsTrigger>
           <TabsTrigger value="transfers">Transferlər</TabsTrigger>
+          <TabsTrigger value="stocktake">İnventarizasiya</TabsTrigger>
+          <TabsTrigger value="pricelists">Qiymət siyahıları</TabsTrigger>
         </TabsList>
         <TabsContent value="stock"><StockTab {...props} /></TabsContent>
         <TabsContent value="catalog"><CatalogTab {...props} /></TabsContent>
         <TabsContent value="movements"><MovementsTab {...props} /></TabsContent>
         <TabsContent value="transfers"><TransfersTab {...props} /></TabsContent>
+        <TabsContent value="stocktake"><StocktakeTab {...props} /></TabsContent>
+        <TabsContent value="pricelists"><PriceListsTab {...props} /></TabsContent>
       </Tabs>
     </div>
   );
