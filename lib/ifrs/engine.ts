@@ -1,4 +1,4 @@
-import { listAccounts, listJournalEntries } from '@/lib/firebase/accounting';
+import { listAccounts, listJournalEntries, listFixedAssets } from '@/lib/firebase/accounting';
 import type { ChartAccount, JournalEntry } from '@/types';
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -34,8 +34,8 @@ async function load(companyId: string): Promise<Dataset> {
   return { accounts, entries };
 }
 
-/** Hesab → net (debit − credit). cumulative: tarixə qədər; əks halda aralıqda */
-function accountNets(ds: Dataset, opts: { upTo?: string; from?: string; to?: string }): Map<string, number> {
+/** Hesab → net (debit − credit). cumulative: tarixə qədər; əks halda aralıqda. departmentId varsa yalnız həmin şöbənin sətirləri */
+function accountNets(ds: Dataset, opts: { upTo?: string; from?: string; to?: string; departmentId?: string | null }): Map<string, number> {
   const nets = new Map<string, number>();
   for (const e of ds.entries) {
     const d = e.entryDateStr ?? '';
@@ -43,6 +43,7 @@ function accountNets(ds: Dataset, opts: { upTo?: string; from?: string; to?: str
     if (opts.from && d < opts.from) continue;
     if (opts.to && d > opts.to) continue;
     for (const l of e.lines) {
+      if (opts.departmentId && (l.departmentId ?? null) !== opts.departmentId) continue;
       nets.set(l.accountId, (nets.get(l.accountId) ?? 0) + (l.debit || 0) - (l.credit || 0));
     }
   }
@@ -100,11 +101,11 @@ export async function generateBalanceSheet(companyId: string, current: Period, p
   };
 }
 
-// ── Mənfəət və Zərər (P&L) — 09 §3 ──
-export async function generateProfitLoss(companyId: string, current: Period, prior: Period): Promise<FinancialStatement> {
+// ── Mənfəət və Zərər (P&L) — 09 §3. departmentId varsa şöbə kəsimi (09 §3.4) ──
+export async function generateProfitLoss(companyId: string, current: Period, prior: Period, departmentId?: string | null): Promise<FinancialStatement> {
   const ds = await load(companyId);
-  const cur = accountNets(ds, { from: current.start, to: current.end });
-  const pri = accountNets(ds, { from: prior.start, to: prior.end });
+  const cur = accountNets(ds, { from: current.start, to: current.end, departmentId });
+  const pri = accountNets(ds, { from: prior.start, to: prior.end, departmentId });
 
   const revenue = (n: Map<string, number>) => -sumByGroup(ds, n, '60');
   const cogs = (n: Map<string, number>) => sumByGroup(ds, n, '70');
@@ -218,6 +219,81 @@ export async function generateEquityChanges(companyId: string, current: Period):
     { label: 'DÖVRÜN SONUNA KAPİTAL (hesab qalığı)', current: closingEquityBase, prior: 0, level: 0, bold: true, subtotal: true },
   ];
   return { title: 'Kapitalda Dəyişikliklər haqqında Hesabat', periodLabel: current.label, rows };
+}
+
+// ── Əsas Vəsaitlər Hərəkət Cədvəli (PP&E note) — 09 §6 ──
+export async function generateFixedAssetSchedule(companyId: string, current: Period): Promise<FinancialStatement> {
+  const assets = await listFixedAssets(companyId);
+  const active = assets.filter((a) => a.status !== 'disposed');
+  const inPeriod = (d?: string) => !!d && d >= current.start && d <= current.end;
+
+  // İlkin dəyər hərəkəti
+  const additions = round2(active.filter((a) => inPeriod(a.acquisitionDate)).reduce((s, a) => s + a.acquisitionCost, 0));
+  const disposalsCost = round2(assets.filter((a) => a.status === 'disposed').reduce((s, a) => s + a.acquisitionCost, 0));
+  const closingCost = round2(active.reduce((s, a) => s + a.acquisitionCost, 0));
+  const openingCost = round2(closingCost - additions);
+
+  // Yığılmış amortizasiya və qalıq dəyər
+  const closingAccum = round2(active.reduce((s, a) => s + a.accumulatedDepreciation, 0));
+  const closingNbv = round2(active.reduce((s, a) => s + a.netBookValue, 0));
+
+  const rows: StatementRow[] = [
+    { label: 'İLKİN DƏYƏR (Cost)', current: 0, prior: 0, level: 0, bold: true },
+    { label: 'Dövrün əvvəlinə', current: openingCost, prior: 0, level: 1 },
+    { label: 'Əlavələr (dövr ərzində alınan)', current: additions, prior: 0, level: 1 },
+    { label: 'Dövrün sonuna ilkin dəyər', current: closingCost, prior: 0, level: 0, bold: true, subtotal: true },
+    { label: 'YIĞILMIŞ AMORTİZASİYA', current: 0, prior: 0, level: 0, bold: true },
+    { label: 'Dövrün sonuna yığılmış amortizasiya', current: closingAccum, prior: 0, level: 1 },
+    { label: 'XALİS QALIQ DƏYƏR (NBV)', current: closingNbv, prior: 0, level: 0, bold: true, subtotal: true },
+    ...(disposalsCost > 0 ? [{ label: 'Memo: xaric olmuş aktivlərin ilkin dəyəri', current: disposalsCost, prior: 0, level: 1 }] : []),
+  ];
+  return { title: 'Əsas Vəsaitlərin Hərəkəti (IAS 16 qeydi)', periodLabel: current.label, rows };
+}
+
+// ── Uçot Siyasəti və Qeydlər — 09 §7 ──
+export interface NotesSection { heading: string; body: string[] }
+export interface NotesDocument { title: string; periodLabel: string; sections: NotesSection[] }
+
+/**
+ * Seçilmiş metodlara avtomatik istinad edən uçot siyasəti qeydləri (09 §7).
+ * Fayl 5 (ehtiyat), 8 (əsas vəsait/amortizasiya) datasından dinamik qurulur —
+ * əl ilə uyğunsuzluq riski aradan qalxır.
+ */
+export async function generateAccountingPolicies(input: {
+  companyId: string; companyName: string; baseCurrency: string; year: number;
+}): Promise<NotesDocument> {
+  const [assets, goods] = await Promise.all([
+    listFixedAssets(input.companyId),
+    (await import('@/lib/firebase/inventory')).listGoods(input.companyId).catch(() => []),
+  ]);
+
+  const deprMethods = new Set(assets.map((a) => a.depreciationMethod));
+  const deprText = deprMethods.size === 0 ? 'Hesabat tarixinə əsas vəsait qeydə alınmayıb.'
+    : Array.from(deprMethods).map((m) => m === 'straight_line' ? 'düz xətt (straight-line) metodu' : 'azalan qalıq (reducing balance) metodu').join(' və ');
+
+  const invMethods = new Set((goods as { valuationMethodOverride?: string | null; type?: string }[]).filter((g) => g.type === 'good' && g.valuationMethodOverride).map((g) => g.valuationMethodOverride!));
+  const invText = invMethods.size === 0 ? 'Ehtiyatlar üçün dəyərləndirmə metodu təyin edilməyib.'
+    : Array.from(invMethods).map((m) => m === 'fifo' ? 'FIFO (ilk daxil olan — ilk çıxan)' : 'orta çəkili dəyər (weighted average)').join(' və ');
+
+  const sections: NotesSection[] = [
+    { heading: '1. Hesabatların hazırlanma əsası', body: [
+      `Bu maliyyə hesabatları Beynəlxalq Maliyyə Hesabatı Standartlarına (IFRS) və Azərbaycan Respublikasının Milli Mühasibat Uçotu Standartlarına (MMUS) uyğun hazırlanmışdır.`,
+      `Hesabatlar tarixi dəyər prinsipi əsasında, fasiləsizlik (going concern) fərziyyəsi ilə tərtib edilmişdir.`,
+    ] },
+    { heading: '2. Funksional və təqdimat valyutası', body: [
+      `${input.companyName} şirkətinin funksional və təqdimat valyutası ${input.baseCurrency}-dir. Xarici valyutadakı əməliyyatlar əməliyyat tarixindəki məzənnə ilə çevrilir; dövr sonu monetar qalıqlar yenidən qiymətləndirilir (Fayl 7).`,
+    ] },
+    { heading: '3. Əsas vəsaitlər (IAS 16)', body: [
+      `Əsas vəsaitlər ilkin dəyərdən yığılmış amortizasiya çıxılmaqla uçota alınır. Amortizasiya ${deprText} ilə hesablanır.`,
+    ] },
+    { heading: '4. Ehtiyatlar (IAS 2)', body: [
+      `Ehtiyatlar maya dəyəri və xalis satış dəyərindən aşağı olanı ilə qiymətləndirilir. İstifadə olunan maya dəyəri metodu: ${invText}.`,
+    ] },
+    { heading: '5. Gəlirin tanınması (IFRS 15)', body: [
+      `Gəlir malların/xidmətlərin nəzarətinin müştəriyə keçdiyi anda, ƏDV çıxılmaqla, tanınır.`,
+    ] },
+  ];
+  return { title: 'Uçot Siyasəti və Qeydlər', periodLabel: String(input.year), sections };
 }
 
 // helpers

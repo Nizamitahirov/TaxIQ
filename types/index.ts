@@ -259,6 +259,32 @@ export interface AccountingPeriod {
   reopenReason?: string | null;
 }
 
+/** financialStatementTemplates/{id} — 09 §1/§9. Hesabat sətirlərinin kodsuz fərdiləşdirilməsi */
+export interface FinancialStatementTemplate {
+  id: string;
+  companyId: string;
+  statementType: 'balance_sheet' | 'profit_loss' | 'cash_flow' | 'equity_changes' | 'fixed_asset_schedule';
+  titleOverride?: string | null;
+  showComparative?: boolean;
+  renames?: Record<string, string>;
+  hidden?: string[];
+  updatedAt?: TS;
+}
+
+/** userTasks/{id} — kiçik tapşırıq idarəetməsi (modul launcher) */
+export interface UserTask {
+  id: string;
+  companyId: string;
+  title: string;
+  done: boolean;
+  priority: 'low' | 'medium' | 'high';
+  dueDate?: string | null;         // "YYYY-MM-DD"
+  assignedToUid: string;
+  createdBy: string;
+  createdAt?: TS;
+  completedAt?: TS | null;
+}
+
 /** postingRules/{ruleId} — 08 §2.3. Hadisə → hesab kodları xəritəsi (konfiqurasiya oluna bilən) */
 export type PostingEventType =
   | 'invoice_sent' | 'purchase_bill_approved' | 'payment_received' | 'payment_made'

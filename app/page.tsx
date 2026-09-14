@@ -11,7 +11,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (loading) return;
-    router.replace(firebaseUser ? '/dashboard' : '/login');
+    router.replace(firebaseUser ? '/launch' : '/login');
   }, [firebaseUser, loading, router]);
 
   return (

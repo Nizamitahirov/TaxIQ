@@ -27,7 +27,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && firebaseUser) {
-      router.replace(mustChangePassword ? '/change-password' : '/dashboard');
+      router.replace(mustChangePassword ? '/change-password' : '/launch');
     }
   }, [authLoading, firebaseUser, mustChangePassword, router]);
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
       clearAttempts(identifier);
       setLockMsg('');
       toast.success(t('welcome'));
-      router.replace('/dashboard');
+      router.replace('/launch');
     } catch {
       const st = recordFailure(identifier);
       if (st.locked) {
