@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Search, CornerDownLeft, ArrowRight, Plus, LayoutGrid, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { usePermittedNavItems } from '@/components/layout/use-nav';
+import { useEntitySearch } from './use-entity-search';
 import { AREAS } from '@/lib/areas';
 import { CREATE_ACTIONS } from '@/lib/create-actions';
 import { cn } from '@/lib/utils/cn';
@@ -23,6 +24,7 @@ export function CommandPalette({ open, onOpenChange, mode }: { open: boolean; on
   const listRef = useRef<HTMLDivElement>(null);
 
   const go = (href: string) => { onOpenChange(false); router.push(href); };
+  const { results: entityResults, loading: searchLoading } = useEntitySearch(q, open && mode === 'all');
 
   const commands = useMemo<Cmd[]>(() => {
     const create: Cmd[] = CREATE_ACTIONS.filter((a) => isSuperAdmin || canAccess(a.module))
@@ -38,9 +40,11 @@ export function CommandPalette({ open, onOpenChange, mode }: { open: boolean; on
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
+    const entityCmds: Cmd[] = entityResults.map((r) => ({ id: r.id, label: r.label, hint: r.sublabel, icon: r.icon, run: () => go(r.href), group: 'Nəticələr' }));
     if (!s) return commands;
-    return commands.filter((c) => c.label.toLowerCase().includes(s) || c.group.toLowerCase().includes(s));
-  }, [q, commands]);
+    const staticFiltered = commands.filter((c) => c.label.toLowerCase().includes(s) || c.group.toLowerCase().includes(s));
+    return [...entityCmds, ...staticFiltered];
+  }, [q, commands, entityResults]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (open) { setQ(''); setIdx(0); setTimeout(() => inputRef.current?.focus(), 20); } }, [open, mode]);
   useEffect(() => { setIdx(0); }, [q]);
@@ -65,7 +69,7 @@ export function CommandPalette({ open, onOpenChange, mode }: { open: boolean; on
   if (!open) return null;
 
   // Qruplaşdırma qaydası
-  const order = ['Yarat', 'Naviqasiya', 'Bölmələr'];
+  const order = ['Nəticələr', 'Yarat', 'Naviqasiya', 'Bölmələr'];
   const groups = order.map((g) => ({ g, items: filtered.filter((c) => c.group === g) })).filter((x) => x.items.length > 0);
   let flatIndex = -1;
 
@@ -81,7 +85,7 @@ export function CommandPalette({ open, onOpenChange, mode }: { open: boolean; on
         </div>
         <div ref={listRef} className="max-h-[52vh] overflow-y-auto p-2">
           {filtered.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Nəticə yoxdur</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{searchLoading ? 'Axtarılır…' : 'Nəticə yoxdur'}</p>
           ) : groups.map(({ g, items }) => (
             <div key={g} className="mb-1">
               <p className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/70">{g}</p>

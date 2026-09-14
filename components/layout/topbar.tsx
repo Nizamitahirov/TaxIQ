@@ -7,8 +7,11 @@ import { LogOut, Menu, Settings, User, Search } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { logout } from '@/lib/firebase/auth';
 import { useShell } from '@/components/shell/shell-provider';
+import { usePeriod } from '@/components/providers/period-provider';
 import { Breadcrumbs } from '@/components/shell/breadcrumbs';
 import { CreateMenu } from '@/components/shell/create-menu';
+import { CalendarRange } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -26,6 +29,8 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
   const router = useRouter();
   const { profile, firebaseUser, active } = useAuth();
   const { openPalette } = useShell();
+  const { year, setYear } = usePeriod();
+  const nowYear = new Date().getFullYear();
 
   const name = profile?.displayName || firebaseUser?.email || 'İstifadəçi';
   const initials = name.slice(0, 2).toUpperCase();
@@ -52,6 +57,10 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
           <kbd className="ml-2 rounded border border-border bg-background px-1.5 text-[10px] font-medium">⌘K</kbd>
         </button>
         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => openPalette('all')} aria-label="Axtar"><Search className="h-5 w-5" /></Button>
+        <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+          <SelectTrigger className="hidden h-9 w-[104px] gap-1.5 lg:flex" aria-label="Hesabat dövrü"><CalendarRange className="h-4 w-4 text-muted-foreground" /><SelectValue /></SelectTrigger>
+          <SelectContent>{[0, 1, 2, 3].map((i) => <SelectItem key={i} value={String(nowYear - i)}>{nowYear - i}</SelectItem>)}</SelectContent>
+        </Select>
         <CreateMenu />
         <ThemeToggle />
         <LocaleSwitcher />

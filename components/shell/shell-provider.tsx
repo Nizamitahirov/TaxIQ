@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { PeriodProvider } from '@/components/providers/period-provider';
 import { CommandPalette } from './command-palette';
 
 interface ShellCtx { openPalette: (mode?: 'all' | 'create') => void }
@@ -45,8 +46,10 @@ export function ShellProvider({ children }: { children: ReactNode }) {
 
   return (
     <Ctx.Provider value={{ openPalette }}>
-      {children}
-      <CommandPalette open={open} onOpenChange={setOpen} mode={mode} />
+      <PeriodProvider>
+        {children}
+        <CommandPalette open={open} onOpenChange={setOpen} mode={mode} />
+      </PeriodProvider>
     </Ctx.Provider>
   );
 }

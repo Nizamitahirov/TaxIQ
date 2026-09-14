@@ -11,6 +11,7 @@ import {
 } from '@/lib/ifrs/engine';
 import { getStatementTemplate, saveStatementTemplate, applyStatementTemplate } from '@/lib/firebase/financial-statements';
 import { listDepartments } from '@/lib/firebase/departments';
+import { usePeriod } from '@/components/providers/period-provider';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +44,7 @@ export default function IfrsPage() {
   const canManage = isSuperAdmin || can('accounting.reports.ifrs.export');
   const nowYear = new Date().getFullYear();
   const [type, setType] = useState<StatementType>('balance_sheet');
-  const [year, setYear] = useState(nowYear);
+  const { year, setYear } = usePeriod();
   const [departmentId, setDepartmentId] = useState<string>('');
   const [tplOpen, setTplOpen] = useState(false);
 
