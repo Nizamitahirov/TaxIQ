@@ -4,13 +4,13 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowUpRight, Plus, Loader2, Check, Trash2, Camera, ListChecks, Sparkles, CalendarDays,
+  ArrowUpRight, Plus, Loader2, Check, Trash2, Camera, ListChecks, Sparkles, CalendarDays, ImagePlus,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { AREAS, itemsForArea } from '@/lib/areas';
 import { usePermittedNavItems } from '@/components/layout/use-nav';
 import { listMyTasks, createTask, toggleTask, deleteTask, completionPercent } from '@/lib/firebase/tasks';
-import { useAvatarUpload } from '@/components/shared/use-avatar-upload';
+import { useAvatarUpload, useCoverUpload } from '@/components/shared/use-avatar-upload';
 import { SetupChecklist } from '@/components/shell/setup-checklist';
 import type { UserTask } from '@/types';
 import { Input } from '@/components/ui/input';
@@ -90,7 +90,7 @@ export default function LaunchPage() {
 
         {/* SAĞ — profil ring + tapşırıqlar */}
         <aside className="flex flex-col gap-5">
-          <ProfileRing name={firstName} roleName={isSuperAdmin ? 'Platform Super Admin' : (active?.roleName ?? 'İstifadəçi')} avatarUrl={profile?.avatarUrl ?? undefined} percent={pct} openCount={openCount} total={(tasks ?? []).length} />
+          <ProfileRing name={firstName} roleName={isSuperAdmin ? 'Platform Super Admin' : (active?.roleName ?? 'İstifadəçi')} avatarUrl={profile?.avatarUrl ?? undefined} coverUrl={profile?.coverUrl ?? undefined} percent={pct} openCount={openCount} total={(tasks ?? []).length} />
           <TaskPanel companyId={companyId} uid={profile?.uid} tasks={tasks} />
         </aside>
       </div>
@@ -104,40 +104,69 @@ const LABELS: Record<string, string> = {
   hr: 'Kadrlar', payroll: 'Əmək haqqı', workflow: 'Workflow', reports: 'Hesabatlar', settings: 'Parametrlər', hse: 'SƏTƏM',
 };
 
-// ── Profil + tamamlanma ring-i ──
-function ProfileRing({ name, roleName, avatarUrl, percent, openCount, total }: {
-  name: string; roleName: string; avatarUrl?: string; percent: number; openCount: number; total: number;
+// Default abstract "avatract" mesh gradient (üzlük şəkli yoxdursa)
+const DEFAULT_COVER = {
+  backgroundColor: '#4f46e5',
+  backgroundImage:
+    'radial-gradient(at 18% 22%, #818cf8 0px, transparent 55%),' +
+    'radial-gradient(at 82% 8%, #a78bfa 0px, transparent 50%),' +
+    'radial-gradient(at 92% 82%, #22d3ee 0px, transparent 45%),' +
+    'radial-gradient(at 8% 92%, #fb7185 0px, transparent 45%),' +
+    'linear-gradient(135deg, #4f46e5, #7c3aed)',
+} as const;
+
+// ── Profil + üzlük + tamamlanma ring-i ──
+function ProfileRing({ name, roleName, avatarUrl, coverUrl, percent, openCount, total }: {
+  name: string; roleName: string; avatarUrl?: string; coverUrl?: string; percent: number; openCount: number; total: number;
 }) {
-  const { inputRef, uploading, openPicker, onFile } = useAvatarUpload();
+  const avatar = useAvatarUpload();
+  const cover = useCoverUpload();
   const R = 52, C = 2 * Math.PI * R;
   const dash = (percent / 100) * C;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 text-center shadow-soft">
-      <div aria-hidden className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
-      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
-      <div className="relative mx-auto h-32 w-32">
-        <svg viewBox="0 0 120 120" className="h-32 w-32 -rotate-90">
-          <circle cx="60" cy="60" r={R} fill="none" strokeWidth="8" className="stroke-secondary" />
-          <circle cx="60" cy="60" r={R} fill="none" strokeWidth="8" strokeLinecap="round" stroke="url(#ringGrad)" strokeDasharray={`${dash} ${C - dash}`} className="transition-[stroke-dasharray] duration-700" />
-          <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6366f1" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs>
-        </svg>
-        <button type="button" onClick={openPicker} disabled={uploading} title="Şəkli dəyişdir"
-          className="group absolute inset-[14px] overflow-hidden rounded-full outline-none ring-2 ring-card focus-visible:ring-primary">
-          {avatarUrl
-            ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
-            : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</div>}
-          <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
-            {uploading ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
-          </span>
+    <div className="relative overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
+      <input ref={avatar.inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { avatar.onFile(e.target.files?.[0]); e.target.value = ''; }} />
+      <input ref={cover.inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { cover.onFile(e.target.files?.[0]); e.target.value = ''; }} />
+
+      {/* Üzlük (cover) */}
+      <div className="relative h-28">
+        {coverUrl
+          ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={coverUrl} alt="Üzlük" className="h-full w-full object-cover" />
+          : <div className="h-full w-full" style={DEFAULT_COVER} />}
+        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-card/70 via-transparent to-transparent" />
+        <button type="button" onClick={cover.openPicker} disabled={cover.uploading} title="Üzlük şəklini dəyişdir"
+          className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-lg bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50">
+          {cover.uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
         </button>
-        <span className="absolute bottom-1 right-1 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] px-2 py-0.5 text-[11px] font-bold text-white shadow-lg ring-2 ring-card">{percent}%</span>
       </div>
-      <p className="relative mt-3 text-lg font-bold">{name}</p>
-      <p className="relative text-xs text-muted-foreground">{roleName}</p>
-      <div className="relative mt-4 flex items-center justify-center gap-2 rounded-full bg-secondary/60 px-3 py-1.5 text-xs font-medium text-muted-foreground">
-        <ListChecks className="h-3.5 w-3.5 text-primary" />
-        {total === 0 ? 'Tapşırıq yoxdur' : `${total - openCount}/${total} tamamlandı · ${openCount} açıq`}
+
+      {/* Gövdə */}
+      <div className="px-6 pb-6 text-center">
+        <div className="relative mx-auto -mt-16 h-32 w-32">
+          <div className="absolute inset-0 rounded-full bg-card" />
+          <svg viewBox="0 0 120 120" className="absolute inset-0 h-32 w-32 -rotate-90">
+            <circle cx="60" cy="60" r={R} fill="none" strokeWidth="8" className="stroke-secondary" />
+            <circle cx="60" cy="60" r={R} fill="none" strokeWidth="8" strokeLinecap="round" stroke="url(#ringGrad)" strokeDasharray={`${dash} ${C - dash}`} className="transition-[stroke-dasharray] duration-700" />
+            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6366f1" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs>
+          </svg>
+          <button type="button" onClick={avatar.openPicker} disabled={avatar.uploading} title="Profil şəklini dəyişdir"
+            className="group absolute inset-[14px] overflow-hidden rounded-full outline-none ring-2 ring-card focus-visible:ring-primary">
+            {avatarUrl
+              ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
+              : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</div>}
+            <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
+              {avatar.uploading ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+            </span>
+          </button>
+          <span className="absolute bottom-1 right-1 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] px-2 py-0.5 text-[11px] font-bold text-white shadow-lg ring-2 ring-card">{percent}%</span>
+        </div>
+        <p className="mt-3 text-lg font-bold">{name}</p>
+        <p className="text-xs text-muted-foreground">{roleName}</p>
+        <div className="mt-4 flex items-center justify-center gap-2 rounded-full bg-secondary/60 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+          <ListChecks className="h-3.5 w-3.5 text-primary" />
+          {total === 0 ? 'Tapşırıq yoxdur' : `${total - openCount}/${total} tamamlandı · ${openCount} açıq`}
+        </div>
       </div>
     </div>
   );

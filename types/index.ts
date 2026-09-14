@@ -41,6 +41,7 @@ export interface AppUser {
   preferredLanguage?: 'az' | 'en';
   preferredTheme?: 'light' | 'dark' | 'system';
   avatarUrl?: string | null;
+  coverUrl?: string | null;
   phone?: string | null;
   lastLoginAt?: TS;
   createdAt?: TS;
