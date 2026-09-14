@@ -849,6 +849,25 @@ export interface ServiceContract {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  Hesabat / Export şablonları — Modul 3 §3
+// ─────────────────────────────────────────────────────────────
+export interface ReportTemplateColumn {
+  key: string;
+  label: string;          // fərdiləşdirilmiş başlıq (adlandırma)
+}
+export interface ReportTemplate {
+  id: string;
+  companyId: string;
+  name: string;
+  entity: string;                       // REPORTABLE_ENTITIES açarı
+  columns: ReportTemplateColumn[];      // seçim + sıra + adlandırma
+  filters?: { field: string; op: string; value: string }[];
+  shared: boolean;                      // şirkət daxilində paylaşılıb
+  createdBy?: string;
+  createdAt?: TS;
+}
+
+// ─────────────────────────────────────────────────────────────
 //  Workflow Management — Modul 4
 // ─────────────────────────────────────────────────────────────
 export type WorkflowTriggerType = 'on_create' | 'on_update' | 'scheduled' | 'manual';

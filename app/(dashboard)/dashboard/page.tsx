@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
@@ -10,9 +11,15 @@ import {
 import {
   Building2, Users2, Wallet, FileWarning, TrendingUp, ArrowUpRight, ArrowRight,
   ShieldCheck, Receipt, UserCheck, Inbox, AlertTriangle, Target, Sparkles, Camera, Loader2,
+  SlidersHorizontal, ArrowUp, ArrowDown, Eye, EyeOff, RotateCcw,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useAvatarUpload } from '@/components/shared/use-avatar-upload';
+import {
+  DASH_CHART_WIDGETS, DASH_SECTIONS, loadDashConfig, saveDashConfig, isHidden, orderedCharts, type DashConfig,
+} from '@/lib/dashboard/customize';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { loadPlatformMetrics } from '@/lib/dashboard/kpi';
 import { loadLiveCompanyKpis, type LiveCompanyKpis } from '@/lib/dashboard/live';
 import { ChartCard } from '@/components/charts/chart-card';
@@ -36,7 +43,7 @@ export default function DashboardPage() {
       {isSuperAdmin && <PlatformSection greet={greet} firstName={firstName} todayStr={todayStr} />}
       {active && <CompanySection companyId={active.companyId} company={active.company} roleName={active.roleName}
         greet={greet} firstName={firstName} todayStr={todayStr} avatarUrl={profile?.avatarUrl ?? undefined}
-        canViewSalary={can('hr.employee.salary.view')} showHero={!isSuperAdmin} />}
+        canViewSalary={can('hr.employee.salary.view')} showHero={!isSuperAdmin} uid={profile?.uid ?? ''} />}
       {!isSuperAdmin && !active && (
         <Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">Hələ heç bir şirkətə təyin olunmamısınız.</CardContent></Card>
       )}
@@ -84,11 +91,14 @@ function PlatformSection({ greet, firstName, todayStr }: { greet: string; firstN
 }
 
 // ═══════════ COMPANY — Uperp tərzi zəngin panel ═══════════
-function CompanySection({ companyId, company, roleName, greet, firstName, todayStr, avatarUrl, canViewSalary, showHero }: {
-  companyId: string; company: { name: string; baseCurrency: string }; roleName: string; greet: string; firstName: string; todayStr: string; avatarUrl?: string; canViewSalary: boolean; showHero: boolean;
+function CompanySection({ companyId, company, roleName, greet, firstName, todayStr, avatarUrl, canViewSalary, showHero, uid }: {
+  companyId: string; company: { name: string; baseCurrency: string }; roleName: string; greet: string; firstName: string; todayStr: string; avatarUrl?: string; canViewSalary: boolean; showHero: boolean; uid: string;
 }) {
   const { data: m, isLoading } = useQuery({ queryKey: ['live-kpis', companyId], queryFn: () => loadLiveCompanyKpis(companyId) });
   const cur = company.baseCurrency;
+  const [cfg, setCfg] = useState<DashConfig>({ order: DASH_CHART_WIDGETS.map((w) => w.key), hidden: [] });
+  const [custOpen, setCustOpen] = useState(false);
+  useEffect(() => { setCfg(loadDashConfig(uid, companyId)); }, [uid, companyId]);
   if (isLoading || !m) return <div className="mt-6"><KpiSkeleton /></div>;
 
   return (
@@ -163,7 +173,7 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
       </div>
 
       {/* Alertlər */}
-      {(m.overdueCount > 0 || m.pendingApprovals > 0) && (
+      {!isHidden(cfg, 'alerts') && (m.overdueCount > 0 || m.pendingApprovals > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {m.overdueCount > 0 && <Link href="/sales"><Card className="rounded-card border-rose-500/30 bg-rose-500/5 transition-shadow hover:shadow-soft-lg"><CardContent className="flex items-center gap-3 p-4"><AlertTriangle className="h-5 w-5 text-rose-600" /><div className="flex-1"><p className="text-sm font-semibold text-rose-600">{m.overdueCount} vaxtı keçmiş faktura</p><p className="text-xs text-muted-foreground">{formatCurrency(m.overdueAmount, cur)} ödənilməmiş</p></div><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></CardContent></Card></Link>}
           {m.pendingApprovals > 0 && <Link href="/workflow"><Card className="rounded-card border-primary/30 bg-primary/5 transition-shadow hover:shadow-soft-lg"><CardContent className="flex items-center gap-3 p-4"><Inbox className="h-5 w-5 text-primary" /><div className="flex-1"><p className="text-sm font-semibold text-primary">{m.pendingApprovals} təsdiq gözləyir</p><p className="text-xs text-muted-foreground">İş axını inbox-u</p></div><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></CardContent></Card></Link>}
@@ -171,6 +181,7 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
       )}
 
       {/* Son fakturalar */}
+      {!isHidden(cfg, 'recentInvoices') && (
       <Card className="rounded-card">
         <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">Son fakturalar</CardTitle><Link href="/sales" className="text-sm font-medium text-primary hover:underline">Hamısı</Link></CardHeader>
         <CardContent className="p-0">
@@ -189,9 +200,32 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
           )}
         </CardContent>
       </Card>
+      )}
 
-      {/* Qrafiklər */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Qrafiklər — fərdiləşdirilə bilən (03 §5) */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-bold tracking-tight text-muted-foreground">Analitika</h2>
+        <Button variant="outline" size="sm" onClick={() => setCustOpen(true)}><SlidersHorizontal className="h-4 w-4" /> Fərdiləşdir</Button>
+      </div>
+      {orderedCharts(cfg).length === 0 ? (
+        <Card className="rounded-card"><Empty text="Bütün widget-lər gizlədilib — «Fərdiləşdir» ilə göstərin" /></Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {orderedCharts(cfg).map((k) => <div key={k} className="contents">{renderChart(k, m, cur, canViewSalary)}</div>)}
+        </div>
+      )}
+
+      <CustomizeDialog open={custOpen} onOpenChange={setCustOpen} cfg={cfg}
+        onApply={(next) => { setCfg(next); saveDashConfig(uid, companyId, next); }} />
+    </div>
+  );
+}
+
+// ── Fərdiləşdirilə bilən qrafik widget-ləri (03 §5) ──
+function renderChart(key: string, m: LiveCompanyKpis, cur: string, canViewSalary: boolean): ReactNode {
+  switch (key) {
+    case 'revenueTrend':
+      return (
         <ChartCard title="Gəlir trendi və kümulyativ (6 ay)">
           {m.revenueTrend.every((x) => x.value === 0) ? <Empty text="Gəlir datası yoxdur" /> : (
             <ResponsiveContainer width="100%" height={200}>
@@ -205,28 +239,36 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
             </ResponsiveContainer>
           )}
         </ChartCard>
-
-        <GaugeCard title="Yığım faizi (collection)" percent={m.collectionRate} label="ödənilmiş / ümumi"
-          sub={[{ label: 'Faktura sayı', value: String(m.invoiceCount) }, { label: 'Orta faktura', value: formatCurrency(m.avgInvoice, cur) }]} />
-
+      );
+    case 'collection':
+      return <GaugeCard title="Yığım faizi (collection)" percent={m.collectionRate} label="ödənilmiş / ümumi"
+        sub={[{ label: 'Faktura sayı', value: String(m.invoiceCount) }, { label: 'Orta faktura', value: formatCurrency(m.avgInvoice, cur) }]} />;
+    case 'statusDist':
+      return (
         <ChartCard title="Faktura statusu (məbləğ)">
           {m.statusDist.length === 0 ? <Empty text="Faktura yoxdur" /> : (
             <ResponsiveContainer width="100%" height={200}><PieChart><Pie data={m.statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={78} paddingAngle={3}>{m.statusDist.map((_, i) => <Cell key={i} stroke="transparent" fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Pie><Tooltip formatter={(v: number) => formatCurrency(v, cur)} /><Legend /></PieChart></ResponsiveContainer>
           )}
         </ChartCard>
-
+      );
+    case 'aging':
+      return (
         <ChartCard title="Debitor yaş analizi">
           {m.agingBuckets.length === 0 ? <Empty text="Açıq debitor yoxdur" /> : (
             <ResponsiveContainer width="100%" height={200}><BarChart data={m.agingBuckets}><CartesianGrid strokeDasharray="3 3" className="stroke-muted" /><XAxis dataKey="name" fontSize={11} /><YAxis fontSize={11} width={36} /><Tooltip formatter={(v: number) => formatCurrency(v, cur)} /><Bar dataKey="value" radius={[6, 6, 0, 0]}>{m.agingBuckets.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar></BarChart></ResponsiveContainer>
           )}
         </ChartCard>
-
+      );
+    case 'topCustomers':
+      return (
         <ChartCard title="Top müştərilər (gəlir)">
           {m.topCustomers.length === 0 ? <Empty text="Satış datası yoxdur" /> : (
             <ResponsiveContainer width="100%" height={200}><BarChart data={m.topCustomers.map((c) => ({ name: c.name.slice(0, 10), value: c.revenue }))} layout="vertical"><XAxis type="number" fontSize={10} hide /><YAxis type="category" dataKey="name" fontSize={10} width={80} /><Tooltip formatter={(v: number) => formatCurrency(v, cur)} /><Bar dataKey="value" radius={[0, 6, 6, 0]}>{m.topCustomers.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar></BarChart></ResponsiveContainer>
           )}
         </ChartCard>
-
+      );
+    case 'summary':
+      return (
         <Card className="rounded-card">
           <CardHeader><CardTitle className="text-base">İcmal</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -237,8 +279,63 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
             <MiniRow icon={TrendingUp} label="Gəlir (YTD)" value={canViewSalary ? formatCurrency(m.revenueYtd, cur) : formatCurrency(m.revenueYtd, cur)} />
           </CardContent>
         </Card>
-      </div>
-    </div>
+      );
+    default:
+      return null;
+  }
+}
+
+function CustomizeDialog({ open, onOpenChange, cfg, onApply }: { open: boolean; onOpenChange: (o: boolean) => void; cfg: DashConfig; onApply: (c: DashConfig) => void }) {
+  const [draft, setDraft] = useState<DashConfig>(cfg);
+  useEffect(() => { if (open) setDraft(cfg); }, [open, cfg]);
+  const toggle = (key: string) => setDraft((d) => ({ ...d, hidden: d.hidden.includes(key) ? d.hidden.filter((k) => k !== key) : [...d.hidden, key] }));
+  const move = (i: number, dir: -1 | 1) => setDraft((d) => { const n = [...d.order]; const j = i + dir; if (j < 0 || j >= n.length) return d; [n[i], n[j]] = [n[j], n[i]]; return { ...d, order: n }; });
+  const chartLabel = (k: string) => DASH_CHART_WIDGETS.find((w) => w.key === k)?.label ?? k;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Paneli fərdiləşdir</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Qrafiklər — sıra və görünüş</p>
+            <div className="space-y-1.5">
+              {draft.order.map((k, i) => {
+                const hidden = draft.hidden.includes(k);
+                return (
+                  <div key={k} className="flex items-center gap-2 rounded-lg border border-border/60 p-2">
+                    <div className="flex flex-col">
+                      <button onClick={() => move(i, -1)} disabled={i === 0} className="text-muted-foreground disabled:opacity-30"><ArrowUp className="h-3 w-3" /></button>
+                      <button onClick={() => move(i, 1)} disabled={i === draft.order.length - 1} className="text-muted-foreground disabled:opacity-30"><ArrowDown className="h-3 w-3" /></button>
+                    </div>
+                    <span className={cn('flex-1 text-sm', hidden && 'text-muted-foreground line-through')}>{chartLabel(k)}</span>
+                    <button onClick={() => toggle(k)} title={hidden ? 'Göstər' : 'Gizlət'} className="text-muted-foreground hover:text-foreground">{hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-primary" />}</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bölmələr</p>
+            <div className="space-y-1.5">
+              {DASH_SECTIONS.map((s) => {
+                const hidden = draft.hidden.includes(s.key);
+                return (
+                  <label key={s.key} className="flex items-center justify-between rounded-lg border border-border/60 p-2 text-sm">
+                    <span className={cn(hidden && 'text-muted-foreground line-through')}>{s.label}</span>
+                    <input type="checkbox" checked={!hidden} onChange={() => toggle(s.key)} />
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="flex-row justify-between">
+          <Button variant="ghost" onClick={() => setDraft({ order: DASH_CHART_WIDGETS.map((w) => w.key), hidden: [] })}><RotateCcw className="h-4 w-4" /> Sıfırla</Button>
+          <Button onClick={() => { onApply(draft); onOpenChange(false); }}>Yadda saxla</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
