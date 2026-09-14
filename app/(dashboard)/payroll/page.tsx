@@ -26,6 +26,10 @@ import { printPayslips } from './print-payslip';
 import type { PayrollRun, PayrollTaxConfig } from '@/types';
 
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
+const round2 = (n: number) => Math.round(n * 100) / 100;
+/** İşəgötürənin öhdəlikləri (gross → super-gross fərqi) */
+const employerBurden = (l: { employerSocialInsurance: number; employerMedicalInsurance: number; employerUnemploymentInsurance: number }) =>
+  round2(l.employerSocialInsurance + l.employerMedicalInsurance + l.employerUnemploymentInsurance);
 
 export default function PayrollPage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
@@ -105,7 +109,7 @@ export default function PayrollPage() {
       ) : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
-            <TableHeader><TableRow><TableHead>Dövr</TableHead><TableHead>İşçi</TableHead><TableHead className="text-right">Gross</TableHead><TableHead className="text-right">Net</TableHead><TableHead className="text-right">Super-gross</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Dövr</TableHead><TableHead>İşçi</TableHead><TableHead className="text-right">Gross</TableHead><TableHead className="text-right">Net</TableHead><TableHead className="text-right">İşəgötürən xərci</TableHead><TableHead className="text-right">Super-gross</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {(data ?? []).map((r) => (
                 <TableRow key={r.id}>
@@ -113,6 +117,7 @@ export default function PayrollPage() {
                   <TableCell>{r.lines.length}</TableCell>
                   <TableCell className="text-right tnum">{formatCurrency(r.totalGross, base)}</TableCell>
                   <TableCell className="text-right tnum">{formatCurrency(r.totalNet, base)}</TableCell>
+                  <TableCell className="text-right tnum text-amber-600">{formatCurrency(round2(r.totalEmployerCost - r.totalGross), base)}</TableCell>
                   <TableCell className="text-right tnum">{formatCurrency(r.totalEmployerCost, base)}</TableCell>
                   <TableCell><Badge variant={r.status === 'paid' ? 'success' : r.status === 'approved' ? 'default' : 'secondary'}>{r.status}</Badge></TableCell>
                   <TableCell className="text-right">
@@ -141,11 +146,20 @@ export default function PayrollPage() {
                   { header: 'İşçi', value: 'employeeName' }, { header: 'Baza', value: 'baseSalary' }, { header: 'Overtime', value: 'overtimePay' }, { header: 'Bonus', value: 'bonuses' },
                   { header: 'Gross', value: 'grossSalary' }, { header: 'Gəlir vergisi', value: 'incomeTax' }, { header: 'Sosial', value: 'employeeSocialInsurance' },
                   { header: 'Tibbi', value: 'employeeMedicalInsurance' }, { header: 'İşsizlik', value: 'employeeUnemploymentInsurance' }, { header: 'Kəsinti', value: 'otherDeductions' },
-                  { header: 'Net', value: 'netSalary' }, { header: 'Super-gross', value: 'totalEmployerCost' },
+                  { header: 'Net', value: 'netSalary' },
+                  { header: 'İşəgötürən sosial', value: 'employerSocialInsurance' }, { header: 'İşəgötürən tibbi', value: 'employerMedicalInsurance' }, { header: 'İşəgötürən işsizlik', value: 'employerUnemploymentInsurance' },
+                  { header: 'İşəgötürən cəmi', value: (l) => employerBurden(l) },
+                  { header: 'Super-gross', value: 'totalEmployerCost' },
                 ]} /></div>
               <div className="overflow-x-auto">
                 <Table>
-                  <TableHeader><TableRow><TableHead>İşçi</TableHead><TableHead className="text-right">Baza</TableHead><TableHead className="text-right">OT/Bonus</TableHead><TableHead className="text-right">Gross</TableHead><TableHead className="text-right">Gəlir v.</TableHead><TableHead className="text-right">Sosial</TableHead><TableHead className="text-right">Tibbi</TableHead><TableHead className="text-right">İşsizlik</TableHead><TableHead className="text-right">Net</TableHead><TableHead className="text-right">Super-gross</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow>
+                    <TableHead>İşçi</TableHead><TableHead className="text-right">Baza</TableHead><TableHead className="text-right">OT/Bonus</TableHead><TableHead className="text-right">Gross</TableHead>
+                    <TableHead className="text-right">Gəlir v.</TableHead><TableHead className="text-right">Sosial</TableHead><TableHead className="text-right">Tibbi</TableHead><TableHead className="text-right">İşsizlik</TableHead>
+                    <TableHead className="text-right">Net</TableHead>
+                    <TableHead className="text-right text-amber-600">İş.gt. sosial</TableHead><TableHead className="text-right text-amber-600">İş.gt. tibbi</TableHead><TableHead className="text-right text-amber-600">İş.gt. işsizlik</TableHead><TableHead className="text-right text-amber-600">İşəgötürən cəmi</TableHead>
+                    <TableHead className="text-right">Super-gross</TableHead>
+                  </TableRow></TableHeader>
                   <TableBody>
                     {detail.lines.map((l) => (
                       <TableRow key={l.employeeId}>
@@ -158,13 +172,17 @@ export default function PayrollPage() {
                         <TableCell className="text-right tnum">{formatCurrency(l.employeeMedicalInsurance, base)}</TableCell>
                         <TableCell className="text-right tnum">{formatCurrency(l.employeeUnemploymentInsurance, base)}</TableCell>
                         <TableCell className="text-right tnum font-semibold text-primary">{formatCurrency(l.netSalary, base)}</TableCell>
+                        <TableCell className="text-right tnum text-amber-600/90">{formatCurrency(l.employerSocialInsurance, base)}</TableCell>
+                        <TableCell className="text-right tnum text-amber-600/90">{formatCurrency(l.employerMedicalInsurance, base)}</TableCell>
+                        <TableCell className="text-right tnum text-amber-600/90">{formatCurrency(l.employerUnemploymentInsurance, base)}</TableCell>
+                        <TableCell className="text-right tnum font-semibold text-amber-600">{formatCurrency(employerBurden(l), base)}</TableCell>
                         <TableCell className="text-right tnum text-muted-foreground">{formatCurrency(l.totalEmployerCost, base)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
-              <p className="text-xs text-muted-foreground"><b>Net</b> = işçiyə ödənilən · <b>Gross</b> = vergi/sığortadan əvvəl · <b>Super-gross</b> = gross + işəgötürənin sosial/tibbi/işsizlik öhdəlikləri (tam əmək xərci).</p>
+              <p className="text-xs text-muted-foreground"><b>Net</b> = işçiyə ödənilən · <b>Gross</b> = vergi/sığortadan əvvəl · <b>İşəgötürən cəmi</b> = işəgötürənin sosial+tibbi+işsizlik öhdəlikləri (gross → super-gross fərqi, şirkətin əlavə xərci) · <b>Super-gross</b> = gross + işəgötürən öhdəlikləri (tam əmək xərci).</p>
             </div>
           )}
         </DialogContent>

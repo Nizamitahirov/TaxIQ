@@ -24,7 +24,14 @@ export function printPayslips(run: PayrollRun, company: Company, cur: string) {
         ${l.otherDeductions ? `<tr><td>Digər kəsintilər</td><td class="r">−${fmt(l.otherDeductions, cur)}</td></tr>` : ''}
         <tr class="net"><td>NET (ödəniləcək)</td><td class="r">${fmt(l.netSalary, cur)}</td></tr>
       </table>
-      <div class="muted" style="margin-top:8px">İşəgötürən xərci (informativ): ${fmt(l.totalEmployerCost, cur)}</div>
+      <table style="margin-top:8px">
+        <tr class="b"><td colspan="2">İşəgötürənin öhdəlikləri (gross → super-gross)</td></tr>
+        <tr><td>Sosial sığorta (DSMF)</td><td class="r">${fmt(l.employerSocialInsurance, cur)}</td></tr>
+        <tr><td>Tibbi sığorta</td><td class="r">${fmt(l.employerMedicalInsurance, cur)}</td></tr>
+        <tr><td>İşsizlik sığortası</td><td class="r">${fmt(l.employerUnemploymentInsurance, cur)}</td></tr>
+        <tr class="b"><td>İşəgötürən öhdəlikləri cəmi</td><td class="r">${fmt(l.employerSocialInsurance + l.employerMedicalInsurance + l.employerUnemploymentInsurance, cur)}</td></tr>
+        <tr class="net"><td>SUPER-GROSS (tam əmək xərci)</td><td class="r">${fmt(l.totalEmployerCost, cur)}</td></tr>
+      </table>
     </div>`).join('');
 
   const html = `<!doctype html><html lang="az"><head><meta charset="utf-8"><title>Payslip ${period}</title>
