@@ -23,11 +23,12 @@ export function useEntitySearch(query: string, enabled: boolean): { results: Ent
 
   const can = (m: Parameters<typeof canAccess>[0]) => isSuperAdmin || canAccess(m);
 
-  const customers = useQuery({ queryKey: ['search-customers', companyId], queryFn: () => listCustomers(companyId!), enabled: on && can('sales'), staleTime: 60_000 });
-  const invoices = useQuery({ queryKey: ['search-invoices', companyId], queryFn: () => listInvoices(companyId!), enabled: on && can('sales'), staleTime: 60_000 });
-  const employees = useQuery({ queryKey: ['search-employees', companyId], queryFn: () => listEmployees(companyId!), enabled: on && can('hr'), staleTime: 60_000 });
-  const goods = useQuery({ queryKey: ['search-goods', companyId], queryFn: () => listGoods(companyId!), enabled: on && can('warehouse'), staleTime: 60_000 });
-  const accounts = useQuery({ queryKey: ['search-accounts', companyId], queryFn: () => listAccounts(companyId!), enabled: on && can('accounting'), staleTime: 60_000 });
+  // Modul səhifələri ilə eyni cache açarları — təkrar sorğu olmur
+  const customers = useQuery({ queryKey: ['customers', companyId], queryFn: () => listCustomers(companyId!), enabled: on && can('sales'), staleTime: 60_000 });
+  const invoices = useQuery({ queryKey: ['invoices', companyId], queryFn: () => listInvoices(companyId!), enabled: on && can('sales'), staleTime: 60_000 });
+  const employees = useQuery({ queryKey: ['employees', companyId], queryFn: () => listEmployees(companyId!), enabled: on && can('hr'), staleTime: 60_000 });
+  const goods = useQuery({ queryKey: ['goods', companyId], queryFn: () => listGoods(companyId!), enabled: on && can('warehouse'), staleTime: 60_000 });
+  const accounts = useQuery({ queryKey: ['coa', companyId], queryFn: () => listAccounts(companyId!), enabled: on && can('accounting'), staleTime: 60_000 });
 
   const results = useMemo<EntityResult[]>(() => {
     if (!on) return [];
