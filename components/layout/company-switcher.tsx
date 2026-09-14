@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Building2, Check, ChevronsUpDown, Search } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { cn } from '@/lib/utils/cn';
@@ -16,6 +16,22 @@ import {
 export function CompanySwitcher() {
   const { memberships, active, switchCompany, profile } = useAuth();
   const [q, setQ] = useState('');
+  const [open, setOpen] = useState(false);
+
+  const multi = profile?.userType !== 'client_user' && memberships.length > 1;
+
+  // Cmd/Ctrl+K ilə şirkət seçicisini aç (01 §0.3)
+  useEffect(() => {
+    if (!multi) return;
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setOpen((v) => !v);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [multi]);
 
   // Client user və ya tək şirkət → sadəcə ad (switcher yox)
   if (profile?.userType === 'client_user' || memberships.length <= 1) {
@@ -32,11 +48,12 @@ export function CompanySwitcher() {
   );
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm transition-colors hover:bg-secondary">
           <Building2 className="h-4 w-4 text-primary" />
           <span className="max-w-[160px] truncate font-semibold">{active?.company.name ?? 'Şirkət seç'}</span>
+          <kbd className="ml-1 hidden items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-flex">⌘K</kbd>
           <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
       </DropdownMenuTrigger>
@@ -60,7 +77,7 @@ export function CompanySwitcher() {
             return (
               <button
                 key={m.companyId}
-                onClick={() => switchCompany(m.companyId)}
+                onClick={() => { switchCompany(m.companyId); setOpen(false); setQ(''); }}
                 className={cn(
                   'flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-secondary',
                   isActive && 'bg-primary/5',

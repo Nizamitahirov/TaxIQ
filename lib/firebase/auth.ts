@@ -4,6 +4,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   updatePassword,
+  sendPasswordResetEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
   type User as FirebaseUser,
@@ -45,6 +46,19 @@ async function afterLogin(user: FirebaseUser) {
     entityType: 'auth',
     entityId: user.uid,
   });
+}
+
+/**
+ * Parol sıfırlama e-poçtu göndərir — 01 §3.1 «Şifrəni unutdunuz?».
+ * İstifadəçi adı ilə girən hesablar sintetik `@taxiq.system` e-poçtuna map olunur —
+ * bunlar real poçt qutusu olmadığı üçün sıfırlama linki ala bilməz (aydın xəta verilir).
+ */
+export async function sendPasswordReset(identifier: string): Promise<void> {
+  const email = normalizeLogin(identifier);
+  if (email.endsWith('@taxiq.system')) {
+    throw new Error('Bu hesab istifadəçi adı ilə işləyir. Parol sıfırlama üçün administratora müraciət edin.');
+  }
+  await sendPasswordResetEmail(getFirebaseAuth(), email);
 }
 
 export async function logout(user?: { uid: string; email?: string | null } | null): Promise<void> {

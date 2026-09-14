@@ -41,7 +41,13 @@
     "pwMismatch": "Passwords do not match",
     "pwChanged": "Password changed successfully",
     "pwChangeFailed": "Could not change password",
-    "pwCurrentWrong": "Current password may be incorrect"
+    "pwCurrentWrong": "Current password may be incorrect",
+    "forgotPassword": "Forgot password?",
+    "resetTitle": "Reset password",
+    "resetSubtitle": "A password reset link will be sent to your email.",
+    "resetEmailLabel": "Email address",
+    "resetSend": "Send link",
+    "resetSent": "Reset link sent"
   },
   "navGroup": {
     "platform": "Platform",

@@ -41,7 +41,13 @@
     "pwMismatch": "Parollar uyğun gəlmir",
     "pwChanged": "Parol uğurla dəyişdirildi",
     "pwChangeFailed": "Parol dəyişdirilə bilmədi",
-    "pwCurrentWrong": "Cari parol yanlış ola bilər"
+    "pwCurrentWrong": "Cari parol yanlış ola bilər",
+    "forgotPassword": "Şifrəni unutdunuz?",
+    "resetTitle": "Parolu sıfırla",
+    "resetSubtitle": "E-poçt ünvanınıza parol sıfırlama linki göndəriləcək.",
+    "resetEmailLabel": "E-poçt ünvanı",
+    "resetSend": "Link göndər",
+    "resetSent": "Sıfırlama linki göndərildi"
   },
   "navGroup": {
     "platform": "Platforma",
