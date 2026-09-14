@@ -8,6 +8,10 @@ import { AccountsTab } from './accounts-tab';
 import { PaymentsTab } from './payments-tab';
 import { PurchasesTab } from './purchases-tab';
 import { CashbookTab } from './cashbook-tab';
+import { CurrencyTab } from './currency-tab';
+import { ReconcileTab } from './reconcile-tab';
+import { BulkTab } from './bulk-tab';
+import { ClosingsTab } from './closings-tab';
 
 export default function CashBankPage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
@@ -29,12 +33,20 @@ export default function CashBankPage() {
           <TabsTrigger value="accounts">Hesablar və xəzinə</TabsTrigger>
           <TabsTrigger value="payments">Ödənişlər</TabsTrigger>
           <TabsTrigger value="purchases">Təchizat / Kreditor</TabsTrigger>
+          <TabsTrigger value="bulk">Toplu ödəniş</TabsTrigger>
+          <TabsTrigger value="reconcile">Uzlaşdırma</TabsTrigger>
+          <TabsTrigger value="currency">Valyuta / FX</TabsTrigger>
           <TabsTrigger value="cashbook">Kassa kitabı</TabsTrigger>
+          <TabsTrigger value="closings">Gündəlik bağlanış</TabsTrigger>
         </TabsList>
         <TabsContent value="accounts"><AccountsTab {...props} /></TabsContent>
         <TabsContent value="payments"><PaymentsTab {...props} /></TabsContent>
         <TabsContent value="purchases"><PurchasesTab {...props} /></TabsContent>
+        <TabsContent value="bulk"><BulkTab {...props} /></TabsContent>
+        <TabsContent value="reconcile"><ReconcileTab {...props} /></TabsContent>
+        <TabsContent value="currency"><CurrencyTab {...props} /></TabsContent>
         <TabsContent value="cashbook"><CashbookTab {...props} /></TabsContent>
+        <TabsContent value="closings"><ClosingsTab {...props} /></TabsContent>
       </Tabs>
     </div>
   );

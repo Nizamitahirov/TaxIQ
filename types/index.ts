@@ -431,10 +431,105 @@ export interface BankAccount {
   iban?: string;
   swiftCode?: string | null;
   currency: string;
+  bankFormatProfileId?: string | null;   // 07 §1.2
   currentBalance: number;
   isActive: boolean;
   createdAt?: TS;
   updatedAt?: TS;
+}
+
+// ── Məzənnələr (01 §8 / 07 §6) ──
+export interface ExchangeRate {
+  id: string;                 // {currency}_{date}
+  companyId: string;
+  date: string;               // YYYY-MM-DD
+  currency: string;           // xarici valyuta
+  rate: number;               // 1 vahid xarici valyuta = rate baza valyutası
+  createdAt?: TS;
+}
+
+// ── Bank fayl format profilləri (07 §1.2) ──
+export interface BankFileColumn { fieldKey: string; order: number; staticValue?: string | null }
+export interface BankFileFormat {
+  id: string;
+  companyId: string;
+  bankName: string;
+  fileType: 'salary_bulk' | 'payment_bulk';
+  fileExtension: 'txt' | 'csv';
+  delimiter: ',' | ';' | '\t';
+  encoding: 'UTF-8' | 'Windows-1254' | 'CP1251';
+  columns: BankFileColumn[];
+  includeHeader: boolean;
+  notes?: string | null;
+  createdAt?: TS;
+}
+
+// ── Toplu ödəniş partiyaları (07 §4.3) ──
+export interface PaymentOrderItem { beneficiaryIban: string; beneficiaryName: string; amount: number; purposeText: string; sourceType?: string | null; sourceId?: string | null }
+export interface PaymentOrderBatch {
+  id: string;
+  companyId: string;
+  bankAccountId: string;
+  bankAccountName?: string;
+  batchType: 'vendor_bulk' | 'salary_bulk';
+  items: PaymentOrderItem[];
+  totalAmount: number;
+  status: 'draft' | 'exported' | 'confirmed';
+  exportedAt?: string | null;
+  createdBy?: string;
+  createdAt?: TS;
+}
+
+// ── Bank çıxarışı idxalı + uzlaşdırma (07 §5) ──
+export interface StatementLine {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;             // + daxil, − çıxış
+  matchStatus: 'unmatched' | 'matched' | 'ignored';
+  matchedPaymentId?: string | null;
+}
+export interface BankStatementImport {
+  id: string;
+  companyId: string;
+  bankAccountId: string;
+  bankAccountName?: string;
+  fileName: string;
+  lines: StatementLine[];
+  importedBy?: string;
+  createdAt?: TS;
+}
+
+// ── Gündəlik kassa bağlanışı (07 §2.3) ──
+export interface CashDailyClosing {
+  id: string;
+  companyId: string;
+  cashRegisterId: string;
+  cashRegisterName?: string;
+  date: string;
+  openingBalance: number;
+  totalCashIn: number;
+  totalCashOut: number;
+  systemClosingBalance: number;
+  physicallyCountedBalance: number;
+  variance: number;
+  note?: string | null;
+  closedBy?: string;
+  createdAt?: TS;
+}
+
+// ── Dövr sonu FX yenidən qiymətləndirmə (07 §6.3) ──
+export interface RevaluedItem { itemType: 'invoice' | 'purchaseBill' | 'bankAccount'; itemId: string; label: string; currency: string; foreignAmount: number; originalRate: number; closingRate: number; unrealizedGainLoss: number }
+export interface PeriodEndRevaluation {
+  id: string;
+  companyId: string;
+  periodEndDate: string;
+  revaluedItems: RevaluedItem[];
+  totalUnrealizedGainLoss: number;
+  journalEntryId?: string | null;
+  reversed: boolean;
+  createdBy?: string;
+  createdAt?: TS;
 }
 
 export interface CashRegister {
@@ -522,6 +617,7 @@ export interface PurchaseBill {
   vatTotal: number;
   grandTotal: number;
   currency: string;
+  exchangeRateToBaseCurrency?: number;
   amountPaid: number;
   amountDue: number;
   status: BillStatus;
