@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Building2, UserCog, ShieldCheck, ScrollText,
   Warehouse, Store, Wallet, BookOpen, BarChart3, Users2, Workflow,
-  FileSpreadsheet, Settings, type LucideIcon,
+  FileSpreadsheet, Settings, Layers, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
@@ -33,6 +33,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/clients', labelKey: 'clients', icon: Users2, module: 'clients' },
       { href: '/users', labelKey: 'users', icon: UserCog, module: 'users' },
       { href: '/roles', labelKey: 'roles', icon: ShieldCheck, module: 'roles' },
+      { href: '/sector-templates', labelKey: 'sectorTemplates', icon: Layers, module: 'companies', superAdminOnly: true },
       { href: '/audit', labelKey: 'audit', icon: ScrollText, module: 'audit' },
     ],
   },

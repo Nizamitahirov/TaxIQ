@@ -72,7 +72,8 @@
     "payroll": "Əmək haqqı",
     "workflow": "İş axını",
     "reports": "Hesabatlar",
-    "settings": "Tənzimləmələr"
+    "settings": "Tənzimləmələr",
+    "sectorTemplates": "Sektor Şablonları"
   },
   "dashboard": {
     "greetingMorning": "Sabahınız xeyir",

@@ -72,7 +72,8 @@
     "payroll": "Payroll",
     "workflow": "Workflow",
     "reports": "Reports",
-    "settings": "Settings"
+    "settings": "Settings",
+    "sectorTemplates": "Sector Templates"
   },
   "dashboard": {
     "greetingMorning": "Good morning",

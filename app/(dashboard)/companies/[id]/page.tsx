@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Save, Plus, Trash2, ShieldAlert, Building2 } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, ShieldAlert, Building2, Download, Database } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { getCompany, updateCompany } from '@/lib/firebase/companies';
 import { listDepartments, createDepartment, deleteDepartment } from '@/lib/firebase/departments';
+import { buildCompanyExport } from '@/lib/firebase/company-export';
+import { exportWorkbook } from '@/lib/utils/export';
 import { logAudit } from '@/lib/firebase/audit';
 import { TOGGLEABLE_MODULES, SECTOR_MAP } from '@/lib/sectors';
 import { PageHeader } from '@/components/shared/page-header';
@@ -45,11 +47,13 @@ export default function CompanyDetailPage() {
           <TabsTrigger value="general">Ümumi</TabsTrigger>
           <TabsTrigger value="modules">Modullar</TabsTrigger>
           <TabsTrigger value="departments">Şöbələr</TabsTrigger>
+          <TabsTrigger value="export">İxrac</TabsTrigger>
           {isSuperAdmin && <TabsTrigger value="lifecycle">Status</TabsTrigger>}
         </TabsList>
         <TabsContent value="general"><GeneralTab company={company} actorUid={profile?.uid ?? ''} /></TabsContent>
         <TabsContent value="modules"><ModulesTab company={company} actorUid={profile?.uid ?? ''} /></TabsContent>
         <TabsContent value="departments"><DepartmentsTab companyId={company.id} /></TabsContent>
+        <TabsContent value="export"><ExportTab company={company} actorUid={profile?.uid ?? ''} /></TabsContent>
         {isSuperAdmin && <TabsContent value="lifecycle"><LifecycleTab company={company} actorUid={profile?.uid ?? ''} /></TabsContent>}
       </Tabs>
     </div>
@@ -63,13 +67,23 @@ function GeneralTab({ company, actorUid }: { company: Company; actorUid: string 
     phone: company.phone ?? '', email: company.email ?? '', directorName: company.directorName ?? '',
     brandColor: company.brandColor ?? '',
   });
+  // Sektora xas sahələr (yalnız 'company' entity) — 02 §7
+  const companyFields = (SECTOR_MAP[company.sector]?.customFieldDefinitions ?? []).filter((f) => f.appliesToEntity === 'company');
+  const [custom, setCustom] = useState<Record<string, string>>(() =>
+    Object.fromEntries(companyFields.map((f) => [f.fieldKey, String(company.customFieldValues?.[f.fieldKey] ?? '')])));
   const [saving, setSaving] = useState(false);
   const set = (p: Partial<typeof form>) => setForm((f) => ({ ...f, ...p }));
+  const setCf = (k: string, v: string) => setCustom((c) => ({ ...c, [k]: v }));
 
   async function save() {
     setSaving(true);
     try {
-      await updateCompany(company.id, form);
+      const customFieldValues: Record<string, string | number> = { ...(company.customFieldValues as Record<string, string | number> ?? {}) };
+      for (const f of companyFields) {
+        const raw = custom[f.fieldKey] ?? '';
+        customFieldValues[f.fieldKey] = f.type === 'number' ? (Number(raw) || 0) : raw;
+      }
+      await updateCompany(company.id, { ...form, ...(companyFields.length ? { customFieldValues } : {}) });
       await logAudit({ companyId: company.id, userId: actorUid, action: 'COMPANY_UPDATED', entityType: 'company', entityId: company.id });
       qc.invalidateQueries({ queryKey: ['company', company.id] });
       toast.success('Yadda saxlanıldı');
@@ -88,10 +102,58 @@ function GeneralTab({ company, actorUid }: { company: Company; actorUid: string 
         <F label="Rəhbər"><Input value={form.directorName} onChange={(e) => set({ directorName: e.target.value })} /></F>
         <F label="Brend rəngi"><Input value={form.brandColor} onChange={(e) => set({ brandColor: e.target.value })} placeholder="#5B5BF5" /></F>
       </div>
+
+      {companyFields.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sektora xas məlumatlar</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {companyFields.map((f) => (
+              <F key={f.fieldKey} label={f.label.az}>
+                {f.type === 'select' ? (
+                  <Select value={custom[f.fieldKey] ?? ''} onValueChange={(v) => setCf(f.fieldKey, v)}>
+                    <SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
+                    <SelectContent>{(f.options ?? []).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : (
+                  <Input type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} value={custom[f.fieldKey] ?? ''} onChange={(e) => setCf(f.fieldKey, e.target.value)} />
+                )}
+              </F>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
         <Building2 className="h-4 w-4" /> Sektor: {SECTOR_MAP[company.sector]?.name.az ?? company.sector} · Valyuta: {company.baseCurrency}
       </div>
       <div className="mt-4"><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Save className="h-4 w-4" />} Yadda saxla</Button></div>
+    </CardContent></Card>
+  );
+}
+
+function ExportTab({ company, actorUid }: { company: Company; actorUid: string }) {
+  const [busy, setBusy] = useState(false);
+  async function run() {
+    setBusy(true);
+    try {
+      const { sheets, totalRows } = await buildCompanyExport(company.id);
+      const safe = company.name.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase();
+      exportWorkbook(`taxiq-${safe}-tam-ixrac`, sheets);
+      await logAudit({ companyId: company.id, userId: actorUid, action: 'COMPANY_DATA_EXPORTED', entityType: 'company', entityId: company.id, after: { rows: totalRows } });
+      toast.success('Tam data ixrac edildi', `${sheets.length} modul · ${totalRows} sətir`);
+    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    finally { setBusy(false); }
+  }
+  return (
+    <Card className="rounded-card"><CardContent className="max-w-xl p-6">
+      <div className="flex items-start gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Database className="h-5 w-5" /></span>
+        <div>
+          <p className="font-semibold">Şirkətin tam data ixracı</p>
+          <p className="mt-1 text-sm text-muted-foreground">Bütün modullar üzrə məlumat (mühasibat, satış, anbar, kassa/bank, HR, əmək haqqı və s.) tək çoxvərəqli Excel faylına ixrac olunur — hər kolleksiya ayrı vərəq. Müqavilə bitdikdə arxivləşdirmə və audit üçün (02 §5).</p>
+        </div>
+      </div>
+      <div className="mt-5"><Button onClick={run} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Download className="h-4 w-4" />} Tam ixracı yüklə (.xlsx)</Button></div>
     </CardContent></Card>
   );
 }
