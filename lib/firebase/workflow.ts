@@ -1,8 +1,10 @@
-import { where } from 'firebase/firestore';
-import { listByCompany, createDoc, updateDocById, deleteDocById } from './firestore';
+import { where, orderBy } from 'firebase/firestore';
+import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById } from './firestore';
 import { logAudit } from './audit';
+import { runActions } from '@/lib/workflow/engine';
 import type {
-  WorkflowDefinition, PendingApproval, LeaveRequest, PayrollRun, Invoice, PurchaseBill,
+  WorkflowDefinition, WorkflowRun, WorkflowRunStep, ApprovalTask, WorkflowTaskItem,
+  PendingApproval, LeaveRequest, PayrollRun, Invoice, PurchaseBill,
 } from '@/types';
 
 // ── Workflow tərifləri ───────────────────────────────────────
@@ -21,6 +23,45 @@ export async function toggleWorkflow(wf: WorkflowDefinition, actorUid: string): 
   const next = wf.status === 'active' ? 'inactive' : 'active';
   await updateWorkflow(wf.id, { status: next, version: next === 'active' ? wf.version + 1 : wf.version });
   await logAudit({ companyId: wf.companyId, userId: actorUid, action: 'WORKFLOW_TOGGLED', entityType: 'workflowDefinition', entityId: wf.id, after: { status: next } });
+}
+
+// ── İcra tarixçəsi (workflowRuns, 04 §8) ────────────────────
+export const listWorkflowRuns = (companyId: string) => listByCompany<WorkflowRun>('workflowRuns', companyId, [orderBy('createdAt', 'desc')]);
+
+// ── Təsdiq tapşırıqları (approvalTasks, 04 §5.3) ────────────
+export const listApprovalTasks = (companyId: string) => listByCompany<ApprovalTask>('approvalTasks', companyId, [orderBy('createdAt', 'desc')]);
+export const listWorkflowTasks = (companyId: string) => listByCompany<WorkflowTaskItem>('workflowTasks', companyId, [orderBy('createdAt', 'desc')]);
+
+/**
+ * Təsdiq qərarı — SoD run-time yoxlaması (04 §5.2): istifadəçi öz yaratdığı
+ * sənədi təsdiqləyə bilməz. Təsdiqdən sonra qalan action-lar icra olunur.
+ */
+export async function decideApprovalTask(task: ApprovalTask, approve: boolean, deciderUid: string, comment: string | null): Promise<void> {
+  if (approve && task.createdByUid && task.createdByUid === deciderUid) {
+    throw new Error('Vəzifələrin ayrılması (SoD): öz yaratdığınız sənədi təsdiqləyə bilməzsiniz.');
+  }
+  await updateDocById('approvalTasks', task.id, {
+    status: approve ? 'approved' : 'rejected',
+    decision: { decidedBy: deciderUid, decidedAt: new Date().toISOString(), comment: comment ?? null },
+  });
+
+  const run = await getDocById<WorkflowRun>('workflowRuns', task.workflowRunId);
+  const def = await getDocById<WorkflowDefinition>('workflowDefinitions', task.workflowId);
+  const history: WorkflowRunStep[] = [...(run?.history ?? [])];
+  history.push({ label: approve ? 'Təsdiqləndi' : 'Rədd edildi', type: 'approval', result: approve ? 'success' : 'failure', detail: comment ?? undefined, at: new Date().toISOString() });
+
+  if (approve && def) {
+    let entity: Record<string, unknown> = {};
+    if (task.relatedEntityType && task.relatedEntityId) {
+      entity = (await getDocById<Record<string, unknown>>(task.relatedEntityType, task.relatedEntityId)) ?? {};
+    }
+    await runActions(def, entity, { entityId: task.relatedEntityId ?? null, actorUid: task.createdByUid ?? null }, history);
+  }
+
+  await updateDocById('workflowRuns', task.workflowRunId, {
+    status: approve ? 'completed' : 'cancelled', history, completedAt: new Date().toISOString(),
+  });
+  await logAudit({ companyId: task.companyId, userId: deciderUid, action: approve ? 'WORKFLOW_APPROVED' : 'WORKFLOW_REJECTED', entityType: 'approvalTask', entityId: task.id });
 }
 
 // ── Birləşdirilmiş təsdiq/tapşırıq inbox (04 §5.3, alert_list) ──

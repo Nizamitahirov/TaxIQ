@@ -3,6 +3,7 @@ import {
 } from 'firebase/firestore';
 import { getDb } from './config';
 import { listByCompany, getDocById, createDoc, updateDocById } from './firestore';
+import { fireWorkflows } from '@/lib/workflow/engine';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
 import type {
@@ -82,7 +83,7 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<string> 
   const invoiceNumber = await nextInvoiceNumber(input.companyId);
   const due = new Date(input.issueDate);
   due.setDate(due.getDate() + (input.paymentTermDays || 0));
-  return createDoc('invoices', {
+  const docData = {
     companyId: input.companyId, invoiceNumber, customerId: input.customerId, customerName: input.customerName,
     sourceOrderId: null, issueDate: input.issueDate, dueDate: due.toISOString().slice(0, 10),
     lineItems: totals.lines, subtotal: totals.subtotal, discountTotal: totals.discountTotal,
@@ -90,7 +91,11 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<string> 
     exchangeRateToBaseCurrency: 1, amountPaid: 0, amountDue: totals.grandTotal,
     status: 'draft', departmentId: input.departmentId ?? null, warehouseId: null,
     journalEntryId: null, notes: input.notes ?? null, createdBy: input.createdBy,
-  });
+  };
+  const id = await createDoc('invoices', docData);
+  // Faktura təsdiqi workflow (on_create) — 06 / 04 §7.2
+  await fireWorkflows(input.companyId, 'invoices', 'on_create', { id, ...docData }, id, input.createdBy);
+  return id;
 }
 
 /**

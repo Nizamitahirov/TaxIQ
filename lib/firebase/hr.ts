@@ -4,6 +4,7 @@ import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById, set
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
 import { DEFAULT_TAX_CONFIG, calcPayrollLine } from '@/lib/payroll/tax';
+import { fireWorkflows } from '@/lib/workflow/engine';
 import type {
   Employee, LeaveType, LeaveRequest, LeaveBalance, LeaveBalanceItem, PayrollRun, PayrollLine,
   PayrollTaxConfig, PayrollAdjustment, TimePermission, BusinessTrip, MonthlyTimesheet,
@@ -16,7 +17,12 @@ const daysBetween = (a: string, b: string) => Math.max(1, Math.round((new Date(b
 // ── İşçilər ──────────────────────────────────────────────────
 export const listEmployees = (companyId: string) => listByCompany<Employee>('employees', companyId);
 export const getEmployee = (id: string) => getDocById<Employee>('employees', id);
-export const createEmployee = (d: Omit<Employee, 'id'>) => createDoc('employees', d as Record<string, unknown>);
+export async function createEmployee(d: Omit<Employee, 'id'>): Promise<string> {
+  const id = await createDoc('employees', d as Record<string, unknown>);
+  // Onboarding workflow (on_create) — 10 §2.1 / 04 §7.2
+  await fireWorkflows(d.companyId, 'employees', 'on_create', { id, ...d } as Record<string, unknown>, id, d.createdBy ?? null);
+  return id;
+}
 export const updateEmployee = (id: string, d: Partial<Employee>) => updateDocById('employees', id, d as Record<string, unknown>);
 
 // ── Məzuniyyət növləri (Əmək Məcəlləsi minimumları, 10 §4.1) ──
@@ -44,7 +50,10 @@ export async function seedLeaveTypes(companyId: string): Promise<void> {
 export const listLeaveRequests = (companyId: string) => listByCompany<LeaveRequest>('leaveRequests', companyId, [orderBy('createdAt', 'desc')]);
 
 export async function createLeaveRequest(d: Omit<LeaveRequest, 'id' | 'status'>): Promise<string> {
-  return createDoc('leaveRequests', { ...d, status: 'pending' } as Record<string, unknown>);
+  const id = await createDoc('leaveRequests', { ...d, status: 'pending' } as Record<string, unknown>);
+  // Məzuniyyət təsdiqi workflow (on_create) — 10 §4.3 / 04 §7.2
+  await fireWorkflows(d.companyId, 'leaveRequests', 'on_create', { id, ...d, status: 'pending' } as Record<string, unknown>, id, d.createdBy ?? null);
+  return id;
 }
 
 export async function decideLeaveRequest(req: LeaveRequest, approve: boolean, actorUid: string): Promise<void> {

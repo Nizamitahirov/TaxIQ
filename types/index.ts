@@ -916,6 +916,59 @@ export interface WorkflowDefinition {
   createdBy?: string;
 }
 
+/** workflowRuns/{runId} — icra tarixçəsi (04 §1.4) */
+export interface WorkflowRunStep {
+  label: string;
+  type: string;                 // condition | approval | action:<t> | trigger | terminate
+  result: 'success' | 'failure' | 'pending' | 'skipped';
+  detail?: string;
+  at: string;                   // ISO
+}
+export interface WorkflowRun {
+  id: string;
+  companyId: string;
+  workflowId: string;
+  workflowName: string;
+  workflowVersion: number;
+  triggeredBy: { type: string; entityType?: string | null; entityId?: string | null; userId?: string | null };
+  status: 'running' | 'waiting_approval' | 'completed' | 'failed' | 'cancelled';
+  history: WorkflowRunStep[];
+  startedAt?: TS;
+  completedAt?: string | null;
+  createdAt?: TS;
+}
+
+/** approvalTasks/{taskId} — 04 §5.3 */
+export interface ApprovalTask {
+  id: string;
+  companyId: string;
+  workflowRunId: string;
+  workflowId: string;
+  workflowName: string;
+  approverRoleId: string;
+  mode: 'single' | 'sequential' | 'parallel';
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+  title: string;
+  createdByUid?: string | null;        // trigger sənədini yaradan (SoD üçün)
+  status: 'pending' | 'approved' | 'rejected' | 'escalated' | 'expired';
+  dueAt?: string | null;
+  decision?: { decidedBy: string; decidedAt: string; comment?: string | null } | null;
+  createdAt?: TS;
+}
+
+/** Sistem daxili tapşırıq (create_task action nəticəsi, alert_list) */
+export interface WorkflowTaskItem {
+  id: string;
+  companyId: string;
+  workflowRunId?: string | null;
+  title: string;
+  assignedToUid?: string | null;
+  dueDate?: string | null;
+  status: 'open' | 'done';
+  createdAt?: TS;
+}
+
 /** Birləşdirilmiş təsdiq/tapşırıq inbox elementi (alert_list mənbəyi, 04 §5.3 / Fayl 3) */
 export interface PendingApproval {
   kind: 'leave' | 'payroll' | 'invoice_draft' | 'bill_draft';
