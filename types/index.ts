@@ -259,6 +259,29 @@ export interface AccountingPeriod {
   reopenReason?: string | null;
 }
 
+/** postingRules/{ruleId} — 08 §2.3. Hadisə → hesab kodları xəritəsi (konfiqurasiya oluna bilən) */
+export type PostingEventType =
+  | 'invoice_sent' | 'purchase_bill_approved' | 'payment_received' | 'payment_made'
+  | 'salary_accrued' | 'salary_paid' | 'depreciation_run' | 'fx_revaluation';
+
+export interface PostingRuleLine {
+  role: string;                     // sabit slot açarı, məs. "receivable"
+  label: string;                    // AZ etiket
+  accountCode: string;              // dinamik hesab kodu, məs. "211"
+  side: 'debit' | 'credit';
+  amountSource: string;             // "grandTotal" | "subtotal" | "vatTotal" | "amount" ...
+}
+
+export interface PostingRule {
+  id: string;
+  companyId: string;                // şirkətə xas override
+  eventType: PostingEventType;
+  lines: PostingRuleLine[];
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
 /** fixedAssets/{assetId} — 08 §5.1 */
 export interface FixedAsset {
   id: string;

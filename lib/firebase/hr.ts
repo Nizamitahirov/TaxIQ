@@ -3,6 +3,7 @@ import { getDb } from './config';
 import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById, setDocById, listDocs } from './firestore';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
+import { resolvePostingRule, codeFor } from './posting-rules';
 import { DEFAULT_TAX_CONFIG, calcPayrollLine } from '@/lib/payroll/tax';
 import { fireWorkflows } from '@/lib/workflow/engine';
 import type {
@@ -256,7 +257,9 @@ export async function approvePayrollRun(run: PayrollRun, baseCurrency: string, a
   if (run.status !== 'calculated') throw new Error('Yalnız hesablanmış dövr təsdiqlənə bilər');
   const accounts = await listAccounts(run.companyId);
   const find = (c: string) => accounts.find((a) => a.accountCode === c);
-  const expense = find('721'), payablePayroll = find('533'), taxLiab = find('521'), socialLiab = find('522');
+  const rule = await resolvePostingRule(run.companyId, 'salary_accrued');
+  const cExpense = codeFor(rule, 'expense', '721'), cPayroll = codeFor(rule, 'payrollPayable', '533'), cTax = codeFor(rule, 'taxLiability', '521'), cSocial = codeFor(rule, 'socialLiability', '522');
+  const expense = find(cExpense), payablePayroll = find(cPayroll), taxLiab = find(cTax), socialLiab = find(cSocial);
   if (!expense || !payablePayroll) throw new Error('Hesablar Planı qurulmayıb (721/533 tapılmadı)');
 
   const totalIncomeTax = round2(run.lines.reduce((s, l) => s + l.incomeTax, 0));
@@ -266,11 +269,11 @@ export async function approvePayrollRun(run: PayrollRun, baseCurrency: string, a
   const socialTotal = round2(employeeContribs + employerContribs);
 
   const lines = [
-    { accountId: expense.id, accountCode: '721', accountName: expense.accountName.az, debit: debitExpense, credit: 0 },
-    { accountId: payablePayroll.id, accountCode: '533', accountName: payablePayroll.accountName.az, debit: 0, credit: run.totalNet },
+    { accountId: expense.id, accountCode: expense.accountCode, accountName: expense.accountName.az, debit: debitExpense, credit: 0 },
+    { accountId: payablePayroll.id, accountCode: payablePayroll.accountCode, accountName: payablePayroll.accountName.az, debit: 0, credit: run.totalNet },
   ];
-  if (totalIncomeTax > 0 && taxLiab) lines.push({ accountId: taxLiab.id, accountCode: '521', accountName: taxLiab.accountName.az, debit: 0, credit: totalIncomeTax });
-  if (socialTotal > 0 && socialLiab) lines.push({ accountId: socialLiab.id, accountCode: '522', accountName: socialLiab.accountName.az, debit: 0, credit: socialTotal });
+  if (totalIncomeTax > 0 && taxLiab) lines.push({ accountId: taxLiab.id, accountCode: taxLiab.accountCode, accountName: taxLiab.accountName.az, debit: 0, credit: totalIncomeTax });
+  if (socialTotal > 0 && socialLiab) lines.push({ accountId: socialLiab.id, accountCode: socialLiab.accountCode, accountName: socialLiab.accountName.az, debit: 0, credit: socialTotal });
   // Balans qorunması: əgər 521/522 hesabları yoxdursa, qalığı 533-ə yığ
   const creditSum = round2(lines.reduce((s, l) => s + l.credit, 0));
   if (Math.abs(creditSum - debitExpense) > 0.01) lines[1].credit = round2(lines[1].credit + (debitExpense - creditSum));

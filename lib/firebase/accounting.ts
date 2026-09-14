@@ -193,13 +193,15 @@ export interface TrialBalanceRow {
   debit: number; credit: number; balance: number; normalBalance: 'debit' | 'credit';
 }
 
-export async function computeTrialBalance(companyId: string): Promise<{ rows: TrialBalanceRow[]; totalDebit: number; totalCredit: number }> {
+export async function computeTrialBalance(companyId: string, departmentId?: string | null): Promise<{ rows: TrialBalanceRow[]; totalDebit: number; totalCredit: number }> {
   const [accounts, entries] = await Promise.all([listAccounts(companyId), listJournalEntries(companyId)]);
   const acctMap = new Map(accounts.map((a) => [a.id, a]));
   const agg = new Map<string, { debit: number; credit: number }>();
   for (const e of entries) {
     if (e.status === 'reversed') { /* əks edilmiş də öz əks-yazısı ilə balanslaşır; hər ikisi saxlanılır */ }
     for (const l of e.lines) {
+      // Şöbə filtri (08 §2 — şöbə üzrə mənfəət/zərər üçün ölçü)
+      if (departmentId && (l.departmentId ?? null) !== departmentId) continue;
       const cur = agg.get(l.accountId) ?? { debit: 0, credit: 0 };
       cur.debit += l.debit || 0; cur.credit += l.credit || 0;
       agg.set(l.accountId, cur);

@@ -6,6 +6,7 @@ import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById } fr
 import { fireWorkflows } from '@/lib/workflow/engine';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
+import { resolvePostingRule, codeFor } from './posting-rules';
 import type {
   Customer, CustomerGroup, DocLineItem, Invoice, SalesQuote, SalesOrder,
   DocumentTemplate, RecurringInvoiceTemplate,
@@ -108,16 +109,18 @@ export async function postInvoice(invoice: Invoice, baseCurrency: string, actorU
   if (invoice.status !== 'draft') throw new Error('Yalnız draft faktura rəsmiləşdirilə bilər');
   const accounts = await listAccounts(invoice.companyId);
   const find = (code: string) => accounts.find((a) => a.accountCode === code);
-  const ar = find('211'), sales = find('601'), vat = find('521');
+  const rule = await resolvePostingRule(invoice.companyId, 'invoice_sent');
+  const ar = find(codeFor(rule, 'receivable', '211')), sales = find(codeFor(rule, 'revenue', '601')), vat = find(codeFor(rule, 'vat', '521'));
   if (!ar || !sales) throw new Error('Hesablar Planı qurulmayıb (211/601 hesabları tapılmadı). Əvvəlcə Mühasibat → Hesablar Planını qurun.');
 
   const net = round2(invoice.subtotal - invoice.discountTotal);
+  const dep = invoice.departmentId ?? null;
   const lines = [
-    { accountId: ar.id, accountCode: ar.accountCode, accountName: ar.accountName.az, debit: invoice.grandTotal, credit: 0 },
-    { accountId: sales.id, accountCode: sales.accountCode, accountName: sales.accountName.az, debit: 0, credit: net },
+    { accountId: ar.id, accountCode: ar.accountCode, accountName: ar.accountName.az, debit: invoice.grandTotal, credit: 0, departmentId: dep },
+    { accountId: sales.id, accountCode: sales.accountCode, accountName: sales.accountName.az, debit: 0, credit: net, departmentId: dep },
   ];
   if (invoice.vatTotal > 0 && vat) {
-    lines.push({ accountId: vat.id, accountCode: vat.accountCode, accountName: vat.accountName.az, debit: 0, credit: invoice.vatTotal });
+    lines.push({ accountId: vat.id, accountCode: vat.accountCode, accountName: vat.accountName.az, debit: 0, credit: invoice.vatTotal, departmentId: dep });
   } else if (invoice.vatTotal > 0) {
     // ƏDV hesabı yoxdursa bütün məbləği satışa yaz (balans pozulmasın)
     lines[1].credit = round2(net + invoice.vatTotal);

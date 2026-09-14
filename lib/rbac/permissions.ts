@@ -94,6 +94,7 @@ export const PERMISSIONS: PermissionDef[] = [
   // Mühasibat (Fayl 8)
   ...crud('accounting.journal', 'accounting', L('Əməliyyat jurnalı', 'Journal entry'), ['approve']),
   ...crud('accounting.coa', 'accounting', L('Hesablar planı', 'Chart of accounts')),
+  { id: 'accounting.posting_rules.manage', module: 'accounting', label: L('Posting qaydalarını idarə et', 'Manage posting rules') },
 
   // IFRS (Fayl 9)
   { id: 'accounting.reports.ifrs.view', module: 'ifrs', label: L('IFRS hesabatlara bax', 'View IFRS reports') },

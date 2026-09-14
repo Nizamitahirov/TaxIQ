@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Loader2, Trash2, Undo2, Scale } from 'lucide-react';
 import { listJournalEntries, postJournalEntry, reverseEntry } from '@/lib/firebase/accounting';
+import { listDepartments } from '@/lib/firebase/departments';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -117,9 +118,11 @@ function NewEntryDialog({ open, onOpenChange, companyId, accounts, actorUid, bas
 }) {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState('');
+  const [departmentId, setDepartmentId] = useState<string>('');
   const [lines, setLines] = useState<DraftLine[]>([emptyLine(), emptyLine()]);
   const [saving, setSaving] = useState(false);
   const postable = useMemo(() => accounts.filter((a) => a.isPostable), [accounts]);
+  const { data: departments } = useQuery({ queryKey: ['departments', companyId], queryFn: () => listDepartments(companyId), enabled: open });
 
   const totalDebit = round2(lines.reduce((s, l) => s + (Number(l.debit) || 0), 0));
   const totalCredit = round2(lines.reduce((s, l) => s + (Number(l.credit) || 0), 0));
@@ -136,13 +139,13 @@ function NewEntryDialog({ open, onOpenChange, companyId, accounts, actorUid, bas
       .filter((l) => l.accountId && (Number(l.debit) || Number(l.credit)))
       .map((l) => {
         const acct = postable.find((a) => a.id === l.accountId);
-        return { accountId: l.accountId, accountCode: acct?.accountCode, accountName: acct?.accountName.az, debit: Number(l.debit) || 0, credit: Number(l.credit) || 0 };
+        return { accountId: l.accountId, accountCode: acct?.accountCode, accountName: acct?.accountName.az, debit: Number(l.debit) || 0, credit: Number(l.credit) || 0, departmentId: departmentId || null };
       });
     setSaving(true);
     try {
       await postJournalEntry({ companyId, entryDate: date, description, lines: jlines, createdBy: actorUid, baseCurrency });
       toast.success('Jurnal yazısı əlavə edildi');
-      setLines([emptyLine(), emptyLine()]); setDescription('');
+      setLines([emptyLine(), emptyLine()]); setDescription(''); setDepartmentId('');
       onSaved(); onOpenChange(false);
     } catch (e) { toast.error('Yazı alınmadı', e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
@@ -157,6 +160,18 @@ function NewEntryDialog({ open, onOpenChange, companyId, accounts, actorUid, bas
             <div className="space-y-2"><Label>Tarix</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
             <div className="space-y-2"><Label>Təsvir</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Əməliyyatın təsviri" /></div>
           </div>
+          {(departments ?? []).length > 0 && (
+            <div className="space-y-2">
+              <Label>Şöbə / Xərc mərkəzi <span className="text-xs font-normal text-muted-foreground">(seçimlik — şöbə üzrə M&K üçün)</span></Label>
+              <Select value={departmentId || 'none'} onValueChange={(v) => setDepartmentId(v === 'none' ? '' : v)}>
+                <SelectTrigger><SelectValue placeholder="Yoxdur" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Yoxdur</SelectItem>
+                  {(departments ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{d.name.az}{d.type !== 'department' ? ` (${d.type === 'cost_center' ? 'xərc mərkəzi' : 'layihə'})` : ''}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             {lines.map((l, i) => (

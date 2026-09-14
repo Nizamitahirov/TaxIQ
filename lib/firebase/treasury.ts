@@ -5,6 +5,7 @@ import { getDb } from './config';
 import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById, setDocById } from './firestore';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
+import { resolvePostingRule, codeFor } from './posting-rules';
 import { computeTotals } from './sales';
 import type {
   BankAccount, CashRegister, CashTransaction, CashTxnCategory, DocLineItem,
@@ -73,7 +74,8 @@ export async function approveBill(bill: PurchaseBill, baseCurrency: string, acto
   if (bill.status !== 'draft') throw new Error('Yalnız draft faktura təsdiqlənə bilər');
   const accounts = await listAccounts(bill.companyId);
   const find = (c: string) => accounts.find((a) => a.accountCode === c);
-  const goods = find('205'), vat = find('226'), payable = find('531');
+  const rule = await resolvePostingRule(bill.companyId, 'purchase_bill_approved');
+  const goods = find(codeFor(rule, 'inventory', '205')), vat = find(codeFor(rule, 'vatInput', '226')), payable = find(codeFor(rule, 'payable', '531'));
   if (!goods || !payable) throw new Error('Hesablar Planı qurulmayıb (205/531 tapılmadı)');
   const net = round2(bill.subtotal);
   const lines = [
@@ -170,9 +172,10 @@ export async function recordPayment(input: RecordPaymentInput): Promise<string> 
 
   const accounts = await listAccounts(input.companyId);
   const find = (c: string) => accounts.find((a) => a.accountCode === c);
+  const rule = await resolvePostingRule(input.companyId, input.direction === 'incoming' ? 'payment_received' : 'payment_made');
   const moneyAcct = input.source.type === 'bank' ? find('223') : find('221');
-  const ar = find('211'), ap = find('531');
-  const fxIncome = find('633') ?? find('611'), fxExpense = find('733') ?? find('721');
+  const ar = find(codeFor(rule, 'receivable', '211')), ap = find(codeFor(rule, 'payable', '531'));
+  const fxIncome = find(codeFor(rule, 'fxGain', '633')) ?? find('611'), fxExpense = find(codeFor(rule, 'fxLoss', '733')) ?? find('721');
   if (!moneyAcct) throw new Error('Hesablar Planı qurulmayıb (221/223 tapılmadı)');
 
   const paymentRate = input.paymentRate ?? 1;

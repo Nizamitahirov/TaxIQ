@@ -15,6 +15,7 @@ import { JournalTab } from './journal-tab';
 import { TrialBalanceTab } from './trial-balance-tab';
 import { PeriodsTab } from './periods-tab';
 import { FixedAssetsTab } from './fixed-assets-tab';
+import { PostingRulesTab } from './posting-rules-tab';
 
 export default function AccountingPage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
@@ -72,12 +73,14 @@ export default function AccountingPage() {
           <TabsTrigger value="trial">Yoxlama Balansı</TabsTrigger>
           <TabsTrigger value="periods">Dövrlər</TabsTrigger>
           <TabsTrigger value="assets">Əsas Vəsaitlər</TabsTrigger>
+          <TabsTrigger value="posting">Posting Qaydaları</TabsTrigger>
         </TabsList>
         <TabsContent value="coa"><CoaTab companyId={companyId} accounts={accounts} canEdit={isSuperAdmin || can('accounting.coa.edit')} actorUid={profile?.uid ?? ''} /></TabsContent>
         <TabsContent value="journal"><JournalTab companyId={companyId} accounts={accounts} canPost={canPost} actorUid={profile?.uid ?? ''} baseCurrency={active?.company.baseCurrency ?? 'AZN'} /></TabsContent>
         <TabsContent value="trial"><TrialBalanceTab companyId={companyId} /></TabsContent>
         <TabsContent value="periods"><PeriodsTab companyId={companyId} canManage={isSuperAdmin || can('accounting.journal.approve')} actorUid={profile?.uid ?? ''} /></TabsContent>
         <TabsContent value="assets"><FixedAssetsTab companyId={companyId} accounts={accounts} canManage={canPost} actorUid={profile?.uid ?? ''} /></TabsContent>
+        <TabsContent value="posting"><PostingRulesTab companyId={companyId} accounts={accounts} canManage={isSuperAdmin || can('accounting.posting_rules.manage')} actorUid={profile?.uid ?? ''} /></TabsContent>
       </Tabs>
     </div>
   );
