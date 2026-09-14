@@ -92,9 +92,8 @@ function AreaCard({ a, style }: { a: AreaDef & { items: NavItem[] }; style: Card
     return (
       <Link href={a.landing}
         className="group relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg">
-        {/* abstrakt elementlər */}
+        {/* abstrakt element — yumşaq accent ləkəsi */}
         <div aria-hidden className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 rounded-full opacity-50 blur-2xl transition-transform duration-500 group-hover:scale-125" style={{ background: a.glow }} />
-        <Icon aria-hidden strokeWidth={1} className="pointer-events-none absolute -bottom-5 -right-4 h-28 w-28 text-foreground/[0.035]" />
         <div className="relative flex h-full flex-col">
           <div className="flex items-start justify-between">
             <span className={cn('flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm', a.gradient)}><Icon className="h-6 w-6" /></span>
