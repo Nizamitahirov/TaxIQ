@@ -129,4 +129,12 @@
     background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
     border-radius: 9999px;
   }
+
+  /* Sıx (compact) görünüş — cədvəl sətirləri daha yığcam (faza 3) */
+  [data-density="compact"] table td,
+  [data-density="compact"] table th {
+    padding-top: 0.28rem !important;
+    padding-bottom: 0.28rem !important;
+  }
+  [data-density="compact"] table th { height: 2rem !important; }
 }

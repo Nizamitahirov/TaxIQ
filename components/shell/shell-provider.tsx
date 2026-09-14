@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { useRouter } from 'next/navigation';
 import { PeriodProvider } from '@/components/providers/period-provider';
 import { CommandPalette } from './command-palette';
+import { ShortcutsHelp } from './shortcuts-help';
 
 interface ShellCtx { openPalette: (mode?: 'all' | 'create') => void }
 const Ctx = createContext<ShellCtx>({ openPalette: () => {} });
@@ -19,6 +20,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'all' | 'create'>('all');
+  const [helpOpen, setHelpOpen] = useState(false);
   const gPending = useRef(false);
   const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -38,7 +40,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (e.key === 'g') { gPending.current = true; gTimer.current = setTimeout(() => { gPending.current = false; }, 900); return; }
-      if (e.key === 'c') { e.preventDefault(); openPalette('create'); }
+      if (e.key === 'c') { e.preventDefault(); openPalette('create'); return; }
+      if (e.key === '?') { e.preventDefault(); setHelpOpen(true); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -49,6 +52,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       <PeriodProvider>
         {children}
         <CommandPalette open={open} onOpenChange={setOpen} mode={mode} />
+        <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
       </PeriodProvider>
     </Ctx.Provider>
   );

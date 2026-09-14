@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Sidebar } from '@/components/layout/sidebar';
 import { AreaRail } from '@/components/layout/area-rail';
+import { MobileTabbar } from '@/components/layout/mobile-tabbar';
 import { Topbar } from '@/components/layout/topbar';
 import { ShellProvider } from '@/components/shell/shell-provider';
 
@@ -62,11 +63,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar onMenuClick={() => setMobileOpen(true)} showMenuButton={!hideNav} />
-          <main className="flex-1 p-4 lg:p-6">
+          <main className="flex-1 p-4 pb-24 lg:p-6 lg:pb-6">
             <div className="mx-auto w-full max-w-[1600px]">{children}</div>
           </main>
         </div>
       </div>
+      <MobileTabbar />
     </ShellProvider>
   );
 }

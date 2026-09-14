@@ -8,6 +8,8 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { logout } from '@/lib/firebase/auth';
 import { useShell } from '@/components/shell/shell-provider';
 import { usePeriod } from '@/components/providers/period-provider';
+import { useDensity } from '@/components/providers/density-provider';
+import { Rows3, Rows4 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/shell/breadcrumbs';
 import { CreateMenu } from '@/components/shell/create-menu';
 import { CalendarRange } from 'lucide-react';
@@ -30,6 +32,7 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
   const { profile, firebaseUser, active } = useAuth();
   const { openPalette } = useShell();
   const { year, setYear } = usePeriod();
+  const { density, toggle: toggleDensity } = useDensity();
   const nowYear = new Date().getFullYear();
 
   const name = profile?.displayName || firebaseUser?.email || 'İstifadəçi';
@@ -89,6 +92,10 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/settings"><Settings className="h-4 w-4" /> {t('settings')}</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.preventDefault(); toggleDensity(); }}>
+              {density === 'compact' ? <Rows4 className="h-4 w-4" /> : <Rows3 className="h-4 w-4" />}
+              {density === 'compact' ? 'Rahat görünüş' : 'Sıx görünüş'}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-danger">
