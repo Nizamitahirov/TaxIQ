@@ -259,6 +259,100 @@ export interface AccountingPeriod {
   reopenReason?: string | null;
 }
 
+// ══════════ SƏTƏM / HSE (Modul 11) — Sağlamlıq, Əməyin Təhlükəsizliyi, Ətraf Mühit ══════════
+
+/** hseFolders/{id} — kitabxana qovluğu */
+export interface HseFolder {
+  id: string;
+  companyId: string;
+  name: string;
+  parentId?: string | null;
+  createdBy?: string;
+  createdAt?: TS;
+}
+
+/** hseDocuments/{id} — kitabxana faylı (Cloud Storage) */
+export interface HseDocument {
+  id: string;
+  companyId: string;
+  folderId?: string | null;
+  name: string;                       // göstərilən ad
+  fileName: string;                   // orijinal fayl adı
+  url: string;                        // Storage download URL
+  storagePath: string;                // silmək üçün
+  mimeType: string;
+  size: number;
+  category?: string | null;           // təlimat/prosedur/sertifikat və s.
+  uploadedByUid: string;
+  createdAt?: TS;
+}
+
+/** hseTrainingTypes/{id} — SƏTƏM təlim növü + təkrar interval (konfiqurasiya) */
+export interface HseTrainingType {
+  id: string;
+  companyId: string;
+  name: string;
+  validityMonths: number;             // neçə aydan sonra yenidən təlim tələb olunur
+  isActive: boolean;
+  createdAt?: TS;
+}
+
+/** hseTrainingRecords/{id} — SƏTƏM jurnalı: işçinin təlimdən keçmə + imzalı sənəd */
+export interface HseTrainingRecord {
+  id: string;
+  companyId: string;
+  employeeId: string;
+  employeeName: string;
+  trainingTypeId: string;
+  trainingTypeName: string;
+  completedDate: string;              // "YYYY-MM-DD"
+  validityMonths: number;             // qeyd anındakı interval (tarixçə)
+  nextDueDate: string;                // hesablanmış: completedDate + validityMonths
+  signedDocUrl?: string | null;       // scan edilmiş imzalı sənəd (Storage)
+  signedDocPath?: string | null;
+  signedDocUploadedAt?: string | null;
+  note?: string | null;
+  createdBy?: string;
+  createdAt?: TS;
+}
+
+/** hseAudits/{id} — SƏTƏM auditi */
+export interface HseAuditFinding {
+  description: string;
+  severity: 'low' | 'medium' | 'high';
+  status: 'open' | 'closed';
+}
+export interface HseAudit {
+  id: string;
+  companyId: string;
+  title: string;
+  auditDate: string;
+  auditor: string;
+  area: string;
+  findings: HseAuditFinding[];
+  status: 'planned' | 'in_progress' | 'completed';
+  createdBy?: string;
+  createdAt?: TS;
+}
+
+/** hseWorkPermits/{id} — iş icazəsi (yüksəklik, isti iş, qapalı sahə və s.) */
+export interface HseWorkPermit {
+  id: string;
+  companyId: string;
+  permitNumber: string;
+  permitType: 'hot_work' | 'height' | 'confined_space' | 'electrical' | 'excavation' | 'general';
+  location: string;
+  description?: string | null;
+  requestedBy: string;
+  validFrom: string;
+  validTo: string;
+  status: 'draft' | 'approved' | 'active' | 'closed' | 'rejected';
+  approverUid?: string | null;
+  approvedAt?: string | null;
+  createdBy?: string;
+  createdAt?: TS;
+}
+
 /** financialStatementTemplates/{id} — 09 §1/§9. Hesabat sətirlərinin kodsuz fərdiləşdirilməsi */
 export interface FinancialStatementTemplate {
   id: string;

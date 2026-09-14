@@ -1,12 +1,12 @@
 import {
   LayoutDashboard, Building2, UserCog, ShieldCheck, ScrollText,
   Warehouse, Store, Wallet, BookOpen, BarChart3, Users2, Workflow,
-  FileSpreadsheet, Settings, Layers, type LucideIcon,
+  FileSpreadsheet, Settings, Layers, HardHat, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
 /** Bölmə (area) açarları — modul launcher blokları */
-export type AreaKey = 'tax' | 'accounting' | 'hr' | 'reports' | 'settings';
+export type AreaKey = 'tax' | 'accounting' | 'hr' | 'hse' | 'reports' | 'settings';
 
 export interface NavItem {
   href: string;
@@ -62,6 +62,12 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/hr', labelKey: 'hr', icon: Users2, module: 'hr', area: 'hr' },
       { href: '/payroll', labelKey: 'payroll', icon: Wallet, module: 'payroll', area: 'hr' },
+    ],
+  },
+  {
+    labelKey: 'hse',
+    items: [
+      { href: '/hse', labelKey: 'hse', icon: HardHat, module: 'hse', area: 'hse' },
     ],
   },
   {

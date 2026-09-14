@@ -1,4 +1,4 @@
-import { Landmark, BookOpen, Users, BarChart3, Settings2, type LucideIcon } from 'lucide-react';
+import { Landmark, BookOpen, Users, BarChart3, Settings2, HardHat, type LucideIcon } from 'lucide-react';
 import { NAV_GROUPS, type AreaKey, type NavItem } from './nav';
 
 export interface AreaDef {
@@ -21,6 +21,8 @@ export const AREAS: AreaDef[] = [
     gradient: 'from-[#f59e0b] via-[#f97316] to-[#ef4444]', glow: 'rgba(249,115,22,0.45)', landing: '/hr' },
   { key: 'reports', label: 'Maliyyə hesabatları', desc: 'IFRS hesabatlar və fərdi hesabat qurucusu', icon: BarChart3,
     gradient: 'from-[#0ea5e9] via-[#3b82f6] to-[#6366f1]', glow: 'rgba(59,130,246,0.45)', landing: '/ifrs' },
+  { key: 'hse', label: 'SƏTƏM uçotu', desc: 'Kitabxana, təlim jurnalı, audit və iş icazələri', icon: HardHat,
+    gradient: 'from-[#f43f5e] via-[#f97316] to-[#f59e0b]', glow: 'rgba(244,63,94,0.45)', landing: '/hse' },
   { key: 'settings', label: 'Tənzimləmələr', desc: 'Şirkətlər, istifadəçilər, rollar, workflow', icon: Settings2,
     gradient: 'from-[#8b5cf6] via-[#6366f1] to-[#334155]', glow: 'rgba(100,116,139,0.4)', landing: '/settings' },
 ];

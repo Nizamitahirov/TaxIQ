@@ -35,6 +35,7 @@ export type ModuleKey =
   | 'payroll'
   | 'workflow'
   | 'reports'
+  | 'hse'
   | 'settings';
 
 export interface ModuleDef {
@@ -116,6 +117,13 @@ export const PERMISSIONS: PermissionDef[] = [
   // Hesabatlar (Fayl 3)
   { id: 'reports.builder.use', module: 'reports', label: L('Hesabat qurucusu', 'Report builder') },
   { id: 'reports.view', module: 'reports', label: L('Hesabatlara bax', 'View reports') },
+
+  // SƏTƏM / HSE (Modul 11)
+  ...crud('hse.library', 'hse', L('SƏTƏM kitabxanası', 'HSE library')),
+  ...crud('hse.training', 'hse', L('SƏTƏM təlim jurnalı', 'HSE training register'), ['approve']),
+  { id: 'hse.training.config', module: 'hse', label: L('Təlim növlərini idarə et', 'Manage training types') },
+  ...crud('hse.audit', 'hse', L('SƏTƏM auditi', 'HSE audit')),
+  ...crud('hse.permit', 'hse', L('İş icazələri', 'Work permits'), ['approve']),
 ];
 
 function crud(
@@ -169,6 +177,7 @@ export const SYSTEM_ROLES: SystemRoleDef[] = [
       'platform.audit.view', 'platform.export_templates.manage', 'dashboard.customize',
       ...ids('clients.'), ...ids('warehouse.'), ...ids('sales.'), ...ids('cashbank.'),
       ...ids('accounting.'), ...ids('hr.'), ...ids('payroll.'), ...ids('workflow.'), ...ids('reports.'),
+      ...ids('hse.'),
     ],
   },
   {
@@ -197,7 +206,7 @@ export const SYSTEM_ROLES: SystemRoleDef[] = [
     code: 'hr_manager',
     name: L('HR Meneceri', 'HR Manager'),
     description: L('HR modulu tam giriş', 'Full HR module access'),
-    permissions: ['dashboard.customize', 'reports.view', ...ids('hr.'), ...ids('payroll.')],
+    permissions: ['dashboard.customize', 'reports.view', ...ids('hr.'), ...ids('payroll.'), ...ids('hse.')],
   },
   {
     code: 'sales_manager',

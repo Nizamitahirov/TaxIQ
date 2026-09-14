@@ -54,7 +54,8 @@
     "operations": "Operations",
     "finance": "Finance",
     "people": "Human Resources",
-    "tools": "Tools"
+    "tools": "Tools",
+    "hse": "HSE"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -73,7 +74,8 @@
     "workflow": "Workflow",
     "reports": "Reports",
     "settings": "Settings",
-    "sectorTemplates": "Sector Templates"
+    "sectorTemplates": "Sector Templates",
+    "hse": "HSE"
   },
   "dashboard": {
     "greetingMorning": "Good morning",

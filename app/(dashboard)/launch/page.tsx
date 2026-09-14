@@ -8,11 +8,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { AREAS, itemsForArea } from '@/lib/areas';
-import type { NavItem } from '@/lib/nav';
+import { usePermittedNavItems } from '@/components/layout/use-nav';
 import { listMyTasks, createTask, toggleTask, deleteTask, completionPercent } from '@/lib/firebase/tasks';
 import { useAvatarUpload } from '@/components/shared/use-avatar-upload';
 import { SetupChecklist } from '@/components/shell/setup-checklist';
-import type { CompanyModule, UserTask } from '@/types';
+import type { UserTask } from '@/types';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
 import {
@@ -27,26 +27,17 @@ const PRIO: Record<UserTask['priority'], { label: string; dot: string }> = {
 };
 
 export default function LaunchPage() {
-  const { profile, active, isSuperAdmin, canAccess } = useAuth();
+  const { profile, active, isSuperAdmin } = useAuth();
   const firstName = (profile?.displayName ?? 'İstifadəçi').split(' ')[0];
   const now = new Date();
   const greet = now.getHours() < 12 ? 'Sabahınız xeyir' : now.getHours() < 18 ? 'Günortanız xeyir' : 'Axşamınız xeyir';
   const companyId = active?.companyId;
 
-  const rawModules = (active?.company.modulesEnabled ?? []) as CompanyModule[];
-  const enabledModules = new Set<string>(rawModules);
-  const showAll = isSuperAdmin || rawModules.length === 0;
-  const TOGGLEABLE = new Set(['workflow', 'warehouse', 'sales', 'cashbank', 'accounting', 'ifrs', 'hr', 'payroll']);
-  const visible = (i: NavItem): boolean => {
-    if (i.superAdminOnly) return isSuperAdmin;
-    if (TOGGLEABLE.has(i.module) && !showAll && !enabledModules.has(i.module)) return false;
-    return canAccess(i.module);
-  };
-
+  const permittedHrefs = new Set(usePermittedNavItems().map((i) => i.href));
   const areas = useMemo(() => AREAS.map((a) => {
-    const items = itemsForArea(a.key).filter(visible);
+    const items = itemsForArea(a.key).filter((i) => permittedHrefs.has(i.href));
     return { ...a, items, landing: items[0]?.href ?? a.landing };
-  }).filter((a) => a.items.length > 0), [profile, active]); // eslint-disable-line react-hooks/exhaustive-deps
+  }).filter((a) => a.items.length > 0), [permittedHrefs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: tasks } = useQuery({ queryKey: ['myTasks', companyId, profile?.uid], queryFn: () => listMyTasks(companyId!, profile!.uid), enabled: !!companyId && !!profile?.uid });
   const pct = completionPercent(tasks ?? []);
@@ -110,7 +101,7 @@ export default function LaunchPage() {
 const LABELS: Record<string, string> = {
   dashboard: 'Dashboard', companies: 'Şirkətlər', clients: 'Müştərilər', users: 'İstifadəçilər', roles: 'Rollar',
   audit: 'Audit', warehouse: 'Anbar', sales: 'Satış', cashbank: 'Kassa/Bank', accounting: 'Mühasibat', ifrs: 'IFRS',
-  hr: 'Kadrlar', payroll: 'Əmək haqqı', workflow: 'Workflow', reports: 'Hesabatlar', settings: 'Parametrlər',
+  hr: 'Kadrlar', payroll: 'Əmək haqqı', workflow: 'Workflow', reports: 'Hesabatlar', settings: 'Parametrlər', hse: 'SƏTƏM',
 };
 
 // ── Profil + tamamlanma ring-i ──

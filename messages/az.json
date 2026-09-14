@@ -54,7 +54,8 @@
     "operations": "Əməliyyatlar",
     "finance": "Maliyyə",
     "people": "İnsan Resursları",
-    "tools": "Alətlər"
+    "tools": "Alətlər",
+    "hse": "SƏTƏM"
   },
   "nav": {
     "dashboard": "İdarə paneli",
@@ -73,7 +74,8 @@
     "workflow": "İş axını",
     "reports": "Hesabatlar",
     "settings": "Tənzimləmələr",
-    "sectorTemplates": "Sektor Şablonları"
+    "sectorTemplates": "Sektor Şablonları",
+    "hse": "SƏTƏM uçotu"
   },
   "dashboard": {
     "greetingMorning": "Sabahınız xeyir",
