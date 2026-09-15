@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTT } from '@/lib/i18n/tt';
 import { LayoutGrid, LayoutDashboard } from 'lucide-react';
 import { NAV_GROUPS, type NavGroup } from '@/lib/nav';
 import { areaForPath, areaDef, itemsForArea } from '@/lib/areas';
@@ -19,6 +20,7 @@ export function Sidebar({ onNavigate, hideHeader = false }: Props) {
   const pathname = usePathname();
   const t = useTranslations('nav');
   const tg = useTranslations('navGroup');
+  const tt = useTT();
   const permittedHrefs = new Set(usePermittedNavItems().map((i) => i.href));
 
   const activeArea = areaForPath(pathname);
@@ -44,14 +46,14 @@ export function Sidebar({ onNavigate, hideHeader = false }: Props) {
       <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
         {/* Bölmələr (hub) + Dashboard — həmişə üstdə sabit keçidlər */}
         <ul className="space-y-0.5">
-          <FixedLink href="/launch" label="Bölmələr" Icon={LayoutGrid} pathname={pathname} onNavigate={onNavigate} exact />
+          <FixedLink href="/launch" label={tt("Bölmələr", "Workspaces")} Icon={LayoutGrid} pathname={pathname} onNavigate={onNavigate} exact />
           <FixedLink href="/dashboard" label={t('dashboard')} Icon={LayoutDashboard} pathname={pathname} onNavigate={onNavigate} exact />
         </ul>
 
         {def && (
           <div className="mb-1.5 mt-5 flex items-center gap-2 px-3">
             <span className={cn('flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br text-white', def.gradient)}><def.icon className="h-3.5 w-3.5" /></span>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50">{def.label}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50">{tt(def.label, def.labelEn)}</p>
           </div>
         )}
 

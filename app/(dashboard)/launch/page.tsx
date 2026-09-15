@@ -6,7 +6,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowUpRight, Plus, Loader2, Check, Trash2, Camera, ListChecks, Sparkles, CalendarDays, ImagePlus,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
 import { AREAS, itemsForArea, type AreaDef } from '@/lib/areas';
 import { usePermittedNavItems } from '@/components/layout/use-nav';
 import { loadCardStyle, type CardStyle } from '@/lib/dashboard/card-style';
@@ -22,17 +24,18 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils/cn';
 
-const PRIO: Record<UserTask['priority'], { label: string; dot: string }> = {
-  high: { label: 'Yüksək', dot: 'bg-rose-500' },
-  medium: { label: 'Orta', dot: 'bg-amber-500' },
-  low: { label: 'Aşağı', dot: 'bg-emerald-500' },
+const PRIO: Record<UserTask['priority'], { label: string; en: string; dot: string }> = {
+  high: { label: 'Yüksək', en: 'High', dot: 'bg-rose-500' },
+  medium: { label: 'Orta', en: 'Medium', dot: 'bg-amber-500' },
+  low: { label: 'Aşağı', en: 'Low', dot: 'bg-emerald-500' },
 };
 
 export default function LaunchPage() {
   const { profile, active, isSuperAdmin } = useAuth();
-  const firstName = (profile?.displayName ?? 'İstifadəçi').split(' ')[0];
+  const tt = useTT();
+  const firstName = (profile?.displayName ?? tt('İstifadəçi', 'User')).split(' ')[0];
   const now = new Date();
-  const greet = now.getHours() < 12 ? 'Sabahınız xeyir' : now.getHours() < 18 ? 'Günortanız xeyir' : 'Axşamınız xeyir';
+  const greet = now.getHours() < 12 ? tt('Sabahınız xeyir', 'Good morning') : now.getHours() < 18 ? tt('Günortanız xeyir', 'Good afternoon') : tt('Axşamınız xeyir', 'Good evening');
   const companyId = active?.companyId;
 
   const [cardStyle, setCardStyle] = useState<CardStyle>('gradient');
@@ -52,7 +55,7 @@ export default function LaunchPage() {
     <div className="mx-auto max-w-6xl">
       {/* Başlıq */}
       <div className="mb-6 flex items-center gap-2 text-sm font-medium text-primary">
-        <Sparkles className="h-4 w-4" /> TaxIQ · İş sahələri
+        <Sparkles className="h-4 w-4" /> TaxIQ · {tt('İş sahələri', 'Workspaces')}
       </div>
 
       <SetupChecklist />
@@ -61,7 +64,7 @@ export default function LaunchPage() {
         {/* SOL — bölmə blokları */}
         <div>
           <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">{greet}, {firstName} 👋</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Bir iş sahəsi seçin — yalnız ona aid modullar və menyu göstəriləcək.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{tt('Bir iş sahəsi seçin — yalnız ona aid modullar və menyu göstəriləcək.', 'Choose a workspace — only its modules and menu will be shown.')}</p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {areas.map((a) => <AreaCard key={a.key} a={a} style={cardStyle} />)}
@@ -70,7 +73,7 @@ export default function LaunchPage() {
 
         {/* SAĞ — profil ring + tapşırıqlar */}
         <aside className="flex min-h-0 flex-col gap-5">
-          <ProfileRing name={firstName} roleName={isSuperAdmin ? 'Platform Super Admin' : (active?.roleName ?? 'İstifadəçi')} avatarUrl={profile?.avatarUrl ?? undefined} coverUrl={profile?.coverUrl ?? undefined} percent={pct} openCount={openCount} total={(tasks ?? []).length} />
+          <ProfileRing name={firstName} roleName={isSuperAdmin ? 'Platform Super Admin' : (active?.roleName ?? tt('İstifadəçi', 'User'))} avatarUrl={profile?.avatarUrl ?? undefined} coverUrl={profile?.coverUrl ?? undefined} percent={pct} openCount={openCount} total={(tasks ?? []).length} />
           <TaskPanel companyId={companyId} uid={profile?.uid} tasks={tasks} />
         </aside>
       </div>
@@ -78,16 +81,14 @@ export default function LaunchPage() {
   );
 }
 
-const LABELS: Record<string, string> = {
-  dashboard: 'Dashboard', companies: 'Şirkətlər', clients: 'Müştərilər', users: 'İstifadəçilər', roles: 'Rollar',
-  audit: 'Audit', warehouse: 'Anbar', sales: 'Satış', cashbank: 'Kassa/Bank', accounting: 'Mühasibat', ifrs: 'IFRS',
-  hr: 'Kadrlar', payroll: 'Əmək haqqı', workflow: 'Workflow', reports: 'Hesabatlar', settings: 'Parametrlər', hse: 'SƏTƏM', tasks: 'Tapşırıqlar',
-};
-const chipLabel = (labelKey: string) => labelKey === 'sectorTemplates' ? 'Şablonlar' : LABELS[labelKey] ?? labelKey;
-
 // ── Bölmə kartı — iki görünüş: rəngli gradient / ağ + abstrakt ──
 function AreaCard({ a, style }: { a: AreaDef & { items: NavItem[] }; style: CardStyle }) {
   const Icon = a.icon;
+  const tt = useTT();
+  const tnav = useTranslations('nav');
+  const chipLabel = (labelKey: string) => tnav.has(labelKey) ? tnav(labelKey) : labelKey;
+  const label = tt(a.label, a.labelEn);
+  const desc = tt(a.desc, a.descEn);
   if (style === 'minimal') {
     return (
       <Link href={a.landing}
@@ -99,8 +100,8 @@ function AreaCard({ a, style }: { a: AreaDef & { items: NavItem[] }; style: Card
             <span className={cn('flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br text-white shadow-sm', a.gradient)}><Icon className="h-6 w-6" /></span>
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors group-hover:text-primary"><ArrowUpRight className="h-4 w-4" /></span>
           </div>
-          <p className="mt-4 text-lg font-bold leading-tight">{a.label}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{a.desc}</p>
+          <p className="mt-4 text-lg font-bold leading-tight">{label}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{desc}</p>
           <div className="mt-4 flex flex-wrap gap-1.5">
             {a.items.slice(0, 4).map((it) => <span key={it.href} className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">{chipLabel(it.labelKey)}</span>)}
             {a.items.length > 4 && <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-muted-foreground">+{a.items.length - 4}</span>}
@@ -120,8 +121,8 @@ function AreaCard({ a, style }: { a: AreaDef & { items: NavItem[] }; style: Card
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 ring-1 ring-white/30 backdrop-blur-sm"><Icon className="h-6 w-6" /></span>
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"><ArrowUpRight className="h-4 w-4" /></span>
         </div>
-        <p className="mt-4 text-lg font-bold leading-tight">{a.label}</p>
-        <p className="mt-1 text-sm text-white/80">{a.desc}</p>
+        <p className="mt-4 text-lg font-bold leading-tight">{label}</p>
+        <p className="mt-1 text-sm text-white/80">{desc}</p>
         <div className="mt-4 flex flex-wrap gap-1.5">
           {a.items.slice(0, 4).map((it) => <span key={it.href} className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white/90">{chipLabel(it.labelKey)}</span>)}
           {a.items.length > 4 && <span className="rounded-full bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white/90">+{a.items.length - 4}</span>}
@@ -146,6 +147,7 @@ const DEFAULT_COVER = {
 function ProfileRing({ name, roleName, avatarUrl, coverUrl, percent, openCount, total }: {
   name: string; roleName: string; avatarUrl?: string; coverUrl?: string; percent: number; openCount: number; total: number;
 }) {
+  const tt = useTT();
   const avatar = useAvatarUpload();
   const cover = useCoverUpload();
   const R = 52, C = 2 * Math.PI * R;
@@ -192,7 +194,7 @@ function ProfileRing({ name, roleName, avatarUrl, coverUrl, percent, openCount, 
         <p className="text-xs text-muted-foreground">{roleName}</p>
         <div className="mt-4 flex items-center justify-center gap-2 rounded-full bg-secondary/60 px-3 py-1.5 text-xs font-medium text-muted-foreground">
           <ListChecks className="h-3.5 w-3.5 text-primary" />
-          {total === 0 ? 'Tapşırıq yoxdur' : `${total - openCount}/${total} tamamlandı · ${openCount} açıq`}
+          {total === 0 ? tt('Tapşırıq yoxdur', 'No tasks') : `${total - openCount}/${total} ${tt('tamamlandı', 'done')} · ${openCount} ${tt('açıq', 'open')}`}
         </div>
       </div>
     </div>
@@ -202,6 +204,7 @@ function ProfileRing({ name, roleName, avatarUrl, coverUrl, percent, openCount, 
 // ── Kiçik task management ──
 function TaskPanel({ companyId, uid, tasks }: { companyId?: string; uid?: string; tasks?: UserTask[] }) {
   const qc = useQueryClient();
+  const tt = useTT();
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<UserTask['priority']>('medium');
   const [busy, setBusy] = useState(false);
@@ -221,19 +224,19 @@ function TaskPanel({ companyId, uid, tasks }: { companyId?: string; uid?: string
   return (
     <div className="flex min-h-[320px] flex-1 flex-col rounded-3xl border border-border bg-card p-5 shadow-soft">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-sm font-bold"><ListChecks className="h-4 w-4 text-primary" /> Tapşırıqlarım</h2>
-        <Link href="/tasks" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">Ətraflı <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+        <h2 className="flex items-center gap-2 text-sm font-bold"><ListChecks className="h-4 w-4 text-primary" /> {tt('Tapşırıqlarım', 'My tasks')}</h2>
+        <Link href="/tasks" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">{tt('Ətraflı', 'View all')} <ArrowUpRight className="h-3.5 w-3.5" /></Link>
       </div>
       {!companyId ? (
-        <p className="py-6 text-center text-xs text-muted-foreground">Tapşırıqlar üçün aktiv şirkət seçin.</p>
+        <p className="py-6 text-center text-xs text-muted-foreground">{tt('Tapşırıqlar üçün aktiv şirkət seçin.', 'Select an active company for tasks.')}</p>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="mb-3 space-y-2">
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Yeni tapşırıq…" className="h-9" />
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={tt('Yeni tapşırıq…', 'New task…')} className="h-9" />
             <div className="flex gap-2">
               <Select value={priority} onValueChange={(v) => setPriority(v as UserTask['priority'])}>
                 <SelectTrigger className="h-9 flex-1"><SelectValue /></SelectTrigger>
-                <SelectContent>{(['high', 'medium', 'low'] as const).map((p) => <SelectItem key={p} value={p}><span className="flex items-center gap-2"><span className={cn('h-2 w-2 rounded-full', PRIO[p].dot)} /> {PRIO[p].label}</span></SelectItem>)}</SelectContent>
+                <SelectContent>{(['high', 'medium', 'low'] as const).map((p) => <SelectItem key={p} value={p}><span className="flex items-center gap-2"><span className={cn('h-2 w-2 rounded-full', PRIO[p].dot)} /> {tt(PRIO[p].label, PRIO[p].en)}</span></SelectItem>)}</SelectContent>
               </Select>
               <button onClick={add} disabled={busy || !title.trim()} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -244,8 +247,8 @@ function TaskPanel({ companyId, uid, tasks }: { companyId?: string; uid?: string
             {sorted.length === 0 ? (
               <li className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ListChecks className="h-5 w-5" /></span>
-                <p className="text-sm font-medium">Tapşırıq yoxdur</p>
-                <p className="text-xs text-muted-foreground">Yuxarıdan yeni tapşırıq əlavə edin.</p>
+                <p className="text-sm font-medium">{tt('Tapşırıq yoxdur', 'No tasks')}</p>
+                <p className="text-xs text-muted-foreground">{tt('Yuxarıdan yeni tapşırıq əlavə edin.', 'Add a new task above.')}</p>
               </li>
             ) : sorted.slice(0, 6).map((t) => (
               <li key={t.id} className="group flex items-center gap-2.5 rounded-xl border border-border/60 bg-secondary/20 px-3 py-2.5 transition-all hover:border-primary/30 hover:bg-secondary/40">

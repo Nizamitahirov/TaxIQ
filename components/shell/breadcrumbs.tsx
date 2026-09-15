@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useTT } from '@/lib/i18n/tt';
 import { ChevronRight } from 'lucide-react';
 import { NAV_GROUPS } from '@/lib/nav';
 import { areaForPath, areaDef } from '@/lib/areas';
@@ -10,6 +11,7 @@ import { areaForPath, areaDef } from '@/lib/areas';
 export function Breadcrumbs() {
   const pathname = usePathname();
   const t = useTranslations('nav');
+  const tt = useTT();
 
   if (pathname === '/launch' || pathname === '/dashboard') return null;
 
@@ -17,8 +19,8 @@ export function Breadcrumbs() {
   const area = areaForPath(pathname);
   const def = area ? areaDef(area) : undefined;
 
-  const crumbs: { label: string; href?: string }[] = [{ label: 'Bölmələr', href: '/launch' }];
-  if (def) crumbs.push({ label: def.label, href: def.landing });
+  const crumbs: { label: string; href?: string }[] = [{ label: tt('Bölmələr', 'Workspaces'), href: '/launch' }];
+  if (def) crumbs.push({ label: tt(def.label, def.labelEn), href: def.landing });
   if (navItem) crumbs.push({ label: t(navItem.labelKey), href: navItem.href });
 
   return (
