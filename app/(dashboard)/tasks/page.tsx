@@ -7,6 +7,7 @@ import {
   CheckCircle2, Circle, Timer, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
 import {
   listCompanyTasks, listTeamMembers, createTask, updateTask, setTaskStatus, deleteTask, type TeamMember,
 } from '@/lib/firebase/tasks';
@@ -24,21 +25,22 @@ import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
 import type { TaskStatus, UserTask } from '@/types';
 
-const PRIO: Record<UserTask['priority'], { label: string; dot: string; text: string }> = {
-  high: { label: 'Yüksək', dot: 'bg-rose-500', text: 'text-rose-500' },
-  medium: { label: 'Orta', dot: 'bg-amber-500', text: 'text-amber-500' },
-  low: { label: 'Aşağı', dot: 'bg-emerald-500', text: 'text-emerald-500' },
+const PRIO: Record<UserTask['priority'], { label: string; en: string; dot: string; text: string }> = {
+  high: { label: 'Yüksək', en: 'High', dot: 'bg-rose-500', text: 'text-rose-500' },
+  medium: { label: 'Orta', en: 'Medium', dot: 'bg-amber-500', text: 'text-amber-500' },
+  low: { label: 'Aşağı', en: 'Low', dot: 'bg-emerald-500', text: 'text-emerald-500' },
 };
-const COLUMNS: { key: TaskStatus; label: string; icon: typeof Circle; tint: string }[] = [
-  { key: 'todo', label: 'Görüləcək', icon: Circle, tint: 'text-muted-foreground' },
-  { key: 'in_progress', label: 'İcrada', icon: Timer, tint: 'text-amber-500' },
-  { key: 'done', label: 'Tamamlandı', icon: CheckCircle2, tint: 'text-emerald-500' },
+const COLUMNS: { key: TaskStatus; label: string; en: string; icon: typeof Circle; tint: string }[] = [
+  { key: 'todo', label: 'Görüləcək', en: 'To do', icon: Circle, tint: 'text-muted-foreground' },
+  { key: 'in_progress', label: 'İcrada', en: 'In progress', icon: Timer, tint: 'text-amber-500' },
+  { key: 'done', label: 'Tamamlandı', en: 'Done', icon: CheckCircle2, tint: 'text-emerald-500' },
 ];
 const initials = (n?: string | null) => (n ?? '?').split(' ').map((x) => x[0]).slice(0, 2).join('').toUpperCase();
 const isOverdue = (t: UserTask) => t.status !== 'done' && !!t.dueDate && t.dueDate < new Date().toISOString().slice(0, 10);
 
 export default function TasksPage() {
   const qc = useQueryClient();
+  const tt = useTT();
   const { active, profile } = useAuth();
   const companyId = active?.companyId;
   const uid = profile?.uid ?? '';
@@ -62,36 +64,36 @@ export default function TasksPage() {
       (fAssignee === 'all' || (fAssignee === 'me' ? t.assignedToUid === uid : t.assignedToUid === fAssignee)));
   }, [tasks, q, fStatus, fPrio, fAssignee, uid]);
 
-  async function move(id: string, status: TaskStatus) { try { await setTaskStatus(id, status); refresh(); } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); } }
-  async function remove(id: string) { if (!window.confirm('Tapşırıq silinsin?')) return; try { await deleteTask(id); refresh(); } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); } }
+  async function move(id: string, status: TaskStatus) { try { await setTaskStatus(id, status); refresh(); } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } }
+  async function remove(id: string) { if (!window.confirm(tt('Tapşırıq silinsin?', 'Delete task?'))) return; try { await deleteTask(id); refresh(); } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } }
 
-  if (!companyId) return <div><PageHeader title="Tapşırıqlar" /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">Aktiv şirkət seçin.</CardContent></Card></div>;
+  if (!companyId) return <div><PageHeader title={tt('Tapşırıqlar', 'Tasks')} /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('Aktiv şirkət seçin.', 'Select an active company.')}</CardContent></Card></div>;
 
   return (
     <div>
-      <PageHeader title="Tapşırıqlar" subtitle={`${active?.company.name} · Komanda tapşırıq idarəetməsi`}
-        action={<Button size="sm" onClick={() => setEditing('new')}><Plus className="h-4 w-4" /> Yeni tapşırıq</Button>} />
+      <PageHeader title={tt('Tapşırıqlar', 'Tasks')} subtitle={`${active?.company.name} · ${tt('Komanda tapşırıq idarəetməsi', 'Team task management')}`}
+        action={<Button size="sm" onClick={() => setEditing('new')}><Plus className="h-4 w-4" /> {tt('Yeni tapşırıq', 'New task')}</Button>} />
 
       {/* Alət paneli */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg border border-border bg-card p-0.5">
-          {([['board', LayoutGrid, 'Lövhə'], ['list', List, 'Siyahı'], ['report', BarChart3, 'Hesabat']] as const).map(([v, Icon, label]) => (
+          {([['board', LayoutGrid, tt('Lövhə', 'Board')], ['list', List, tt('Siyahı', 'List')], ['report', BarChart3, tt('Hesabat', 'Report')]] as const).map(([v, Icon, label]) => (
             <button key={v} onClick={() => setView(v)} className={cn('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors', view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}><Icon className="h-4 w-4" /> {label}</button>
           ))}
         </div>
         <div className="relative min-w-[180px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Axtar…" className="pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tt('Axtar…', 'Search…')} className="pl-9" />
         </div>
         <Select value={fStatus} onValueChange={setFStatus}><SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Bütün status</SelectItem>{COLUMNS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}</SelectContent></Select>
+          <SelectContent><SelectItem value="all">{tt('Bütün status', 'All statuses')}</SelectItem>{COLUMNS.map((c) => <SelectItem key={c.key} value={c.key}>{tt(c.label, c.en)}</SelectItem>)}</SelectContent></Select>
         <Select value={fPrio} onValueChange={setFPrio}><SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Bütün prioritet</SelectItem>{(['high', 'medium', 'low'] as const).map((p) => <SelectItem key={p} value={p}>{PRIO[p].label}</SelectItem>)}</SelectContent></Select>
+          <SelectContent><SelectItem value="all">{tt('Bütün prioritet', 'All priorities')}</SelectItem>{(['high', 'medium', 'low'] as const).map((p) => <SelectItem key={p} value={p}>{tt(PRIO[p].label, PRIO[p].en)}</SelectItem>)}</SelectContent></Select>
         <Select value={fAssignee} onValueChange={setFAssignee}><SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Hamı</SelectItem><SelectItem value="me">Mənə təyin</SelectItem>{(members ?? []).map((m) => <SelectItem key={m.uid} value={m.uid}>{m.name}</SelectItem>)}</SelectContent></Select>
+          <SelectContent><SelectItem value="all">{tt('Hamı', 'Everyone')}</SelectItem><SelectItem value="me">{tt('Mənə təyin', 'Assigned to me')}</SelectItem>{(members ?? []).map((m) => <SelectItem key={m.uid} value={m.uid}>{m.name}</SelectItem>)}</SelectContent></Select>
         <ExportButton filename="tapsiriqlar" rows={filtered} columns={[
-          { header: 'Başlıq', value: 'title' }, { header: 'Status', value: (t) => COLUMNS.find((c) => c.key === t.status)?.label ?? t.status },
-          { header: 'Prioritet', value: (t) => PRIO[t.priority].label }, { header: 'Təyin', value: (t) => t.assigneeName ?? '' }, { header: 'Bitmə', value: 'dueDate' },
+          { header: tt('Başlıq', 'Title'), value: 'title' }, { header: 'Status', value: (t) => tt(COLUMNS.find((c) => c.key === t.status)?.label ?? t.status, COLUMNS.find((c) => c.key === t.status)?.en ?? t.status) },
+          { header: tt('Prioritet', 'Priority'), value: (t) => tt(PRIO[t.priority].label, PRIO[t.priority].en) }, { header: tt('Təyin', 'Assignee'), value: (t) => t.assigneeName ?? '' }, { header: tt('Bitmə', 'Due'), value: 'dueDate' },
         ]} />
       </div>
 
@@ -108,6 +110,7 @@ export default function TasksPage() {
 
 // ── Board (Kanban) ──
 function BoardView({ tasks, onMove, onOpen, onDelete }: { tasks: UserTask[]; onMove: (id: string, s: TaskStatus) => void; onOpen: (t: UserTask) => void; onDelete: (id: string) => void }) {
+  const tt = useTT();
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<TaskStatus | null>(null);
   return (
@@ -121,7 +124,7 @@ function BoardView({ tasks, onMove, onOpen, onDelete }: { tasks: UserTask[]; onM
             className={cn('rounded-2xl border border-border bg-secondary/30 p-2.5 transition-colors', over === col.key && 'ring-2 ring-primary/40')}>
             <div className="mb-2 flex items-center gap-2 px-1.5 py-1">
               <col.icon className={cn('h-4 w-4', col.tint)} />
-              <span className="text-sm font-semibold">{col.label}</span>
+              <span className="text-sm font-semibold">{tt(col.label, col.en)}</span>
               <span className="ml-auto rounded-full bg-background px-2 text-xs font-medium text-muted-foreground">{items.length}</span>
             </div>
             <div className="space-y-2">
@@ -141,7 +144,7 @@ function BoardView({ tasks, onMove, onOpen, onDelete }: { tasks: UserTask[]; onM
                   </div>
                 </div>
               ))}
-              {items.length === 0 && <p className="py-6 text-center text-xs text-muted-foreground">Boş</p>}
+              {items.length === 0 && <p className="py-6 text-center text-xs text-muted-foreground">{tt('Boş', 'Empty')}</p>}
             </div>
           </div>
         );
@@ -152,24 +155,25 @@ function BoardView({ tasks, onMove, onOpen, onDelete }: { tasks: UserTask[]; onM
 
 // ── List ──
 function ListView({ tasks, onOpen, onDelete, onMove }: { tasks: UserTask[]; onOpen: (t: UserTask) => void; onDelete: (id: string) => void; onMove: (id: string, s: TaskStatus) => void }) {
-  if (tasks.length === 0) return <EmptyState title="Tapşırıq yoxdur" description="Filtri dəyişin və ya yeni tapşırıq əlavə edin." />;
+  const tt = useTT();
+  if (tasks.length === 0) return <EmptyState title={tt('Tapşırıq yoxdur', 'No tasks')} description={tt('Filtri dəyişin və ya yeni tapşırıq əlavə edin.', 'Change the filter or add a new task.')} />;
   return (
     <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
       <table className="w-full text-sm">
         <thead><tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-          <th className="px-4 py-2.5 text-left">Tapşırıq</th><th className="px-4 py-2.5 text-left">Təyin</th><th className="px-4 py-2.5 text-left">Prioritet</th><th className="px-4 py-2.5 text-left">Bitmə</th><th className="px-4 py-2.5 text-left">Status</th><th></th>
+          <th className="px-4 py-2.5 text-left">{tt('Tapşırıq', 'Task')}</th><th className="px-4 py-2.5 text-left">{tt('Təyin', 'Assignee')}</th><th className="px-4 py-2.5 text-left">{tt('Prioritet', 'Priority')}</th><th className="px-4 py-2.5 text-left">{tt('Bitmə', 'Due')}</th><th className="px-4 py-2.5 text-left">Status</th><th></th>
         </tr></thead>
         <tbody>
           {tasks.map((t) => (
             <tr key={t.id} className="group cursor-pointer border-b border-border/40 hover:bg-secondary/40" onClick={() => onOpen(t)}>
               <td className="px-4 py-2.5"><div className="flex items-center gap-2"><span className={cn('h-2 w-2 shrink-0 rounded-full', PRIO[t.priority].dot)} /><span className={cn('font-medium', t.status === 'done' && 'text-muted-foreground line-through')}>{t.title}</span></div></td>
               <td className="px-4 py-2.5 text-muted-foreground">{t.assigneeName ?? '—'}</td>
-              <td className="px-4 py-2.5"><span className={PRIO[t.priority].text}>{PRIO[t.priority].label}</span></td>
+              <td className="px-4 py-2.5"><span className={PRIO[t.priority].text}>{tt(PRIO[t.priority].label, PRIO[t.priority].en)}</span></td>
               <td className={cn('px-4 py-2.5', isOverdue(t) ? 'font-semibold text-danger' : 'text-muted-foreground')}>{t.dueDate ?? '—'}</td>
               <td className="px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
                 <Select value={t.status} onValueChange={(v) => onMove(t.id, v as TaskStatus)}>
                   <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>{COLUMNS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>{COLUMNS.map((c) => <SelectItem key={c.key} value={c.key}>{tt(c.label, c.en)}</SelectItem>)}</SelectContent>
                 </Select>
               </td>
               <td className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}><button onClick={() => onDelete(t.id)} className="text-muted-foreground/60 hover:text-danger"><Trash2 className="h-4 w-4" /></button></td>
@@ -183,6 +187,7 @@ function ListView({ tasks, onOpen, onDelete, onMove }: { tasks: UserTask[]; onOp
 
 // ── Report ──
 function ReportView({ tasks, members }: { tasks: UserTask[]; members: TeamMember[] }) {
+  const tt = useTT();
   const total = tasks.length;
   const done = tasks.filter((t) => t.status === 'done').length;
   const inProg = tasks.filter((t) => t.status === 'in_progress').length;
@@ -203,14 +208,14 @@ function ReportView({ tasks, members }: { tasks: UserTask[]; members: TeamMember
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {tile('Ümumi', total, 'bg-violet-500/12 text-violet-600', BarChart3)}
-        {tile('Tamamlanma', `${pct}%`, 'bg-emerald-500/12 text-emerald-600', CheckCircle2)}
-        {tile('İcrada', inProg, 'bg-amber-500/12 text-amber-600', Timer)}
-        {tile('Gecikmiş', overdue, 'bg-rose-500/12 text-rose-600', AlertTriangle)}
+        {tile(tt('Ümumi', 'Total'), total, 'bg-violet-500/12 text-violet-600', BarChart3)}
+        {tile(tt('Tamamlanma', 'Completion'), `${pct}%`, 'bg-emerald-500/12 text-emerald-600', CheckCircle2)}
+        {tile(tt('İcrada', 'In progress'), inProg, 'bg-amber-500/12 text-amber-600', Timer)}
+        {tile(tt('Gecikmiş', 'Overdue'), overdue, 'bg-rose-500/12 text-rose-600', AlertTriangle)}
       </div>
       <Card className="rounded-card"><CardContent className="p-5">
-        <h3 className="mb-3 text-sm font-bold">Üzv üzrə bölgü</h3>
-        {byAssignee.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">Məlumat yoxdur</p> : (
+        <h3 className="mb-3 text-sm font-bold">{tt('Üzv üzrə bölgü', 'By member')}</h3>
+        {byAssignee.length === 0 ? <p className="py-6 text-center text-sm text-muted-foreground">{tt('Məlumat yoxdur', 'No data')}</p> : (
           <div className="space-y-3">
             {byAssignee.map((a) => {
               const p = a.total ? Math.round((a.done / a.total) * 100) : 0;
@@ -233,6 +238,7 @@ function TaskDrawer({ task, companyId, uid, selfName, members, onClose, onSaved 
   task: UserTask | null; companyId: string; uid: string; selfName: string; members: TeamMember[];
   onClose: () => void; onSaved: () => void;
 }) {
+  const tt = useTT();
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'todo');
@@ -243,9 +249,9 @@ function TaskDrawer({ task, companyId, uid, selfName, members, onClose, onSaved 
   const [busy, setBusy] = useState(false);
 
   async function save() {
-    if (!title.trim()) { toast.error('Başlıq daxil edin'); return; }
+    if (!title.trim()) { toast.error(tt('Başlıq daxil edin', 'Enter a title')); return; }
     const member = members.find((m) => m.uid === assignee);
-    const assigneeName = member?.name ?? (assignee === uid ? (selfName || 'Mən') : null);
+    const assigneeName = member?.name ?? (assignee === uid ? (selfName || tt('Mən', 'Me')) : null);
     const labelArr = labels.split(',').map((s) => s.trim()).filter(Boolean);
     setBusy(true);
     try {
@@ -254,32 +260,32 @@ function TaskDrawer({ task, companyId, uid, selfName, members, onClose, onSaved 
       } else {
         await createTask({ companyId, title, description: description || null, status, priority, dueDate: dueDate || null, labels: labelArr, assignedToUid: assignee, assigneeName, createdBy: uid, createdByName: selfName || null });
       }
-      toast.success(task ? 'Tapşırıq yeniləndi' : 'Tapşırıq yaradıldı');
+      toast.success(task ? tt('Tapşırıq yeniləndi', 'Task updated') : tt('Tapşırıq yaradıldı', 'Task created'));
       onSaved(); onClose();
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
   }
 
   return (
-    <Drawer open onClose={onClose} title={task ? 'Tapşırığı redaktə et' : 'Yeni tapşırıq'}
-      footer={<div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>Ləğv et</Button><Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Yadda saxla</Button></div>}>
+    <Drawer open onClose={onClose} title={task ? tt('Tapşırığı redaktə et', 'Edit task') : tt('Yeni tapşırıq', 'New task')}
+      footer={<div className="flex justify-end gap-2"><Button variant="outline" onClick={onClose}>{tt('Ləğv et', 'Cancel')}</Button><Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {tt('Yadda saxla', 'Save')}</Button></div>}>
       <div className="space-y-4">
-        <div className="space-y-2"><Label>Başlıq</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nə edilməlidir?" /></div>
-        <div className="space-y-2"><Label>Təsvir</Label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Detallar…" /></div>
+        <div className="space-y-2"><Label>{tt('Başlıq', 'Title')}</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tt('Nə edilməlidir?', 'What needs to be done?')} /></div>
+        <div className="space-y-2"><Label>{tt('Təsvir', 'Description')}</Label><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder={tt('Detallar…', 'Details…')} /></div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2"><Label className="flex items-center gap-1"><Flag className="h-3.5 w-3.5" /> Status</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as TaskStatus)}><SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{COLUMNS.map((c) => <SelectItem key={c.key} value={c.key}>{c.label}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-2"><Label>Prioritet</Label>
+              <SelectContent>{COLUMNS.map((c) => <SelectItem key={c.key} value={c.key}>{tt(c.label, c.en)}</SelectItem>)}</SelectContent></Select></div>
+          <div className="space-y-2"><Label>{tt('Prioritet', 'Priority')}</Label>
             <Select value={priority} onValueChange={(v) => setPriority(v as UserTask['priority'])}><SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{(['high', 'medium', 'low'] as const).map((p) => <SelectItem key={p} value={p}><span className="flex items-center gap-2"><span className={cn('h-2 w-2 rounded-full', PRIO[p].dot)} /> {PRIO[p].label}</span></SelectItem>)}</SelectContent></Select></div>
+              <SelectContent>{(['high', 'medium', 'low'] as const).map((p) => <SelectItem key={p} value={p}><span className="flex items-center gap-2"><span className={cn('h-2 w-2 rounded-full', PRIO[p].dot)} /> {tt(PRIO[p].label, PRIO[p].en)}</span></SelectItem>)}</SelectContent></Select></div>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2"><Label className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Təyin edilən</Label>
+          <div className="space-y-2"><Label className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> {tt('Təyin edilən', 'Assignee')}</Label>
             <Select value={assignee} onValueChange={setAssignee}><SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{members.length === 0 ? <SelectItem value={uid}>{selfName || 'Mən'}</SelectItem> : members.map((m) => <SelectItem key={m.uid} value={m.uid}>{m.name}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-2"><Label className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> Bitmə tarixi</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+              <SelectContent>{members.length === 0 ? <SelectItem value={uid}>{selfName || tt('Mən', 'Me')}</SelectItem> : members.map((m) => <SelectItem key={m.uid} value={m.uid}>{m.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="space-y-2"><Label className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> {tt('Bitmə tarixi', 'Due date')}</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
         </div>
-        <div className="space-y-2"><Label>Etiketlər (vergüllə)</Label><Input value={labels} onChange={(e) => setLabels(e.target.value)} placeholder="məs. maliyyə, təcili" /></div>
+        <div className="space-y-2"><Label>{tt('Etiketlər (vergüllə)', 'Labels (comma-separated)')}</Label><Input value={labels} onChange={(e) => setLabels(e.target.value)} placeholder={tt('məs. maliyyə, təcili', 'e.g. finance, urgent')} /></div>
       </div>
     </Drawer>
   );
