@@ -7,8 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ExportButton } from '@/components/shared/export-button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils/format';
+import { useTT } from '@/lib/i18n/tt';
 
 export function AgingTab({ companyId, baseCurrency }: { companyId: string; baseCurrency: string }) {
+  const tt = useTT();
   const { data, isLoading } = useQuery({
     queryKey: ['aging', companyId],
     queryFn: async () => computeAging(await listInvoices(companyId)),
@@ -19,25 +21,25 @@ export function AgingTab({ companyId, baseCurrency }: { companyId: string; baseC
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Ödəniş müddətinə görə açıq fakturalar (06 §8)</p>
+        <p className="text-sm text-muted-foreground">{tt('Ödəniş müddətinə görə açıq fakturalar (06 §8)', 'Open invoices by payment term (06 §8)')}</p>
         <ExportButton filename="debitor-yas-analizi" rows={data.rows}
           columns={[
-            { header: 'Müştəri', value: 'customerName' }, { header: '0-30', value: 'b0_30' },
+            { header: tt('Müştəri', 'Customer'), value: 'customerName' }, { header: '0-30', value: 'b0_30' },
             { header: '31-60', value: 'b31_60' }, { header: '61-90', value: 'b61_90' },
-            { header: '90+', value: 'b90' }, { header: 'Ümumi', value: 'total' },
+            { header: '90+', value: 'b90' }, { header: tt('Ümumi', 'Total'), value: 'total' },
           ]} />
       </div>
       <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Müştəri</TableHead>
-            <TableHead className="text-right">0-30 gün</TableHead><TableHead className="text-right">31-60</TableHead>
+            <TableHead>{tt('Müştəri', 'Customer')}</TableHead>
+            <TableHead className="text-right">0-30 {tt('gün', 'days')}</TableHead><TableHead className="text-right">31-60</TableHead>
             <TableHead className="text-right">61-90</TableHead><TableHead className="text-right">90+</TableHead>
-            <TableHead className="text-right">Ümumi</TableHead>
+            <TableHead className="text-right">{tt('Ümumi', 'Total')}</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {data.rows.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">Açıq debitor borcu yoxdur</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="py-8 text-center text-muted-foreground">{tt('Açıq debitor borcu yoxdur', 'No open receivables')}</TableCell></TableRow>
             ) : data.rows.map((r) => (
               <TableRow key={r.customerId}>
                 <TableCell className="font-medium">{r.customerName}</TableCell>
@@ -50,7 +52,7 @@ export function AgingTab({ companyId, baseCurrency }: { companyId: string; baseC
             ))}
             {data.rows.length > 0 && (
               <TableRow className="border-t-2 font-bold">
-                <TableCell>CƏMİ</TableCell>
+                <TableCell>{tt('CƏMİ', 'TOTAL')}</TableCell>
                 <TableCell className="text-right tnum">{formatCurrency(data.totals.b0_30, baseCurrency)}</TableCell>
                 <TableCell className="text-right tnum">{formatCurrency(data.totals.b31_60, baseCurrency)}</TableCell>
                 <TableCell className="text-right tnum">{formatCurrency(data.totals.b61_90, baseCurrency)}</TableCell>
