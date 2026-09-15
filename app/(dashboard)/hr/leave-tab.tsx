@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import type { LeaveRequest } from '@/types';
 
 interface Props { companyId: string; canCreate: boolean; actorUid: string; canApprove: boolean }
@@ -27,39 +28,40 @@ function daysBetween(a: string, b: string): number {
 
 export function LeaveTab({ companyId, canCreate, actorUid, canApprove }: Props) {
   const qc = useQueryClient();
+  const tt = useTT();
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ['leaveRequests', companyId], queryFn: () => listLeaveRequests(companyId) });
   const { data: types } = useQuery({ queryKey: ['leaveTypes', companyId], queryFn: () => listLeaveTypes(companyId) });
 
-  async function seed() { await seedLeaveTypes(companyId); toast.success('Məzuniyyət növləri quruldu'); qc.invalidateQueries({ queryKey: ['leaveTypes', companyId] }); }
+  async function seed() { await seedLeaveTypes(companyId); toast.success(tt('Məzuniyyət növləri quruldu', 'Leave types set up')); qc.invalidateQueries({ queryKey: ['leaveTypes', companyId] }); }
   async function decide(req: LeaveRequest, approve: boolean) {
     setBusyId(req.id);
-    try { await decideLeaveRequest(req, approve, actorUid); toast.success(approve ? 'Təsdiqləndi' : 'Rədd edildi'); qc.invalidateQueries({ queryKey: ['leaveRequests', companyId] }); }
-    catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    try { await decideLeaveRequest(req, approve, actorUid); toast.success(approve ? tt('Təsdiqləndi', 'Approved') : tt('Rədd edildi', 'Rejected')); qc.invalidateQueries({ queryKey: ['leaveRequests', companyId] }); }
+    catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setBusyId(null); }
   }
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Əmək Məcəlləsi minimumlarına uyğun növlər (10 §4)</p>
+        <p className="text-sm text-muted-foreground">{tt('Əmək Məcəlləsi minimumlarına uyğun növlər (10 §4)', 'Leave types compliant with Labor Code minimums (10 §4)')}</p>
         <div className="flex gap-2">
           <ExportButton filename="mezuniyyet-telebleri" rows={data ?? []} columns={[
-            { header: 'İşçi', value: 'employeeName' }, { header: 'Növ', value: 'leaveTypeName' },
-            { header: 'Başlanğıc', value: 'startDate' }, { header: 'Son', value: 'endDate' },
-            { header: 'Gün', value: 'totalDays' }, { header: 'Status', value: 'status' },
+            { header: tt('İşçi', 'Employee'), value: 'employeeName' }, { header: tt('Növ', 'Type'), value: 'leaveTypeName' },
+            { header: tt('Başlanğıc', 'Start'), value: 'startDate' }, { header: tt('Son', 'End'), value: 'endDate' },
+            { header: tt('Gün', 'Days'), value: 'totalDays' }, { header: 'Status', value: 'status' },
           ]} />
-          {(types ?? []).length === 0 && <Button size="sm" variant="outline" onClick={seed}><Sparkles className="h-4 w-4" /> Növləri qur</Button>}
-          {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!types?.length}><Plus className="h-4 w-4" /> Məzuniyyət tələbi</Button>}
+          {(types ?? []).length === 0 && <Button size="sm" variant="outline" onClick={seed}><Sparkles className="h-4 w-4" /> {tt('Növləri qur', 'Set up types')}</Button>}
+          {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!types?.length}><Plus className="h-4 w-4" /> {tt('Məzuniyyət tələbi', 'Leave request')}</Button>}
         </div>
       </div>
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (data ?? []).length === 0 ? (
-        <EmptyState title="Məzuniyyət tələbi yoxdur" />
+        <EmptyState title={tt('Məzuniyyət tələbi yoxdur', 'No leave requests')} />
       ) : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
-            <TableHeader><TableRow><TableHead>İşçi</TableHead><TableHead>Növ</TableHead><TableHead>Başlanğıc</TableHead><TableHead>Son</TableHead><TableHead>Gün</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>{tt('İşçi', 'Employee')}</TableHead><TableHead>{tt('Növ', 'Type')}</TableHead><TableHead>{tt('Başlanğıc', 'Start')}</TableHead><TableHead>{tt('Son', 'End')}</TableHead><TableHead>{tt('Gün', 'Days')}</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {(data ?? []).map((r) => (
                 <TableRow key={r.id}>
@@ -89,6 +91,7 @@ export function LeaveTab({ companyId, canCreate, actorUid, canApprove }: Props) 
 }
 
 function RequestDialog({ open, onOpenChange, companyId, actorUid, onSaved }: { open: boolean; onOpenChange: (o: boolean) => void; companyId: string; actorUid: string; onSaved: () => void }) {
+  const tt = useTT();
   const [employeeId, setEmployeeId] = useState(''); const [leaveTypeId, setLeaveTypeId] = useState('');
   const [start, setStart] = useState(new Date().toISOString().slice(0, 10)); const [end, setEnd] = useState(new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
@@ -97,34 +100,34 @@ function RequestDialog({ open, onOpenChange, companyId, actorUid, onSaved }: { o
 
   async function save() {
     const emp = employees?.find((e) => e.id === employeeId); const t = types?.find((x) => x.id === leaveTypeId);
-    if (!emp || !t) { toast.error('İşçi və növ seçin'); return; }
+    if (!emp || !t) { toast.error(tt('İşçi və növ seçin', 'Select an employee and type')); return; }
     setSaving(true);
     try {
       await createLeaveRequest({ companyId, employeeId, employeeName: `${emp.firstName} ${emp.lastName}`, leaveTypeId, leaveTypeName: t.name.az, startDate: start, endDate: end, totalDays: daysBetween(start, end), reason: null, createdBy: actorUid });
-      toast.success('Tələb yaradıldı'); setEmployeeId(''); setLeaveTypeId(''); onSaved(); onOpenChange(false);
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); } finally { setSaving(false); }
+      toast.success(tt('Tələb yaradıldı', 'Request created')); setEmployeeId(''); setLeaveTypeId(''); onSaved(); onOpenChange(false);
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } finally { setSaving(false); }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Məzuniyyət tələbi</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tt('Məzuniyyət tələbi', 'Leave request')}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-2"><Label>İşçi</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
+          <div className="space-y-2"><Label>{tt('İşçi', 'Employee')}</Label>
+            <Select value={employeeId} onValueChange={setEmployeeId}><SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
               <SelectContent>{(employees ?? []).map((e) => <SelectItem key={e.id} value={e.id}>{e.firstName} {e.lastName}</SelectItem>)}</SelectContent></Select>
           </div>
-          <div className="space-y-2"><Label>Növ</Label>
-            <Select value={leaveTypeId} onValueChange={setLeaveTypeId}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
-              <SelectContent>{(types ?? []).map((t) => <SelectItem key={t.id} value={t.id}>{t.name.az}</SelectItem>)}</SelectContent></Select>
+          <div className="space-y-2"><Label>{tt('Növ', 'Type')}</Label>
+            <Select value={leaveTypeId} onValueChange={setLeaveTypeId}><SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
+              <SelectContent>{(types ?? []).map((t) => <SelectItem key={t.id} value={t.id}>{tt(t.name.az, t.name.en)}</SelectItem>)}</SelectContent></Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>Başlanğıc</Label><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Son</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{tt('Başlanğıc', 'Start')}</Label><Input type="date" value={start} onChange={(e) => setStart(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{tt('Son', 'End')}</Label><Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div>
           </div>
-          <p className="text-xs text-muted-foreground">Gün sayı: {daysBetween(start, end)}</p>
+          <p className="text-xs text-muted-foreground">{tt('Gün sayı', 'Number of days')}: {daysBetween(start, end)}</p>
         </div>
-        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} Yarat</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} {tt('Yarat', 'Create')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

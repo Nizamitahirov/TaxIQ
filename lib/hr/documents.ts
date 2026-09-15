@@ -20,6 +20,13 @@ export const ORDER_TYPE_LABEL: Record<HROrderType, string> = {
   transfer: 'Vəzifə dəyişikliyi əmri', salary_change: 'Əmək haqqı dəyişikliyi əmri',
 };
 
+/** İngiliscə əmr növü adları (i18n interfeys üçün — sənəd mətni AZ qalır) */
+export const ORDER_TYPE_LABEL_EN: Record<HROrderType, string> = {
+  hire: 'Hire order', termination: 'Termination order', leave: 'Leave order',
+  business_trip: 'Business trip order', bonus: 'Bonus order', penalty: 'Disciplinary penalty order',
+  transfer: 'Position change order', salary_change: 'Salary change order',
+};
+
 const CONTRACT_TYPE_LABEL: Record<string, string> = { indefinite: 'müddətsiz', fixed_term: 'müddətli' };
 
 /** Əmr növünə görə hazır mətn şablonu (redaktə edilə bilər) */
