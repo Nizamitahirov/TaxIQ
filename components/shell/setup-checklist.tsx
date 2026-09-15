@@ -10,6 +10,7 @@ import { listAccounts, initializeChartOfAccounts, listJournalEntries } from '@/l
 import { listGoods } from '@/lib/firebase/inventory';
 import { listCustomers, listInvoices } from '@/lib/firebase/sales';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 import { cn } from '@/lib/utils/cn';
 
@@ -18,6 +19,7 @@ interface Step { key: string; label: string; icon: LucideIcon; module: ModuleKey
 export function SetupChecklist() {
   const qc = useQueryClient();
   const { active, profile, canAccess, isSuperAdmin } = useAuth();
+  const tt = useTT();
   const companyId = active?.companyId;
   const can = (m: ModuleKey) => isSuperAdmin || canAccess(m);
   const [dismissed, setDismissed] = useState(false);
@@ -31,11 +33,11 @@ export function SetupChecklist() {
 
   const steps = useMemo<Step[]>(() => {
     const all: Step[] = [
-      { key: 'coa', label: 'Hesablar Planını qurun', icon: BookOpen, module: 'accounting', done: (accounts.data ?? []).length > 0, href: '/accounting', action: 'initCoa' },
-      { key: 'goods', label: 'İlk mal və ya xidmət əlavə edin', icon: Package, module: 'warehouse', done: (goods.data ?? []).length > 0, href: '/warehouse' },
-      { key: 'customer', label: 'İlk müştərini yaradın', icon: Users2, module: 'sales', done: (customers.data ?? []).length > 0, href: '/sales' },
-      { key: 'invoice', label: 'İlk fakturanı kəsin', icon: FileText, module: 'sales', done: (invoices.data ?? []).length > 0, href: '/sales' },
-      { key: 'journal', label: 'İlk jurnal yazısını aparın', icon: PenLine, module: 'accounting', done: (journal.data ?? []).length > 0, href: '/accounting' },
+      { key: 'coa', label: tt('Hesablar Planını qurun', 'Set up the chart of accounts'), icon: BookOpen, module: 'accounting', done: (accounts.data ?? []).length > 0, href: '/accounting', action: 'initCoa' },
+      { key: 'goods', label: tt('İlk mal və ya xidmət əlavə edin', 'Add your first good or service'), icon: Package, module: 'warehouse', done: (goods.data ?? []).length > 0, href: '/warehouse' },
+      { key: 'customer', label: tt('İlk müştərini yaradın', 'Create your first customer'), icon: Users2, module: 'sales', done: (customers.data ?? []).length > 0, href: '/sales' },
+      { key: 'invoice', label: tt('İlk fakturanı kəsin', 'Issue your first invoice'), icon: FileText, module: 'sales', done: (invoices.data ?? []).length > 0, href: '/sales' },
+      { key: 'journal', label: tt('İlk jurnal yazısını aparın', 'Post your first journal entry'), icon: PenLine, module: 'accounting', done: (journal.data ?? []).length > 0, href: '/accounting' },
     ];
     return all.filter((s) => can(s.module));
   }, [accounts.data, goods.data, customers.data, invoices.data, journal.data]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -63,8 +65,8 @@ export function SetupChecklist() {
       <div className="relative flex items-center gap-3">
         <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white"><Rocket className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 font-bold"><Sparkles className="h-4 w-4 text-primary" /> Quraşdırmanı tamamlayın</p>
-          <p className="text-xs text-muted-foreground">{doneCount}/{steps.length} addım · {active?.company.name}</p>
+          <p className="flex items-center gap-1.5 font-bold"><Sparkles className="h-4 w-4 text-primary" /> {tt("Quraşdırmanı tamamlayın","Complete setup")}</p>
+          <p className="text-xs text-muted-foreground">{doneCount}/{steps.length} {tt("addım","steps")} · {active?.company.name}</p>
         </div>
         <span className="text-2xl font-bold tnum text-primary">{pct}%</span>
       </div>
@@ -79,8 +81,8 @@ export function SetupChecklist() {
             </span>
             <span className={cn('min-w-0 flex-1 truncate text-sm', s.done ? 'text-muted-foreground line-through' : 'font-medium')}>{s.label}</span>
             {!s.done && (s.action === 'initCoa'
-              ? <button onClick={initCoa} disabled={busy} className="shrink-0 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Qur'}</button>
-              : <Link href={s.href} className="flex shrink-0 items-center gap-1 rounded-lg bg-secondary px-2.5 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-primary/10 hover:text-primary">Başla <ArrowRight className="h-3 w-3" /></Link>)}
+              ? <button onClick={initCoa} disabled={busy} className="shrink-0 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">{busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : tt('Qur', 'Set up')}</button>
+              : <Link href={s.href} className="flex shrink-0 items-center gap-1 rounded-lg bg-secondary px-2.5 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-primary/10 hover:text-primary">{tt('Başla', 'Start')} <ArrowRight className="h-3 w-3" /></Link>)}
           </div>
         ))}
       </div>

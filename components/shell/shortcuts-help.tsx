@@ -1,35 +1,37 @@
 'use client';
 
 import { Drawer } from '@/components/ui/drawer';
-
-const GROUPS: { title: string; rows: { keys: string[]; label: string }[] }[] = [
-  { title: 'Ümumi', rows: [
-    { keys: ['⌘', 'K'], label: 'Komanda paneli / axtarış' },
-    { keys: ['C'], label: 'Yarat menyusu' },
-    { keys: ['?'], label: 'Bu kömək paneli' },
-  ] },
-  { title: 'Naviqasiya (g sonra…)', rows: [
-    { keys: ['G', 'H'], label: 'Bölmələr (Hub)' },
-    { keys: ['G', 'D'], label: 'Dashboard' },
-    { keys: ['G', 'S'], label: 'Satış' },
-    { keys: ['G', 'A'], label: 'Anbar' },
-    { keys: ['G', 'M'], label: 'Mühasibat' },
-    { keys: ['G', 'K'], label: 'Kadrlar' },
-    { keys: ['G', 'R'], label: 'Hesabatlar (IFRS)' },
-    { keys: ['G', 'C'], label: 'Kassa/Bank' },
-  ] },
-  { title: 'Panel daxilində', rows: [
-    { keys: ['↑', '↓'], label: 'Elementlər arası' },
-    { keys: ['↵'], label: 'Seç' },
-    { keys: ['Esc'], label: 'Bağla' },
-  ] },
-];
+import { useTT } from '@/lib/i18n/tt';
 
 export function ShortcutsHelp({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const tt = useTT();
+  const groups: { title: string; rows: { keys: string[]; label: string }[] }[] = [
+    { title: tt('Ümumi', 'General'), rows: [
+      { keys: ['⌘', 'K'], label: tt('Komanda paneli / axtarış', 'Command palette / search') },
+      { keys: ['C'], label: tt('Yarat menyusu', 'Create menu') },
+      { keys: ['?'], label: tt('Bu kömək paneli', 'This help panel') },
+    ] },
+    { title: tt('Naviqasiya (g sonra…)', 'Navigation (g then…)'), rows: [
+      { keys: ['G', 'H'], label: tt('Bölmələr (Hub)', 'Workspaces (Hub)') },
+      { keys: ['G', 'D'], label: 'Dashboard' },
+      { keys: ['G', 'S'], label: tt('Satış', 'Sales') },
+      { keys: ['G', 'A'], label: tt('Anbar', 'Warehouse') },
+      { keys: ['G', 'M'], label: tt('Mühasibat', 'Accounting') },
+      { keys: ['G', 'K'], label: tt('Kadrlar', 'HR') },
+      { keys: ['G', 'R'], label: tt('Hesabatlar (IFRS)', 'Reports (IFRS)') },
+      { keys: ['G', 'C'], label: tt('Kassa/Bank', 'Cash/Bank') },
+    ] },
+    { title: tt('Panel daxilində', 'Inside a panel'), rows: [
+      { keys: ['↑', '↓'], label: tt('Elementlər arası', 'Between items') },
+      { keys: ['↵'], label: tt('Seç', 'Select') },
+      { keys: ['Esc'], label: tt('Bağla', 'Close') },
+    ] },
+  ];
+
   return (
-    <Drawer open={open} onClose={onClose} title="Klaviatura qısayolları" description="Sürətli naviqasiya üçün">
+    <Drawer open={open} onClose={onClose} title={tt('Klaviatura qısayolları', 'Keyboard shortcuts')} description={tt('Sürətli naviqasiya üçün', 'For quick navigation')}>
       <div className="space-y-5">
-        {GROUPS.map((g) => (
+        {groups.map((g) => (
           <div key={g.title}>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{g.title}</p>
             <div className="space-y-1.5">
