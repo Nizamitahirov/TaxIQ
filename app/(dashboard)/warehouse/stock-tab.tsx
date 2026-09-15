@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import { formatCurrency, formatNumber } from '@/lib/utils/format';
 import type { MovementType, Good } from '@/types';
 
@@ -26,13 +27,14 @@ interface TabProps { companyId: string; canCreate: boolean; actorUid: string; ba
 
 export function StockTab({ companyId, canCreate, actorUid, baseCurrency }: TabProps) {
   const qc = useQueryClient();
+  const tt = useTT();
   const [open, setOpen] = useState(false);
   const { data: balances, isLoading } = useQuery({ queryKey: ['stockBalances', companyId], queryFn: () => listStockBalances(companyId) });
   const { data: goods } = useQuery({ queryKey: ['goods', companyId], queryFn: () => listGoods(companyId) });
   const { data: warehouses } = useQuery({ queryKey: ['warehouses', companyId], queryFn: () => listWarehouses(companyId) });
 
-  const goodName = (id: string) => goods?.find((g) => g.id === id)?.name.az ?? id;
-  const whName = (id: string) => warehouses?.find((w) => w.id === id)?.name.az ?? id;
+  const goodName = (id: string) => { const g = goods?.find((x) => x.id === id); return g ? tt(g.name.az, g.name.en) : id; };
+  const whName = (id: string) => { const w = warehouses?.find((x) => x.id === id); return w ? tt(w.name.az, w.name.en) : id; };
   const low = goods && balances ? lowStockItems(goods, balances) : [];
   const totalValue = (balances ?? []).reduce((s, b) => s + (b.totalValue ?? 0), 0);
 
@@ -46,32 +48,32 @@ export function StockTab({ companyId, canCreate, actorUid, baseCurrency }: TabPr
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 rounded-card border border-border bg-card px-4 py-2">
-          <span className="text-sm text-muted-foreground">Ümumi anbar dəyəri:</span>
+          <span className="text-sm text-muted-foreground">{tt('Ümumi anbar dəyəri:', 'Total inventory value:')}</span>
           <span className="font-bold tnum">{formatCurrency(totalValue, baseCurrency)}</span>
         </div>
         <div className="flex gap-2">
           <ExportButton filename="anbar-qaliqlari" rows={(balances ?? []).map((b) => ({ ...b, goodName: goodName(b.goodId), warehouseName: whName(b.warehouseId) }))}
             columns={[
-              { header: 'Anbar', value: 'warehouseName' }, { header: 'Mal', value: 'goodName' },
-              { header: 'Qalıq', value: 'quantityOnHand' }, { header: 'Orta qiymət', value: 'averageCost' }, { header: 'Dəyər', value: 'totalValue' },
+              { header: tt('Anbar', 'Warehouse'), value: 'warehouseName' }, { header: tt('Mal', 'Good'), value: 'goodName' },
+              { header: tt('Qalıq', 'On hand'), value: 'quantityOnHand' }, { header: tt('Orta qiymət', 'Avg cost'), value: 'averageCost' }, { header: tt('Dəyər', 'Value'), value: 'totalValue' },
             ]} />
-          {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!goods?.length || !warehouses?.length}><Plus className="h-4 w-4" /> Əməliyyat</Button>}
+          {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!goods?.length || !warehouses?.length}><Plus className="h-4 w-4" /> {tt('Əməliyyat', 'Operation')}</Button>}
         </div>
       </div>
 
       {low.length > 0 && (
         <Card className="rounded-card border-warning/40 bg-warning/5"><CardContent className="p-4">
-          <p className="flex items-center gap-2 text-sm font-semibold text-warning-foreground"><AlertTriangle className="h-4 w-4 text-warning" /> Minimum səviyyədən aşağı: {low.length} mal</p>
-          <div className="mt-2 flex flex-wrap gap-2">{low.map((x) => <Badge key={x.good.id} variant="warning">{x.good.name.az}: {formatNumber(x.onHand, 0)} / min {x.good.reorderPoint}</Badge>)}</div>
+          <p className="flex items-center gap-2 text-sm font-semibold text-warning-foreground"><AlertTriangle className="h-4 w-4 text-warning" /> {tt('Minimum səviyyədən aşağı:', 'Below minimum level:')} {low.length} {tt('mal', 'goods')}</p>
+          <div className="mt-2 flex flex-wrap gap-2">{low.map((x) => <Badge key={x.good.id} variant="warning">{tt(x.good.name.az, x.good.name.en)}: {formatNumber(x.onHand, 0)} / min {x.good.reorderPoint}</Badge>)}</div>
         </CardContent></Card>
       )}
 
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (balances ?? []).filter((b) => b.quantityOnHand !== 0).length === 0 ? (
-        <EmptyState title="Anbar qalığı yoxdur" description="Mal qəbulu (əməliyyat) ilə başlayın." />
+        <EmptyState title={tt('Anbar qalığı yoxdur', 'No stock')} description={tt('Mal qəbulu (əməliyyat) ilə başlayın.', 'Start with a goods receipt (operation).')} />
       ) : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
-            <TableHeader><TableRow><TableHead>Anbar</TableHead><TableHead>Mal</TableHead><TableHead className="text-right">Qalıq</TableHead><TableHead className="text-right">Orta qiymət</TableHead><TableHead className="text-right">Dəyər</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>{tt('Anbar', 'Warehouse')}</TableHead><TableHead>{tt('Mal', 'Good')}</TableHead><TableHead className="text-right">{tt('Qalıq', 'On hand')}</TableHead><TableHead className="text-right">{tt('Orta qiymət', 'Avg cost')}</TableHead><TableHead className="text-right">{tt('Dəyər', 'Value')}</TableHead></TableRow></TableHeader>
             <TableBody>
               {(balances ?? []).filter((b) => b.quantityOnHand !== 0).map((b) => (
                 <TableRow key={b.id}>
@@ -93,17 +95,18 @@ export function StockTab({ companyId, canCreate, actorUid, baseCurrency }: TabPr
   );
 }
 
-const OPS: { value: MovementType; label: string; isIn: boolean }[] = [
-  { value: 'purchase_in', label: 'Mal qəbulu (alış)', isIn: true },
-  { value: 'sale_out', label: 'Satış çıxışı (COGS ilə)', isIn: false },
-  { value: 'adjustment_in', label: 'Düzəliş (artım)', isIn: true },
-  { value: 'adjustment_out', label: 'Düzəliş (azalma)', isIn: false },
+const OPS: { value: MovementType; label: string; en: string; isIn: boolean }[] = [
+  { value: 'purchase_in', label: 'Mal qəbulu (alış)', en: 'Goods receipt (purchase)', isIn: true },
+  { value: 'sale_out', label: 'Satış çıxışı (COGS ilə)', en: 'Sales issue (with COGS)', isIn: false },
+  { value: 'adjustment_in', label: 'Düzəliş (artım)', en: 'Adjustment (increase)', isIn: true },
+  { value: 'adjustment_out', label: 'Düzəliş (azalma)', en: 'Adjustment (decrease)', isIn: false },
 ];
 
 function OperationDialog({ open, onOpenChange, companyId, actorUid, baseCurrency, goods, warehouses, onSaved }: {
   open: boolean; onOpenChange: (o: boolean) => void; companyId: string; actorUid: string; baseCurrency: string;
-  goods: Good[]; warehouses: { id: string; name: { az: string } }[]; onSaved: () => void;
+  goods: Good[]; warehouses: { id: string; name: { az: string; en: string } }[]; onSaved: () => void;
 }) {
+  const tt = useTT();
   const [op, setOp] = useState<MovementType>('purchase_in');
   const [warehouseId, setWarehouseId] = useState('');
   const [goodId, setGoodId] = useState('');
@@ -122,59 +125,59 @@ function OperationDialog({ open, onOpenChange, companyId, actorUid, baseCurrency
   function selectGood(id: string) { setGoodId(id); setUnit(goods.find((g) => g.id === id)?.baseUnit ?? ''); }
   function onScan(code: string) {
     const g = goods.find((x) => x.barcode === code);
-    if (g) { selectGood(g.id); toast.success('Mal tapıldı', g.name.az); }
-    else toast.error('Bu barkodla mal tapılmadı', code);
+    if (g) { selectGood(g.id); toast.success(tt('Mal tapıldı', 'Good found'), tt(g.name.az, g.name.en)); }
+    else toast.error(tt('Bu barkodla mal tapılmadı', 'No good found for this barcode'), code);
   }
 
   async function save() {
     const g = good; const w = warehouses.find((x) => x.id === warehouseId);
-    if (!g || !w || baseQty <= 0) { toast.error('Anbar, mal və miqdar tələb olunur'); return; }
+    if (!g || !w || baseQty <= 0) { toast.error(tt('Anbar, mal və miqdar tələb olunur', 'Warehouse, good and quantity are required')); return; }
     setSaving(true);
     try {
       const common = { companyId, warehouseId, warehouseName: w.name.az, goodId, goodName: g.name.az, movementType: op, quantity: baseQty, valuationMethod: goodValuationMethod(g), movementDate: date, performedBy: actorUid, unitCost: opDef.isIn ? (Number(unitCost) || 0) : null };
       if (op === 'sale_out') await issueWithCogs({ ...common, baseCurrency });
       else await postMovement(common);
-      toast.success('Hərəkət qeyd edildi', op === 'sale_out' ? 'COGS jurnal yazısı yaradıldı' : undefined);
+      toast.success(tt('Hərəkət qeyd edildi', 'Movement recorded'), op === 'sale_out' ? tt('COGS jurnal yazısı yaradıldı', 'COGS journal entry created') : undefined);
       setGoodId(''); setQty(''); setUnitCost(''); setUnit('');
       onSaved(); onOpenChange(false);
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Ehtiyat əməliyyatı</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tt('Ehtiyat əməliyyatı', 'Inventory operation')}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-2"><Label>Əməliyyat</Label>
+          <div className="space-y-2"><Label>{tt('Əməliyyat', 'Operation')}</Label>
             <Select value={op} onValueChange={(v) => setOp(v as MovementType)}><SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{OPS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select>
+              <SelectContent>{OPS.map((o) => <SelectItem key={o.value} value={o.value}>{tt(o.label, o.en)}</SelectItem>)}</SelectContent></Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>Anbar</Label>
-              <Select value={warehouseId} onValueChange={setWarehouseId}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
-                <SelectContent>{warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{w.name.az}</SelectItem>)}</SelectContent></Select>
+            <div className="space-y-2"><Label>{tt('Anbar', 'Warehouse')}</Label>
+              <Select value={warehouseId} onValueChange={setWarehouseId}><SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
+                <SelectContent>{warehouses.map((w) => <SelectItem key={w.id} value={w.id}>{tt(w.name.az, w.name.en)}</SelectItem>)}</SelectContent></Select>
             </div>
-            <div className="space-y-2"><Label>Mal</Label>
+            <div className="space-y-2"><Label>{tt('Mal', 'Good')}</Label>
               <div className="flex gap-1">
-                <Select value={goodId} onValueChange={selectGood}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
-                  <SelectContent>{goods.map((g) => <SelectItem key={g.id} value={g.id}>{g.name.az}</SelectItem>)}</SelectContent></Select>
-                <Button type="button" variant="outline" size="icon" onClick={() => setScan(true)} title="Barkod skan"><ScanBarcode className="h-4 w-4" /></Button>
+                <Select value={goodId} onValueChange={selectGood}><SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
+                  <SelectContent>{goods.map((g) => <SelectItem key={g.id} value={g.id}>{tt(g.name.az, g.name.en)}</SelectItem>)}</SelectContent></Select>
+                <Button type="button" variant="outline" size="icon" onClick={() => setScan(true)} title={tt('Barkod skan', 'Scan barcode')}><ScanBarcode className="h-4 w-4" /></Button>
               </div>
             </div>
           </div>
           <div className="grid grid-cols-4 gap-3">
-            <div className="space-y-2"><Label>Miqdar</Label><Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Vahid</Label>
+            <div className="space-y-2"><Label>{tt('Miqdar', 'Quantity')}</Label><Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{tt('Vahid', 'Unit')}</Label>
               <Select value={activeUnit} onValueChange={setUnit} disabled={!good}><SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{units.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select>
             </div>
-            {opDef.isIn && <div className="space-y-2"><Label>Vahid qiymət</Label><Input type="number" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} /></div>}
-            <div className="space-y-2"><Label>Tarix</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            {opDef.isIn && <div className="space-y-2"><Label>{tt('Vahid qiymət', 'Unit cost')}</Label><Input type="number" value={unitCost} onChange={(e) => setUnitCost(e.target.value)} /></div>}
+            <div className="space-y-2"><Label>{tt('Tarix', 'Date')}</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
           </div>
-          {good && activeUnit !== good.baseUnit && <p className="text-xs text-muted-foreground">= {formatNumber(baseQty, 2)} {good.baseUnit} (baza vahid) · metod: {goodValuationMethod(good) === 'fifo' ? 'FIFO' : 'orta çəkili'}</p>}
+          {good && activeUnit !== good.baseUnit && <p className="text-xs text-muted-foreground">= {formatNumber(baseQty, 2)} {good.baseUnit} ({tt('baza vahid', 'base unit')}) · {tt('metod', 'method')}: {goodValuationMethod(good) === 'fifo' ? 'FIFO' : tt('orta çəkili', 'weighted avg')}</p>}
         </div>
-        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} Qeyd et</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} {tt('Qeyd et', 'Record')}</Button></DialogFooter>
       </DialogContent>
       <BarcodeScanner open={scan} onOpenChange={setScan} onDetected={onScan} />
     </Dialog>
