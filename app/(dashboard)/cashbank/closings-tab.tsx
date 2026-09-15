@@ -17,6 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import { formatCurrency } from '@/lib/utils/format';
 
 const THRESHOLD = 5; // fərq həddi (baza valyutası) — üstündə xəbərdarlıq (07 §2.3)
@@ -24,27 +25,28 @@ interface TabProps { companyId: string; canCreate: boolean; actorUid: string; ba
 
 export function ClosingsTab({ companyId, canCreate, actorUid, baseCurrency }: TabProps) {
   const qc = useQueryClient();
+  const tt = useTT();
   const [open, setOpen] = useState(false);
   const { data, isLoading } = useQuery({ queryKey: ['dailyClosings', companyId], queryFn: () => listDailyClosings(companyId) });
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Gün sonu kassanın fiziki sayımı sistem qalığı ilə tutuşdurulur; fərq həddi (±{THRESHOLD} {baseCurrency}) aşarsa xəbərdarlıq (07 §2.3).</p>
+        <p className="text-sm text-muted-foreground">{tt('Gün sonu kassanın fiziki sayımı sistem qalığı ilə tutuşdurulur; fərq həddi', 'The end-of-day physical cash count is compared with the system balance; if the variance threshold')} (±{THRESHOLD} {baseCurrency}) {tt('aşarsa xəbərdarlıq (07 §2.3).', 'is exceeded, a warning is shown (07 §2.3).')}</p>
         <div className="flex gap-2">
           <ExportButton filename="kassa-baglanislari" rows={data ?? []} columns={[
-            { header: 'Tarix', value: 'date' }, { header: 'Kassa', value: 'cashRegisterName' }, { header: 'Sistem', value: 'systemClosingBalance' },
-            { header: 'Sayım', value: 'physicallyCountedBalance' }, { header: 'Fərq', value: 'variance' },
+            { header: tt('Tarix', 'Date'), value: 'date' }, { header: tt('Kassa', 'Register'), value: 'cashRegisterName' }, { header: tt('Sistem', 'System'), value: 'systemClosingBalance' },
+            { header: tt('Sayım', 'Counted'), value: 'physicallyCountedBalance' }, { header: tt('Fərq', 'Variance'), value: 'variance' },
           ]} />
-          {canCreate && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Gün bağla</Button>}
+          {canCreate && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> {tt('Gün bağla', 'Close day')}</Button>}
         </div>
       </div>
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (data ?? []).length === 0 ? (
-        <EmptyState title="Bağlanış yoxdur" description="Gün sonu kassa sayımı ilə başlayın." />
+        <EmptyState title={tt('Bağlanış yoxdur', 'No closings')} description={tt('Gün sonu kassa sayımı ilə başlayın.', 'Start with an end-of-day cash count.')} />
       ) : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
-            <TableHeader><TableRow><TableHead>Tarix</TableHead><TableHead>Kassa</TableHead><TableHead className="text-right">Sistem</TableHead><TableHead className="text-right">Sayım</TableHead><TableHead className="text-right">Fərq</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>{tt('Tarix', 'Date')}</TableHead><TableHead>{tt('Kassa', 'Register')}</TableHead><TableHead className="text-right">{tt('Sistem', 'System')}</TableHead><TableHead className="text-right">{tt('Sayım', 'Counted')}</TableHead><TableHead className="text-right">{tt('Fərq', 'Variance')}</TableHead></TableRow></TableHeader>
             <TableBody>
               {(data ?? []).map((c) => {
                 const over = Math.abs(c.variance) > THRESHOLD;
@@ -71,6 +73,7 @@ export function ClosingsTab({ companyId, canCreate, actorUid, baseCurrency }: Ta
 }
 
 function CloseDialog({ companyId, actorUid, baseCurrency, onClose, onSaved }: { companyId: string; actorUid: string; baseCurrency: string; onClose: () => void; onSaved: () => void }) {
+  const tt = useTT();
   const [registerId, setRegisterId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [counted, setCounted] = useState('');
@@ -85,39 +88,39 @@ function CloseDialog({ companyId, actorUid, baseCurrency, onClose, onSaved }: { 
   const variance = Math.round(((Number(counted) || 0) - system) * 100) / 100;
 
   async function save() {
-    if (!reg) { toast.error('Kassa seçin'); return; }
-    if (counted === '') { toast.error('Fiziki sayım daxil edin'); return; }
+    if (!reg) { toast.error(tt('Kassa seçin', 'Select a register')); return; }
+    if (counted === '') { toast.error(tt('Fiziki sayım daxil edin', 'Enter the physical count')); return; }
     setBusy(true);
     try {
       const { variance: v } = await createDailyClosing({ companyId, cashRegisterId: registerId, cashRegisterName: reg.name, date, systemClosingBalance: system, physicallyCountedBalance: Number(counted), totalCashIn: cashIn, totalCashOut: cashOut, closedBy: actorUid });
-      toast.success('Gün bağlandı', Math.abs(v) > THRESHOLD ? `⚠️ Fərq həddi aşıldı: ${formatCurrency(v, baseCurrency)}` : 'Fərq həddindədir');
+      toast.success(tt('Gün bağlandı', 'Day closed'), Math.abs(v) > THRESHOLD ? `⚠️ ${tt('Fərq həddi aşıldı', 'Variance threshold exceeded')}: ${formatCurrency(v, baseCurrency)}` : tt('Fərq həddindədir', 'Variance is within threshold'));
       onSaved(); onClose();
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
   }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5 text-primary" /> Gündəlik kassa bağlanışı</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><ClipboardCheck className="h-5 w-5 text-primary" /> {tt('Gündəlik kassa bağlanışı', 'Daily cash closing')}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>Kassa</Label>
-              <Select value={registerId} onValueChange={setRegisterId}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
+            <div className="space-y-2"><Label>{tt('Kassa', 'Register')}</Label>
+              <Select value={registerId} onValueChange={setRegisterId}><SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
                 <SelectContent>{(registers ?? []).map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent></Select>
             </div>
-            <div className="space-y-2"><Label>Tarix</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{tt('Tarix', 'Date')}</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
           </div>
           {reg && (
             <div className="rounded-lg border border-border/60 p-3 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">Bu gün mədaxil:</span><span className="tnum">{formatCurrency(cashIn, baseCurrency)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Bu gün məxaric:</span><span className="tnum">{formatCurrency(cashOut, baseCurrency)}</span></div>
-              <div className="flex justify-between font-medium"><span>Sistem qalığı:</span><span className="tnum">{formatCurrency(system, baseCurrency)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{tt('Bu gün mədaxil:', 'Cash in today:')}</span><span className="tnum">{formatCurrency(cashIn, baseCurrency)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{tt('Bu gün məxaric:', 'Cash out today:')}</span><span className="tnum">{formatCurrency(cashOut, baseCurrency)}</span></div>
+              <div className="flex justify-between font-medium"><span>{tt('Sistem qalığı:', 'System balance:')}</span><span className="tnum">{formatCurrency(system, baseCurrency)}</span></div>
             </div>
           )}
-          <div className="space-y-2"><Label>Fiziki sayım (nağd)</Label><Input type="number" value={counted} onChange={(e) => setCounted(e.target.value)} /></div>
-          {counted !== '' && <p className={`text-sm font-medium ${Math.abs(variance) > THRESHOLD ? 'text-danger' : 'text-muted-foreground'}`}>Fərq: {formatCurrency(variance, baseCurrency)}{Math.abs(variance) > THRESHOLD ? ' — həddi aşır ⚠️' : ''}</p>}
+          <div className="space-y-2"><Label>{tt('Fiziki sayım (nağd)', 'Physical count (cash)')}</Label><Input type="number" value={counted} onChange={(e) => setCounted(e.target.value)} /></div>
+          {counted !== '' && <p className={`text-sm font-medium ${Math.abs(variance) > THRESHOLD ? 'text-danger' : 'text-muted-foreground'}`}>{tt('Fərq', 'Variance')}: {formatCurrency(variance, baseCurrency)}{Math.abs(variance) > THRESHOLD ? tt(' — həddi aşır ⚠️', ' — exceeds threshold ⚠️') : ''}</p>}
         </div>
-        <DialogFooter><Button onClick={save} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <ClipboardCheck className="h-4 w-4" />} Bağla</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <ClipboardCheck className="h-4 w-4" />} {tt('Bağla', 'Close')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
