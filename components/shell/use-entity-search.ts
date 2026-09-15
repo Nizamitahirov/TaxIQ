@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Users2, FileText, UserRound, Package, BookOpen, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
 import { listCustomers, listInvoices } from '@/lib/firebase/sales';
 import { listEmployees } from '@/lib/firebase/hr';
 import { listGoods } from '@/lib/firebase/inventory';
@@ -17,6 +18,7 @@ export interface EntityResult { id: string; label: string; sublabel: string; ico
  */
 export function useEntitySearch(query: string, enabled: boolean): { results: EntityResult[]; loading: boolean } {
   const { active, canAccess, isSuperAdmin } = useAuth();
+  const tt = useTT();
   const companyId = active?.companyId;
   const q = query.trim().toLowerCase();
   const on = enabled && !!companyId && q.length >= 2;
@@ -37,15 +39,15 @@ export function useEntitySearch(query: string, enabled: boolean): { results: Ent
       for (const x of (arr ?? [])) { if (match(x)) { out.push(map(x)); if (out.filter((r) => r.href === map(x).href).length >= limit) break; } }
     };
     take(customers.data, (c) => c.name.toLowerCase().includes(q),
-      (c) => ({ id: `cu:${c.id}`, label: c.name, sublabel: 'Müştəri', icon: Users2, href: '/sales' }));
+      (c) => ({ id: `cu:${c.id}`, label: c.name, sublabel: tt('Müştəri','Customer'), icon: Users2, href: '/sales' }));
     take(invoices.data, (i) => i.invoiceNumber.toLowerCase().includes(q) || (i.customerName ?? '').toLowerCase().includes(q),
-      (i) => ({ id: `in:${i.id}`, label: `${i.invoiceNumber}${i.customerName ? ' — ' + i.customerName : ''}`, sublabel: 'Faktura', icon: FileText, href: '/sales' }));
+      (i) => ({ id: `in:${i.id}`, label: `${i.invoiceNumber}${i.customerName ? ' — ' + i.customerName : ''}`, sublabel: tt('Faktura','Invoice'), icon: FileText, href: '/sales' }));
     take(employees.data, (e) => `${e.firstName} ${e.lastName}`.toLowerCase().includes(q),
-      (e) => ({ id: `em:${e.id}`, label: `${e.firstName} ${e.lastName}`, sublabel: 'İşçi', icon: UserRound, href: '/hr' }));
+      (e) => ({ id: `em:${e.id}`, label: `${e.firstName} ${e.lastName}`, sublabel: tt('İşçi','Employee'), icon: UserRound, href: '/hr' }));
     take(goods.data, (g) => g.name.az.toLowerCase().includes(q) || g.sku.toLowerCase().includes(q),
-      (g) => ({ id: `go:${g.id}`, label: `${g.name.az}${g.sku ? ' · ' + g.sku : ''}`, sublabel: 'Mal/Xidmət', icon: Package, href: '/warehouse' }));
+      (g) => ({ id: `go:${g.id}`, label: `${g.name.az}${g.sku ? ' · ' + g.sku : ''}`, sublabel: tt('Mal/Xidmət','Good/Service'), icon: Package, href: '/warehouse' }));
     take(accounts.data, (a) => a.accountCode.includes(q) || a.accountName.az.toLowerCase().includes(q),
-      (a) => ({ id: `ac:${a.id}`, label: `${a.accountCode} — ${a.accountName.az}`, sublabel: 'Hesab', icon: BookOpen, href: '/accounting' }));
+      (a) => ({ id: `ac:${a.id}`, label: `${a.accountCode} — ${a.accountName.az}`, sublabel: tt('Hesab','Account'), icon: BookOpen, href: '/accounting' }));
     return out.slice(0, 12);
   }, [on, q, customers.data, invoices.data, employees.data, goods.data, accounts.data]);
 

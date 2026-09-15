@@ -9,6 +9,7 @@ import { logout } from '@/lib/firebase/auth';
 import { useShell } from '@/components/shell/shell-provider';
 import { usePeriod } from '@/components/providers/period-provider';
 import { useDensity } from '@/components/providers/density-provider';
+import { useTT } from '@/lib/i18n/tt';
 import { Rows3, Rows4 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/shell/breadcrumbs';
 import { CreateMenu } from '@/components/shell/create-menu';
@@ -33,6 +34,7 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
   const { openPalette, openHelp, openTour } = useShell();
   const { year, setYear } = usePeriod();
   const { density, toggle: toggleDensity } = useDensity();
+  const tt = useTT();
   const nowYear = new Date().getFullYear();
 
   const name = profile?.displayName || firebaseUser?.email || 'İstifadəçi';
@@ -46,7 +48,7 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-md lg:px-6">
       <div className="flex min-w-0 items-center gap-2.5">
-        {showMenuButton && <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label="Menyu"><Menu /></Button>}
+        {showMenuButton && <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenuClick} aria-label={tt("Menyu","Menu")}><Menu /></Button>}
         <span className="lg:hidden"><Logo compact /></span>
         <CompanySwitcher />
         <span className="hidden h-5 w-px bg-border md:block" />
@@ -54,14 +56,14 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
       </div>
 
       <div className="flex items-center gap-1.5">
-        <button onClick={() => openPalette('all')} aria-label="Axtar (⌘K)"
+        <button onClick={() => openPalette('all')} aria-label={tt("Axtar (⌘K)","Search (⌘K)")}
           className="hidden h-9 items-center gap-2 rounded-lg border border-border bg-secondary/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-secondary md:flex">
-          <Search className="h-4 w-4" /> <span>Axtar…</span>
+          <Search className="h-4 w-4" /> <span>{tt("Axtar…","Search…")}</span>
           <kbd className="ml-2 rounded border border-border bg-background px-1.5 text-[10px] font-medium">⌘K</kbd>
         </button>
-        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => openPalette('all')} aria-label="Axtar"><Search className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => openPalette('all')} aria-label={tt("Axtar","Search")}><Search className="h-5 w-5" /></Button>
         <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-          <SelectTrigger className="hidden h-9 w-[104px] gap-1.5 lg:flex" aria-label="Hesabat dövrü"><CalendarRange className="h-4 w-4 text-muted-foreground" /><SelectValue /></SelectTrigger>
+          <SelectTrigger className="hidden h-9 w-[104px] gap-1.5 lg:flex" aria-label={tt("Hesabat dövrü","Reporting period")}><CalendarRange className="h-4 w-4 text-muted-foreground" /><SelectValue /></SelectTrigger>
           <SelectContent>{[0, 1, 2, 3].map((i) => <SelectItem key={i} value={String(nowYear - i)}>{nowYear - i}</SelectItem>)}</SelectContent>
         </Select>
         <CreateMenu />
@@ -95,11 +97,11 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
             </DropdownMenuItem>
             <DropdownMenuItem onClick={(e) => { e.preventDefault(); toggleDensity(); }}>
               {density === 'compact' ? <Rows4 className="h-4 w-4" /> : <Rows3 className="h-4 w-4" />}
-              {density === 'compact' ? 'Rahat görünüş' : 'Sıx görünüş'}
+              {density === 'compact' ? tt('Rahat görünüş','Comfortable') : tt('Sıx görünüş','Compact')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={(e) => { e.preventDefault(); openTour(); }}><Compass className="h-4 w-4" /> Təqdimat turu</DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.preventDefault(); openHelp(); }}><Keyboard className="h-4 w-4" /> Qısayollar</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.preventDefault(); openTour(); }}><Compass className="h-4 w-4" /> {tt("Təqdimat turu","Product tour")}</DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.preventDefault(); openHelp(); }}><Keyboard className="h-4 w-4" /> {tt("Qısayollar","Shortcuts")}</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-danger">
               <LogOut className="h-4 w-4" /> {t('logout')}

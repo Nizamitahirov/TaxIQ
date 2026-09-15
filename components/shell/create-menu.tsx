@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
 import { CREATE_ACTIONS } from '@/lib/create-actions';
 import { areaForPath } from '@/lib/areas';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ export function CreateMenu() {
   const router = useRouter();
   const pathname = usePathname();
   const { canAccess, isSuperAdmin } = useAuth();
+  const tt = useTT();
   const area = areaForPath(pathname);
 
   const actions = CREATE_ACTIONS.filter((a) => isSuperAdmin || canAccess(a.module));
@@ -27,16 +29,16 @@ export function CreateMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">Yarat</span></Button>
+        <Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> <span className="hidden sm:inline">{tt("Yarat","Create")}</span></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
-        {primary.length > 0 && <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">Bu bölmə</DropdownMenuLabel>}
+        {primary.length > 0 && <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-muted-foreground">{tt("Bu bölmə","This workspace")}</DropdownMenuLabel>}
         {primary.map((a) => (
-          <DropdownMenuItem key={a.label} onClick={() => router.push(a.href)}><a.icon className="h-4 w-4" /> {a.label}</DropdownMenuItem>
+          <DropdownMenuItem key={a.label} onClick={() => router.push(a.href)}><a.icon className="h-4 w-4" /> {tt(a.label, a.labelEn)}</DropdownMenuItem>
         ))}
         {primary.length > 0 && rest.length > 0 && <DropdownMenuSeparator />}
         {rest.map((a) => (
-          <DropdownMenuItem key={a.label} onClick={() => router.push(a.href)}><a.icon className="h-4 w-4" /> {a.label}</DropdownMenuItem>
+          <DropdownMenuItem key={a.label} onClick={() => router.push(a.href)}><a.icon className="h-4 w-4" /> {tt(a.label, a.labelEn)}</DropdownMenuItem>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
