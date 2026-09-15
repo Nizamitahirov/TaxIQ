@@ -1,16 +1,22 @@
-import { where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { serverTimestamp } from 'firebase/firestore';
 import { listByCompany, createDoc, updateDocById, deleteDocById } from './firestore';
 import { listUsers, listAccessForCompany } from './users';
 import type { UserTask, TaskStatus, AppUser } from '@/types';
 
+// Composite index tələb etməmək üçün yalnız companyId ilə sorğu + client-side sıralama
+const recencyKey = (t: UserTask) => t.order ?? (t.createdAt && typeof t.createdAt === 'object' && 'seconds' in t.createdAt ? (t.createdAt as { seconds: number }).seconds * 1000 : 0);
+const byRecent = (a: UserTask, b: UserTask) => recencyKey(b) - recencyKey(a);
+
 /** İstifadəçiyə təyin olunmuş tapşırıqlar (launcher paneli + ring) */
 export async function listMyTasks(companyId: string, uid: string): Promise<UserTask[]> {
-  return listByCompany<UserTask>('userTasks', companyId, [where('assignedToUid', '==', uid), orderBy('createdAt', 'desc')]);
+  const all = await listByCompany<UserTask>('userTasks', companyId);
+  return all.filter((t) => t.assignedToUid === uid).sort(byRecent);
 }
 
 /** Şirkətin bütün tapşırıqları (komanda lövhəsi/hesabat) */
 export async function listCompanyTasks(companyId: string): Promise<UserTask[]> {
-  return listByCompany<UserTask>('userTasks', companyId, [orderBy('createdAt', 'desc')]);
+  const all = await listByCompany<UserTask>('userTasks', companyId);
+  return all.sort(byRecent);
 }
 
 export interface TaskInput {

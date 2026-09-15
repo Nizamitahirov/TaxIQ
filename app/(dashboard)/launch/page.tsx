@@ -240,22 +240,34 @@ function TaskPanel({ companyId, uid, tasks }: { companyId?: string; uid?: string
               </button>
             </div>
           </div>
-          <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto [scrollbar-width:thin]">
-            {sorted.length === 0 ? <li className="py-6 text-center text-xs text-muted-foreground">Hələ tapşırıq yoxdur — yuxarıdan əlavə edin.</li> : sorted.map((t) => (
-              <li key={t.id} className="group flex items-center gap-2.5 rounded-xl border border-border/60 px-3 py-2 transition-colors hover:bg-secondary/40">
+          <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto [scrollbar-width:thin]">
+            {sorted.length === 0 ? (
+              <li className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ListChecks className="h-5 w-5" /></span>
+                <p className="text-sm font-medium">Tapşırıq yoxdur</p>
+                <p className="text-xs text-muted-foreground">Yuxarıdan yeni tapşırıq əlavə edin.</p>
+              </li>
+            ) : sorted.slice(0, 6).map((t) => (
+              <li key={t.id} className="group flex items-center gap-2.5 rounded-xl border border-border/60 bg-secondary/20 px-3 py-2.5 transition-all hover:border-primary/30 hover:bg-secondary/40">
                 <button onClick={() => toggle(t)} className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors', t.done ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary')}>
                   {t.done && <Check className="h-3 w-3" />}
                 </button>
-                <span className={cn('h-2 w-2 shrink-0 rounded-full', PRIO[t.priority].dot)} />
-                <span className={cn('min-w-0 flex-1 truncate text-sm', t.done && 'text-muted-foreground line-through')}>{t.title}</span>
-                {t.dueDate && <span className="flex shrink-0 items-center gap-1 text-[11px] text-muted-foreground"><CalendarDays className="h-3 w-3" />{t.dueDate.slice(5)}</span>}
+                <span className="min-w-0 flex-1">
+                  <span className={cn('flex items-center gap-1.5 truncate text-sm', t.done && 'text-muted-foreground line-through')}>
+                    <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', PRIO[t.priority].dot)} />
+                    <span className="truncate">{t.title}</span>
+                  </span>
+                  {(t.dueDate || (t.labels && t.labels.length > 0)) && (
+                    <span className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+                      {t.dueDate && <span className="flex items-center gap-1"><CalendarDays className="h-3 w-3" />{t.dueDate.slice(5)}</span>}
+                      {t.labels?.[0] && <span className="rounded bg-secondary px-1.5 py-px">{t.labels[0]}</span>}
+                    </span>
+                  )}
+                </span>
                 <button onClick={() => remove(t.id)} className="shrink-0 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground hover:!text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
               </li>
             ))}
           </ul>
-          <Link href="/tasks" className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary/40 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary">
-            Bütün tapşırıqlar (Lövhə · Siyahı · Hesabat) <ArrowUpRight className="h-4 w-4" />
-          </Link>
         </div>
       )}
     </div>
