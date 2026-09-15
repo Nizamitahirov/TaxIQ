@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Trash2, Play, FileSpreadsheet, Save, ArrowUp, ArrowDown, X, BookMarked } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
 import { listByCompany } from '@/lib/firebase/firestore';
 import {
   REPORTABLE_ENTITIES, ENTITY_MAP, readField, applyFilters, type ReportFilter, type FilterOp,
@@ -29,6 +30,8 @@ const OPS: FilterOp[] = ['=', '!=', '>', '<', '>=', '<=', 'contains'];
 
 export default function ReportsPage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
+  const tt = useTT();
+  const L = (o: { az: string; en: string }) => tt(o.az, o.en);
   const qc = useQueryClient();
   const companyId = active?.companyId;
   const canUse = isSuperAdmin || can('reports.builder.use') || can('reports.view');
@@ -54,19 +57,19 @@ export default function ReportsPage() {
 
   function pickEntity(k: string) {
     setEntityKey(k);
-    setColumns(ENTITY_MAP[k].fields.slice(0, 5).map((f) => ({ key: f.key, label: f.label.az })));
+    setColumns(ENTITY_MAP[k].fields.slice(0, 5).map((f) => ({ key: f.key, label: L(f.label) })));
     setFilters([]); setRan(false);
   }
   function addColumn(key: string) {
     const f = entity.fields.find((x) => x.key === key); if (!f) return;
-    setColumns((c) => c.some((x) => x.key === key) ? c.filter((x) => x.key !== key) : [...c, { key, label: f.label.az }]);
+    setColumns((c) => c.some((x) => x.key === key) ? c.filter((x) => x.key !== key) : [...c, { key, label: L(f.label) }]);
   }
   function move(i: number, dir: -1 | 1) {
     setColumns((c) => { const n = [...c]; const j = i + dir; if (j < 0 || j >= n.length) return c; [n[i], n[j]] = [n[j], n[i]]; return n; });
   }
   function rename(i: number, label: string) { setColumns((c) => c.map((x, idx) => idx === i ? { ...x, label } : x)); }
   async function run() {
-    if (columns.length === 0) setColumns(entity.fields.slice(0, 5).map((f) => ({ key: f.key, label: f.label.az })));
+    if (columns.length === 0) setColumns(entity.fields.slice(0, 5).map((f) => ({ key: f.key, label: L(f.label) })));
     await refetch(); setRan(true);
   }
   function loadTemplate(t: ReportTemplate) {
@@ -74,7 +77,7 @@ export default function ReportsPage() {
     setColumns(t.columns);
     setFilters((t.filters ?? []) as ReportFilter[]);
     setRan(false);
-    toast.success('Şablon yükləndi', t.name);
+    toast.success(tt('Şablon yükləndi', 'Template loaded'), t.name);
   }
 
   const outCols = columns.map((c) => ({
@@ -82,30 +85,30 @@ export default function ReportsPage() {
     value: (row: Record<string, unknown>) => { const f = fieldMap[c.key]; return f ? (readField(row, f) ?? '') : (row[c.key] ?? ''); },
   }));
 
-  if (!companyId) return <div><PageHeader title="Hesabatlar" /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">Aktiv şirkət seçin.</CardContent></Card></div>;
-  if (!canUse) return <div><PageHeader title="Hesabatlar" /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">İcazə yoxdur.</CardContent></Card></div>;
+  if (!companyId) return <div><PageHeader title={tt('Hesabatlar', 'Reports')} /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('Aktiv şirkət seçin.', 'Select an active company.')}</CardContent></Card></div>;
+  if (!canUse) return <div><PageHeader title={tt('Hesabatlar', 'Reports')} /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('İcazə yoxdur.', 'No permission.')}</CardContent></Card></div>;
 
   return (
     <div>
-      <PageHeader title="Hesabatlar" subtitle="Metadata-əsaslı hesabat qurucusu + saxlanan export şablonları (Modul 3 §3)" />
+      <PageHeader title={tt('Hesabatlar', 'Reports')} subtitle={tt('Metadata-əsaslı hesabat qurucusu + saxlanan export şablonları (Modul 3 §3)', 'Metadata-based report builder + saved export templates (Module 3 §3)')} />
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
         {/* Konfiqurasiya */}
         <Card className="rounded-card h-fit"><CardContent className="space-y-4 p-5">
           <div className="space-y-2">
-            <Label>Mənbə</Label>
+            <Label>{tt('Mənbə', 'Source')}</Label>
             <Select value={entityKey} onValueChange={pickEntity}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{REPORTABLE_ENTITIES.map((e) => <SelectItem key={e.key} value={e.key}>{e.label.az}</SelectItem>)}</SelectContent>
+              <SelectContent>{REPORTABLE_ENTITIES.map((e) => <SelectItem key={e.key} value={e.key}>{L(e.label)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
 
           {/* Mövcud sütunlar (əlavə et) */}
           <div className="space-y-2">
-            <Label>Sütun əlavə et</Label>
+            <Label>{tt('Sütun əlavə et', 'Add column')}</Label>
             <div className="flex flex-wrap gap-1.5">
               {entity.fields.map((f) => {
                 const on = selectedKeys.has(f.key);
-                return <button key={f.key} onClick={() => addColumn(f.key)} className={cn('rounded-md px-2 py-1 text-[11px] font-medium transition-colors', on ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-muted text-muted-foreground hover:bg-secondary')}>{on ? '✓ ' : '+ '}{f.label.az}</button>;
+                return <button key={f.key} onClick={() => addColumn(f.key)} className={cn('rounded-md px-2 py-1 text-[11px] font-medium transition-colors', on ? 'bg-primary/15 text-primary ring-1 ring-primary/30' : 'bg-muted text-muted-foreground hover:bg-secondary')}>{on ? '✓ ' : '+ '}{L(f.label)}</button>;
               })}
             </div>
           </div>
@@ -113,7 +116,7 @@ export default function ReportsPage() {
           {/* Seçilmiş sütunlar — sıra + adlandırma */}
           {columns.length > 0 && (
             <div className="space-y-2">
-              <Label>Sütun sırası və adları</Label>
+              <Label>{tt('Sütun sırası və adları', 'Column order & names')}</Label>
               <div className="space-y-1.5">
                 {columns.map((c, i) => (
                   <div key={c.key} className="flex items-center gap-1 rounded-lg border border-border/60 p-1.5">
@@ -130,12 +133,12 @@ export default function ReportsPage() {
           )}
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between"><Label>Filtrlər</Label><Button variant="ghost" size="sm" onClick={() => setFilters((f) => [...f, { field: entity.fields[0].key, op: '=', value: '' }])}><Plus className="h-3.5 w-3.5" /> Əlavə et</Button></div>
+            <div className="flex items-center justify-between"><Label>{tt('Filtrlər', 'Filters')}</Label><Button variant="ghost" size="sm" onClick={() => setFilters((f) => [...f, { field: entity.fields[0].key, op: '=', value: '' }])}><Plus className="h-3.5 w-3.5" /> {tt('Əlavə et', 'Add')}</Button></div>
             {filters.map((f, i) => (
               <div key={i} className="flex items-center gap-1">
                 <Select value={f.field} onValueChange={(v) => setFilters((arr) => arr.map((x, idx) => idx === i ? { ...x, field: v } : x))}>
                   <SelectTrigger className="h-8 flex-1 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>{entity.fields.map((fld) => <SelectItem key={fld.key} value={fld.key}>{fld.label.az}</SelectItem>)}</SelectContent>
+                  <SelectContent>{entity.fields.map((fld) => <SelectItem key={fld.key} value={fld.key}>{L(fld.label)}</SelectItem>)}</SelectContent>
                 </Select>
                 <Select value={f.op} onValueChange={(v) => setFilters((arr) => arr.map((x, idx) => idx === i ? { ...x, op: v as FilterOp } : x))}>
                   <SelectTrigger className="h-8 w-16 text-xs"><SelectValue /></SelectTrigger>
@@ -148,22 +151,22 @@ export default function ReportsPage() {
           </div>
 
           <div className="flex gap-2">
-            <Button className="flex-1" onClick={run} disabled={isFetching}>{isFetching ? <Loader2 className="animate-spin" /> : <Play className="h-4 w-4" />} İşə sal</Button>
-            <Button variant="outline" onClick={() => { if (columns.length === 0) { toast.error('Əvvəlcə sütun seçin'); return; } setSaveOpen(true); }} title="Şablon kimi saxla"><Save className="h-4 w-4" /></Button>
+            <Button className="flex-1" onClick={run} disabled={isFetching}>{isFetching ? <Loader2 className="animate-spin" /> : <Play className="h-4 w-4" />} {tt('İşə sal', 'Run')}</Button>
+            <Button variant="outline" onClick={() => { if (columns.length === 0) { toast.error(tt('Əvvəlcə sütun seçin', 'Select columns first')); return; } setSaveOpen(true); }} title={tt('Şablon kimi saxla', 'Save as template')}><Save className="h-4 w-4" /></Button>
           </div>
 
           {/* Saxlanan şablonlar */}
           <div className="space-y-2 border-t border-border pt-3">
-            <Label className="flex items-center gap-1.5"><BookMarked className="h-3.5 w-3.5" /> Saxlanan şablonlar</Label>
-            {(templates ?? []).length === 0 ? <p className="text-xs text-muted-foreground">Hələ şablon yoxdur — konfiqurasiyanı qurub «Saxla» ilə yadda saxlayın.</p> : (
+            <Label className="flex items-center gap-1.5"><BookMarked className="h-3.5 w-3.5" /> {tt('Saxlanan şablonlar', 'Saved templates')}</Label>
+            {(templates ?? []).length === 0 ? <p className="text-xs text-muted-foreground">{tt('Hələ şablon yoxdur — konfiqurasiyanı qurub «Saxla» ilə yadda saxlayın.', 'No templates yet — build a configuration and save it with “Save”.')}</p> : (
               <div className="space-y-1">
                 {(templates ?? []).map((t) => (
                   <div key={t.id} className="flex items-center gap-2 rounded-lg border border-border/60 p-2">
                     <button onClick={() => loadTemplate(t)} className="min-w-0 flex-1 text-left">
                       <span className="block truncate text-sm font-medium">{t.name}</span>
-                      <span className="block truncate text-[11px] text-muted-foreground">{ENTITY_MAP[t.entity]?.label.az ?? t.entity} · {t.columns.length} sütun{t.shared ? ' · paylaşılıb' : ''}</span>
+                      <span className="block truncate text-[11px] text-muted-foreground">{ENTITY_MAP[t.entity] ? L(ENTITY_MAP[t.entity].label) : t.entity} · {t.columns.length} {tt('sütun', 'columns')}{t.shared ? ` · ${tt('paylaşılıb', 'shared')}` : ''}</span>
                     </button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-danger" onClick={async () => { await deleteReportTemplate(t.id); qc.invalidateQueries({ queryKey: ['reportTemplates', companyId] }); toast.success('Silindi'); }}><Trash2 className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-danger" onClick={async () => { await deleteReportTemplate(t.id); qc.invalidateQueries({ queryKey: ['reportTemplates', companyId] }); toast.success(tt('Silindi', 'Deleted')); }}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
               </div>
@@ -176,14 +179,14 @@ export default function ReportsPage() {
           {!ran ? (
             <div className="flex flex-col items-center gap-2 py-20 text-center text-sm text-muted-foreground">
               <FileSpreadsheet className="h-8 w-8 opacity-50" />
-              Mənbə və sütunları seçib «İşə sal» düyməsinə basın. Konfiqurasiyanı export şablonu kimi saxlaya bilərsiniz.
+              {tt('Mənbə və sütunları seçib «İşə sal» düyməsinə basın. Konfiqurasiyanı export şablonu kimi saxlaya bilərsiniz.', 'Select a source and columns and press “Run”. You can save the configuration as an export template.')}
             </div>
           ) : isLoading || isFetching ? (
             <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : (
             <>
               <div className="flex items-center justify-between border-b border-border p-4">
-                <span className="text-sm text-muted-foreground">{rows.length} nəticə · {columns.length} sütun</span>
+                <span className="text-sm text-muted-foreground">{rows.length} {tt('nəticə', 'results')} · {columns.length} {tt('sütun', 'columns')}</span>
                 <ExportButton filename={`hesabat-${entityKey}`} rows={rows} columns={outCols} />
               </div>
               <div className="overflow-x-auto">
@@ -191,7 +194,7 @@ export default function ReportsPage() {
                   <TableHeader><TableRow>{columns.map((c) => { const f = fieldMap[c.key]; return <TableHead key={c.key} className={f?.type === 'number' ? 'text-right' : ''}>{c.label}</TableHead>; })}</TableRow></TableHeader>
                   <TableBody>
                     {rows.length === 0 ? (
-                      <TableRow><TableCell colSpan={columns.length || 1} className="py-8 text-center text-muted-foreground">Nəticə yoxdur</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={columns.length || 1} className="py-8 text-center text-muted-foreground">{tt('Nəticə yoxdur', 'No results')}</TableCell></TableRow>
                     ) : rows.slice(0, 500).map((row, i) => (
                       <TableRow key={i}>{columns.map((c) => { const f = fieldMap[c.key]; const v = f ? readField(row, f) : row[c.key]; return <TableCell key={c.key} className={cn(f?.type === 'number' && 'text-right tnum')}>{v == null || v === '' ? '—' : String(v)}</TableCell>; })}</TableRow>
                     ))}
@@ -206,32 +209,33 @@ export default function ReportsPage() {
       <SaveTemplateDialog open={saveOpen} onOpenChange={setSaveOpen} onSave={async (name, shared) => {
         await createReportTemplate({ companyId, name, entity: entityKey, columns, filters: filters.map((f) => ({ field: f.field, op: f.op, value: String(f.value) })), shared, createdBy: profile?.uid ?? '' });
         qc.invalidateQueries({ queryKey: ['reportTemplates', companyId] });
-        toast.success('Şablon saxlanıldı', name);
+        toast.success(tt('Şablon saxlanıldı', 'Template saved'), name);
       }} />
     </div>
   );
 }
 
 function SaveTemplateDialog({ open, onOpenChange, onSave }: { open: boolean; onOpenChange: (o: boolean) => void; onSave: (name: string, shared: boolean) => Promise<void> }) {
+  const tt = useTT();
   const [name, setName] = useState('');
   const [shared, setShared] = useState(true);
   const [busy, setBusy] = useState(false);
   async function submit() {
-    if (!name.trim()) { toast.error('Ad tələb olunur'); return; }
+    if (!name.trim()) { toast.error(tt('Ad tələb olunur', 'Name is required')); return; }
     setBusy(true);
     try { await onSave(name.trim(), shared); setName(''); onOpenChange(false); }
-    catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setBusy(false); }
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>Export şablonu kimi saxla</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tt('Export şablonu kimi saxla', 'Save as export template')}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-2"><Label>Şablon adı</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Aylıq satış hesabatı" /></div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} /> Şirkət daxilində paylaş <Badge variant="secondary" className="ml-1">komanda</Badge></label>
+          <div className="space-y-2"><Label>{tt('Şablon adı', 'Template name')}</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder={tt('Aylıq satış hesabatı', 'Monthly sales report')} /></div>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} /> {tt('Şirkət daxilində paylaş', 'Share within company')} <Badge variant="secondary" className="ml-1">{tt('komanda', 'team')}</Badge></label>
         </div>
-        <DialogFooter><Button onClick={submit} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Save className="h-4 w-4" />} Saxla</Button></DialogFooter>
+        <DialogFooter><Button onClick={submit} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Save className="h-4 w-4" />} {tt('Saxla', 'Save')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
