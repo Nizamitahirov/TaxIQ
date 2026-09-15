@@ -25,6 +25,18 @@ export const POSTING_EVENT_LABELS: Record<PostingEventType, string> = {
   fx_revaluation: 'Dövr sonu FX yenidən qiymətləndirmə',
 };
 
+/** İngiliscə hadisə adları (i18n üçün) */
+export const POSTING_EVENT_LABELS_EN: Record<PostingEventType, string> = {
+  invoice_sent: 'Invoice sent (Sales)',
+  purchase_bill_approved: 'Purchase bill approved (Purchases)',
+  payment_received: 'Payment received (From customer)',
+  payment_made: 'Payment made (To supplier)',
+  salary_accrued: 'Salary accrued',
+  salary_paid: 'Salary paid',
+  depreciation_run: 'Monthly depreciation',
+  fx_revaluation: 'Period-end FX revaluation',
+};
+
 /** Amount-source açarlarının insani izahı (redaktə formasında göstərilir) */
 export const AMOUNT_SOURCE_LABELS: Record<string, string> = {
   grandTotal: 'Yekun məbləğ',
@@ -36,6 +48,37 @@ export const AMOUNT_SOURCE_LABELS: Record<string, string> = {
   socialTotal: 'Sosial ayırmalar',
   cogs: 'Maya dəyəri',
   total: 'Cəm',
+};
+
+/** İngiliscə amount-source izahları (i18n üçün) */
+export const AMOUNT_SOURCE_LABELS_EN: Record<string, string> = {
+  grandTotal: 'Grand total',
+  subtotal: 'Amount excl. tax',
+  vatTotal: 'VAT amount',
+  amount: 'Payment amount',
+  net: 'Net salary',
+  incomeTax: 'Income tax',
+  socialTotal: 'Social contributions',
+  cogs: 'Cost of goods sold',
+  total: 'Total',
+};
+
+/** İngiliscə sətir rolu adları (i18n üçün — line label AZ-dır) */
+export const POSTING_ROLE_LABELS_EN: Record<string, string> = {
+  receivable: 'Accounts receivable',
+  revenue: 'Sales (revenue)',
+  vat: 'VAT liability',
+  inventory: 'Goods/Materials',
+  vatInput: 'VAT (input)',
+  payable: 'Accounts payable',
+  money: 'Bank/Cash',
+  fxGain: 'FX gain',
+  fxLoss: 'FX loss',
+  expense: 'Expense',
+  payrollPayable: 'Payable to employees',
+  taxLiability: 'Income tax liability',
+  socialLiability: 'Social insurance liability',
+  accumulated: 'Accumulated depreciation',
 };
 
 /** Kod-səviyyəli defolt qaydalar — spec §2.3 cədvəlləri ilə eynidir. */

@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { cn } from '@/lib/utils/cn';
 import type { ChartAccount, JournalEntry, JournalLine } from '@/types';
@@ -28,38 +29,39 @@ export function JournalTab({ companyId, accounts, canPost, actorUid, baseCurrenc
   companyId: string; accounts: ChartAccount[]; canPost: boolean; actorUid: string; baseCurrency: string;
 }) {
   const qc = useQueryClient();
+  const tt = useTT();
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ['journal', companyId], queryFn: () => listJournalEntries(companyId) });
 
   async function doReverse(e: JournalEntry) {
     setBusyId(e.id);
-    try { await reverseEntry(e, actorUid); toast.success('Əks yazı yaradıldı'); qc.invalidateQueries({ queryKey: ['journal', companyId] }); qc.invalidateQueries({ queryKey: ['trial', companyId] }); }
-    catch (err) { toast.error('Xəta', err instanceof Error ? err.message : undefined); }
+    try { await reverseEntry(e, actorUid); toast.success(tt('Əks yazı yaradıldı', 'Reversing entry created')); qc.invalidateQueries({ queryKey: ['journal', companyId] }); qc.invalidateQueries({ queryKey: ['trial', companyId] }); }
+    catch (err) { toast.error(tt('Xəta', 'Error'), err instanceof Error ? err.message : undefined); }
     finally { setBusyId(null); }
   }
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">İkili yazılış — balanslaşmamış yazı qəbul olunmur (08 §2.2)</p>
+        <p className="text-sm text-muted-foreground">{tt('İkili yazılış — balanslaşmamış yazı qəbul olunmur (08 §2.2)', 'Double-entry — unbalanced entries are rejected (08 §2.2)')}</p>
         <div className="flex gap-2">
           <ExportButton filename="emeliyyat-jurnali" rows={data ?? []}
             columns={[
-              { header: 'Nömrə', value: 'entryNumber' },
-              { header: 'Tarix', value: (e) => e.entryDateStr ?? '' },
-              { header: 'Təsvir', value: 'description' },
-              { header: 'Mənbə', value: 'sourceType' },
-              { header: 'Dt cəmi', value: 'totalDebit' },
-              { header: 'Kt cəmi', value: 'totalCredit' },
+              { header: tt('Nömrə', 'Number'), value: 'entryNumber' },
+              { header: tt('Tarix', 'Date'), value: (e) => e.entryDateStr ?? '' },
+              { header: tt('Təsvir', 'Description'), value: 'description' },
+              { header: tt('Mənbə', 'Source'), value: 'sourceType' },
+              { header: tt('Dt cəmi', 'Total Dr'), value: 'totalDebit' },
+              { header: tt('Kt cəmi', 'Total Cr'), value: 'totalCredit' },
               { header: 'Status', value: 'status' },
             ]} />
-          {canPost && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Yeni yazı</Button>}
+          {canPost && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> {tt('Yeni yazı', 'New entry')}</Button>}
         </div>
       </div>
 
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (data ?? []).length === 0 ? (
-        <Card className="rounded-card"><CardContent className="py-12 text-center text-sm text-muted-foreground">Jurnal yazısı yoxdur</CardContent></Card>
+        <Card className="rounded-card"><CardContent className="py-12 text-center text-sm text-muted-foreground">{tt('Jurnal yazısı yoxdur', 'No journal entries')}</CardContent></Card>
       ) : (
         <div className="space-y-2">
           {(data ?? []).map((e) => (
@@ -70,7 +72,7 @@ export function JournalTab({ companyId, accounts, canPost, actorUid, baseCurrenc
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm font-semibold">{e.entryNumber}</span>
                       <Badge variant="secondary">{e.sourceType}</Badge>
-                      {e.status === 'reversed' && <Badge variant="warning">əks edilib</Badge>}
+                      {e.status === 'reversed' && <Badge variant="warning">{tt('əks edilib', 'reversed')}</Badge>}
                     </div>
                     <p className="mt-0.5 text-sm">{e.description}</p>
                     <p className="text-xs text-muted-foreground">{formatDate(e.entryDateStr ? new Date(e.entryDateStr).getTime() : null)}</p>
@@ -78,7 +80,7 @@ export function JournalTab({ companyId, accounts, canPost, actorUid, baseCurrenc
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold tnum">{formatCurrency(e.totalDebit, baseCurrency)}</span>
                     {canPost && e.status === 'posted' && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Əks yazı" disabled={busyId === e.id} onClick={() => doReverse(e)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Əks yazı', 'Reverse entry')} disabled={busyId === e.id} onClick={() => doReverse(e)}>
                         {busyId === e.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Undo2 className="h-4 w-4" />}
                       </Button>
                     )}
@@ -116,6 +118,7 @@ const emptyLine = (): DraftLine => ({ accountId: '', debit: '', credit: '' });
 function NewEntryDialog({ open, onOpenChange, companyId, accounts, actorUid, baseCurrency, onSaved }: {
   open: boolean; onOpenChange: (o: boolean) => void; companyId: string; accounts: ChartAccount[]; actorUid: string; baseCurrency: string; onSaved: () => void;
 }) {
+  const tt = useTT();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [description, setDescription] = useState('');
   const [departmentId, setDepartmentId] = useState<string>('');
@@ -134,7 +137,7 @@ function NewEntryDialog({ open, onOpenChange, companyId, accounts, actorUid, bas
   }
 
   async function save() {
-    if (!balanced) { toast.error('Yazı balanslaşdırılmayıb'); return; }
+    if (!balanced) { toast.error(tt('Yazı balanslaşdırılmayıb', 'Entry is not balanced')); return; }
     const jlines: JournalLine[] = lines
       .filter((l) => l.accountId && (Number(l.debit) || Number(l.credit)))
       .map((l) => {
@@ -144,30 +147,30 @@ function NewEntryDialog({ open, onOpenChange, companyId, accounts, actorUid, bas
     setSaving(true);
     try {
       await postJournalEntry({ companyId, entryDate: date, description, lines: jlines, createdBy: actorUid, baseCurrency });
-      toast.success('Jurnal yazısı əlavə edildi');
+      toast.success(tt('Jurnal yazısı əlavə edildi', 'Journal entry added'));
       setLines([emptyLine(), emptyLine()]); setDescription(''); setDepartmentId('');
       onSaved(); onOpenChange(false);
-    } catch (e) { toast.error('Yazı alınmadı', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Yazı alınmadı', 'Entry failed'), e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
-        <DialogHeader><DialogTitle>Əl ilə jurnal yazısı</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tt('Əl ilə jurnal yazısı', 'Manual journal entry')}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[160px_1fr]">
-            <div className="space-y-2"><Label>Tarix</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Təsvir</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Əməliyyatın təsviri" /></div>
+            <div className="space-y-2"><Label>{tt('Tarix', 'Date')}</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{tt('Təsvir', 'Description')}</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={tt('Əməliyyatın təsviri', 'Transaction description')} /></div>
           </div>
           {(departments ?? []).length > 0 && (
             <div className="space-y-2">
-              <Label>Şöbə / Xərc mərkəzi <span className="text-xs font-normal text-muted-foreground">(seçimlik — şöbə üzrə M&K üçün)</span></Label>
+              <Label>{tt('Şöbə / Xərc mərkəzi', 'Department / Cost center')} <span className="text-xs font-normal text-muted-foreground">{tt('(seçimlik — şöbə üzrə M&K üçün)', '(optional — for departmental P&L)')}</span></Label>
               <Select value={departmentId || 'none'} onValueChange={(v) => setDepartmentId(v === 'none' ? '' : v)}>
-                <SelectTrigger><SelectValue placeholder="Yoxdur" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tt('Yoxdur', 'None')} /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Yoxdur</SelectItem>
-                  {(departments ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{d.name.az}{d.type !== 'department' ? ` (${d.type === 'cost_center' ? 'xərc mərkəzi' : 'layihə'})` : ''}</SelectItem>)}
+                  <SelectItem value="none">{tt('Yoxdur', 'None')}</SelectItem>
+                  {(departments ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{tt(d.name.az, d.name.en)}{d.type !== 'department' ? ` (${d.type === 'cost_center' ? tt('xərc mərkəzi', 'cost center') : tt('layihə', 'project')})` : ''}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -177,24 +180,24 @@ function NewEntryDialog({ open, onOpenChange, companyId, accounts, actorUid, bas
             {lines.map((l, i) => (
               <div key={i} className="flex items-center gap-2">
                 <Select value={l.accountId} onValueChange={(v) => setLine(i, { accountId: v })}>
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Hesab" /></SelectTrigger>
-                  <SelectContent className="max-h-72">{postable.map((a) => <SelectItem key={a.id} value={a.id}>{a.accountCode} — {a.accountName.az}</SelectItem>)}</SelectContent>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder={tt('Hesab', 'Account')} /></SelectTrigger>
+                  <SelectContent className="max-h-72">{postable.map((a) => <SelectItem key={a.id} value={a.id}>{a.accountCode} — {tt(a.accountName.az, a.accountName.en)}</SelectItem>)}</SelectContent>
                 </Select>
-                <Input className="w-28" type="number" placeholder="Debet" value={l.debit} onChange={(e) => setLine(i, { debit: e.target.value, credit: '' })} />
-                <Input className="w-28" type="number" placeholder="Kredit" value={l.credit} onChange={(e) => setLine(i, { credit: e.target.value, debit: '' })} />
+                <Input className="w-28" type="number" placeholder={tt('Debet', 'Debit')} value={l.debit} onChange={(e) => setLine(i, { debit: e.target.value, credit: '' })} />
+                <Input className="w-28" type="number" placeholder={tt('Kredit', 'Credit')} value={l.credit} onChange={(e) => setLine(i, { credit: e.target.value, debit: '' })} />
                 <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-danger" onClick={() => setLines((p) => p.length > 2 ? p.filter((_, idx) => idx !== i) : p)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}><Plus className="h-4 w-4" /> Sətir əlavə et</Button>
+            <Button variant="outline" size="sm" onClick={() => setLines((p) => [...p, emptyLine()])}><Plus className="h-4 w-4" /> {tt('Sətir əlavə et', 'Add line')}</Button>
           </div>
 
           <div className={cn('flex items-center justify-between rounded-card border p-3 text-sm', balanced ? 'border-success/40 bg-success/10' : 'border-warning/40 bg-warning/10')}>
-            <span className="flex items-center gap-2 font-medium"><Scale className="h-4 w-4" /> {balanced ? 'Balanslaşdırılıb' : `Balanslaşdırılmayıb: fərq ${formatCurrency(Math.abs(diff), baseCurrency)}`}</span>
+            <span className="flex items-center gap-2 font-medium"><Scale className="h-4 w-4" /> {balanced ? tt('Balanslaşdırılıb', 'Balanced') : `${tt('Balanslaşdırılmayıb: fərq', 'Not balanced: difference')} ${formatCurrency(Math.abs(diff), baseCurrency)}`}</span>
             <span className="tnum text-muted-foreground">Dt {formatCurrency(totalDebit, baseCurrency)} · Kt {formatCurrency(totalCredit, baseCurrency)}</span>
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={save} disabled={!balanced || saving}>{saving ? <Loader2 className="animate-spin" /> : null} Yazını qeyd et</Button>
+          <Button onClick={save} disabled={!balanced || saving}>{saving ? <Loader2 className="animate-spin" /> : null} {tt('Yazını qeyd et', 'Post entry')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
