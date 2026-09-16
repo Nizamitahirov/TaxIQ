@@ -12,10 +12,12 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatDateTime } from '@/lib/utils/format';
+import { useTT } from '@/lib/i18n/tt';
 import type { AuditLog } from '@/types';
 
 export default function AuditPage() {
   const { can, isSuperAdmin } = useAuth();
+  const tt = useTT();
   const allowed = isSuperAdmin || can('platform.audit.view');
   const { data, isLoading } = useQuery({
     queryKey: ['auditLogs'],
@@ -23,27 +25,27 @@ export default function AuditPage() {
     enabled: allowed,
   });
 
-  if (!allowed) return <div><PageHeader title="Audit jurnalı" /><EmptyState title="İcazə yoxdur" description="'platform.audit.view' icazəsi lazımdır." /></div>;
+  if (!allowed) return <div><PageHeader title={tt('Audit jurnalı', 'Audit log')} /><EmptyState title={tt('İcazə yoxdur', 'No permission')} description={tt("'platform.audit.view' icazəsi lazımdır.", "The 'platform.audit.view' permission is required.")} /></div>;
 
   return (
     <div>
-      <PageHeader title="Audit jurnalı" subtitle="Bütün kritik əməliyyatların dəyişdirilə bilməyən jurnalı (01 §10)"
+      <PageHeader title={tt('Audit jurnalı', 'Audit log')} subtitle={tt('Bütün kritik əməliyyatların dəyişdirilə bilməyən jurnalı (01 §10)', 'An immutable log of all critical operations (01 §10)')}
         action={<ExportButton filename="audit-jurnali" rows={data ?? []} columns={[
-          { header: 'Tarix', value: (l) => { const t = (l.timestamp as { toMillis?: () => number })?.toMillis?.() ?? null; return t ? formatDateTime(t) : ''; } },
-          { header: 'İstifadəçi', value: (l) => l.userDisplayName ?? l.userId },
-          { header: 'Əməliyyat', value: 'action' },
-          { header: 'Obyekt tipi', value: 'entityType' }, { header: 'Obyekt ID', value: 'entityId' },
+          { header: tt('Tarix', 'Date'), value: (l) => { const t = (l.timestamp as { toMillis?: () => number })?.toMillis?.() ?? null; return t ? formatDateTime(t) : ''; } },
+          { header: tt('İstifadəçi', 'User'), value: (l) => l.userDisplayName ?? l.userId },
+          { header: tt('Əməliyyat', 'Action'), value: 'action' },
+          { header: tt('Obyekt tipi', 'Object type'), value: 'entityType' }, { header: tt('Obyekt ID', 'Object ID'), value: 'entityId' },
         ]} />} />
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : !data || data.length === 0 ? (
-        <EmptyState title="Jurnal boşdur" description="Əməliyyatlar baş verdikcə burada görünəcək." />
+        <EmptyState title={tt('Jurnal boşdur', 'The log is empty')} description={tt('Əməliyyatlar baş verdikcə burada görünəcək.', 'Operations will appear here as they occur.')} />
       ) : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
             <TableHeader><TableRow>
-              <TableHead>Tarix</TableHead><TableHead>İstifadəçi</TableHead><TableHead>Əməliyyat</TableHead>
-              <TableHead>Obyekt</TableHead>
+              <TableHead>{tt('Tarix', 'Date')}</TableHead><TableHead>{tt('İstifadəçi', 'User')}</TableHead><TableHead>{tt('Əməliyyat', 'Action')}</TableHead>
+              <TableHead>{tt('Obyekt', 'Object')}</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {data.slice(0, 200).map((log) => (

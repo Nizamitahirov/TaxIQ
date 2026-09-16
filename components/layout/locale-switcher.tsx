@@ -10,9 +10,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useTT } from '@/lib/i18n/tt';
 
 export function LocaleSwitcher() {
   const locale = useLocale();
+  const tt = useTT();
   const router = useRouter();
 
   function setLocale(next: string) {
@@ -23,7 +25,7 @@ export function LocaleSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Dil">
+        <Button variant="ghost" size="icon" aria-label={tt('Dil', 'Language')}>
           <Languages />
         </Button>
       </DropdownMenuTrigger>

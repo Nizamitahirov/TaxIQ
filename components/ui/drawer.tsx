@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useTT } from '@/lib/i18n/tt';
 
 /**
  * Sağdan açılan panel (drawer) — sənəd detalı/redaktəsi üçün.
@@ -12,6 +13,7 @@ export function Drawer({ open, onClose, title, description, children, footer, wi
   open: boolean; onClose: () => void; title?: ReactNode; description?: ReactNode;
   children: ReactNode; footer?: ReactNode; width?: 'sm' | 'md' | 'lg';
 }) {
+  const tt = useTT();
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose(); }
@@ -33,7 +35,7 @@ export function Drawer({ open, onClose, title, description, children, footer, wi
             {title && <h2 className="truncate text-lg font-bold">{title}</h2>}
             {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
           </div>
-          <button onClick={onClose} aria-label="Bağla" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+          <button onClick={onClose} aria-label={tt('Bağla', 'Close')} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>

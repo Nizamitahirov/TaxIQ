@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Settings2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
 import { listUsers } from '@/lib/firebase/users';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -22,9 +23,14 @@ import type { AppUser, UserType } from '@/types';
 const TYPE_LABEL: Record<UserType, string> = {
   platform_super_admin: 'Super Admin', staff: 'Staff (Konsultant)', client_user: 'Müştəri istifadəçisi',
 };
+const TYPE_LABEL_EN: Record<UserType, string> = {
+  platform_super_admin: 'Super Admin', staff: 'Staff (Consultant)', client_user: 'Client user',
+};
 
 export default function UsersPage() {
   const { can, isSuperAdmin, profile } = useAuth();
+  const tt = useTT();
+  const typeLabel = (t: UserType) => tt(TYPE_LABEL[t] ?? t, TYPE_LABEL_EN[t] ?? t);
   const qc = useQueryClient();
   const allowed = isSuperAdmin || can('platform.users.manage');
   const [createOpen, setCreateOpen] = useState(false);
@@ -33,49 +39,49 @@ export default function UsersPage() {
   const { data, isLoading } = useQuery({ queryKey: ['users'], queryFn: listUsers, enabled: allowed });
 
   if (!allowed) {
-    return <div><PageHeader title="İstifadəçilər" /><EmptyState title="İcazə yoxdur" description="Bu bölmə üçün 'platform.users.manage' icazəsi lazımdır." /></div>;
+    return <div><PageHeader title={tt('İstifadəçilər', 'Users')} /><EmptyState title={tt('İcazə yoxdur', 'No permission')} description={tt("Bu bölmə üçün 'platform.users.manage' icazəsi lazımdır.", "The 'platform.users.manage' permission is required for this section.")} /></div>;
   }
 
   return (
     <div>
       <PageHeader
-        title="İstifadəçilər"
-        subtitle="Platform, staff və müştəri istifadəçiləri (01 §3.3)"
+        title={tt('İstifadəçilər', 'Users')}
+        subtitle={tt('Platform, staff və müştəri istifadəçiləri (01 §3.3)', 'Platform, staff and client users (01 §3.3)')}
         action={<div className="flex items-center gap-2">
           <ExportButton filename="istifadeciler" rows={data ?? []} columns={[
-            { header: 'Ad', value: (u) => u.displayName ?? '' }, { header: 'E-poçt', value: 'email' },
-            { header: 'Tip', value: (u) => TYPE_LABEL[u.userType] ?? u.userType }, { header: 'Status', value: 'status' },
-            { header: 'Son giriş', value: (u) => { const t = toMillis(u.lastLoginAt); return t ? formatDateTime(t) : ''; } },
+            { header: tt('Ad', 'Name'), value: (u) => u.displayName ?? '' }, { header: tt('E-poçt', 'Email'), value: 'email' },
+            { header: tt('Tip', 'Type'), value: (u) => typeLabel(u.userType) }, { header: 'Status', value: 'status' },
+            { header: tt('Son giriş', 'Last login'), value: (u) => { const t = toMillis(u.lastLoginAt); return t ? formatDateTime(t) : ''; } },
           ]} />
-          <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> Yeni istifadəçi</Button>
+          <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> {tt('Yeni istifadəçi', 'New user')}</Button>
         </div>}
       />
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : !data || data.length === 0 ? (
-        <EmptyState title="İstifadəçi yoxdur" action={<Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> İlk istifadəçini yarat</Button>} />
+        <EmptyState title={tt('İstifadəçi yoxdur', 'No users')} action={<Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> {tt('İlk istifadəçini yarat', 'Create the first user')}</Button>} />
       ) : (
         <Card className="rounded-card">
           <CardContent className="overflow-x-auto p-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ad</TableHead><TableHead>E-poçt</TableHead><TableHead>Tip</TableHead>
-                  <TableHead>Status</TableHead><TableHead>Son giriş</TableHead><TableHead></TableHead>
+                  <TableHead>{tt('Ad', 'Name')}</TableHead><TableHead>{tt('E-poçt', 'Email')}</TableHead><TableHead>{tt('Tip', 'Type')}</TableHead>
+                  <TableHead>Status</TableHead><TableHead>{tt('Son giriş', 'Last login')}</TableHead><TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {data.map((u) => (
                   <TableRow key={u.uid}>
-                    <TableCell className="font-medium">{u.displayName || '—'}{u.mustChangePassword && <Badge variant="warning" className="ml-2">parol dəyişməli</Badge>}</TableCell>
+                    <TableCell className="font-medium">{u.displayName || '—'}{u.mustChangePassword && <Badge variant="warning" className="ml-2">{tt('parol dəyişməli', 'must change password')}</Badge>}</TableCell>
                     <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                    <TableCell>{TYPE_LABEL[u.userType] ?? u.userType}</TableCell>
+                    <TableCell>{typeLabel(u.userType)}</TableCell>
                     <TableCell><Badge variant={u.status === 'active' ? 'success' : u.status === 'invited' ? 'warning' : 'secondary'}>{u.status}</Badge></TableCell>
                     <TableCell className="text-muted-foreground">{formatDateTime(toMillis(u.lastLoginAt))}</TableCell>
                     <TableCell className="text-right">
                       {u.userType !== 'platform_super_admin' && (
-                        <Button variant="ghost" size="sm" onClick={() => setAccessUser(u)} title="Şirkət təyinatları">
-                          <Settings2 className="h-4 w-4" /> Giriş
+                        <Button variant="ghost" size="sm" onClick={() => setAccessUser(u)} title={tt('Şirkət təyinatları', 'Company assignments')}>
+                          <Settings2 className="h-4 w-4" /> {tt('Giriş', 'Access')}
                         </Button>
                       )}
                     </TableCell>

@@ -23,10 +23,12 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils/cn';
+import { useTT } from '@/lib/i18n/tt';
 import type { CompanyModule, Sector } from '@/types';
 
 const ICONS: Record<string, LucideIcon> = { Factory, Store, Hotel, Briefcase, PackageSearch, HardHat, Shapes };
 const STEPS = ['Əsas məlumat', 'Sektor', 'Modullar', 'Tənzimləmələr', 'İlkin admin', 'Təsdiq'];
+const STEPS_EN = ['Basic info', 'Sector', 'Modules', 'Settings', 'Initial admin', 'Confirm'];
 
 const initial: OnboardingData = {
   name: '', legalName: '', taxId: '', legalForm: 'MMC', address: '', phone: '', email: '', directorName: '',
@@ -38,6 +40,7 @@ const initial: OnboardingData = {
 export default function NewCompanyWizard() {
   const router = useRouter();
   const { isSuperAdmin, can, profile } = useAuth();
+  const tt = useTT();
   const allowed = isSuperAdmin || can('platform.company.create');
   const [step, setStep] = useState(0);
   const [d, setD] = useState<OnboardingData>(initial);
@@ -47,7 +50,7 @@ export default function NewCompanyWizard() {
   const { data: users } = useQuery({ queryKey: ['users'], queryFn: listUsers, enabled: allowed && step === 4 });
 
   if (!allowed) {
-    return <div><PageHeader title="Yeni müştəri" /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">Bu əməliyyat üçün «platform.company.create» icazəsi lazımdır.</CardContent></Card></div>;
+    return <div><PageHeader title={tt('Yeni müştəri', 'New client')} /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('Bu əməliyyat üçün «platform.company.create» icazəsi lazımdır.', 'The «platform.company.create» permission is required for this action.')}</CardContent></Card></div>;
   }
 
   const set = (patch: Partial<OnboardingData>) => setD((prev) => ({ ...prev, ...patch }));
@@ -70,11 +73,11 @@ export default function NewCompanyWizard() {
   async function next() {
     // Addım 1 validasiyası
     if (step === 0) {
-      if (!d.name.trim() || !d.legalName.trim() || !d.taxId.trim()) { toast.error('Ad, hüquqi ad və VÖEN məcburidir'); return; }
+      if (!d.name.trim() || !d.legalName.trim() || !d.taxId.trim()) { toast.error(tt('Ad, hüquqi ad və VÖEN məcburidir', 'Name, legal name and Tax ID are required')); return; }
       setBusy(true);
       const unique = await isTaxIdUnique(d.taxId);
       setBusy(false);
-      if (!unique) { toast.error('Bu VÖEN artıq mövcuddur', 'Eyni VÖEN-lə ikinci şirkət yaradıla bilməz'); return; }
+      if (!unique) { toast.error(tt('Bu VÖEN artıq mövcuddur', 'This Tax ID already exists'), tt('Eyni VÖEN-lə ikinci şirkət yaradıla bilməz', 'A second company cannot be created with the same Tax ID')); return; }
     }
     const ns = Math.min(step + 1, STEPS.length - 1);
     setStep(ns);
@@ -86,11 +89,11 @@ export default function NewCompanyWizard() {
     setBusy(true);
     try {
       const { companyId } = await createCompanyFromOnboarding(d, profile?.uid ?? '', draftId ?? undefined);
-      toast.success('Şirkət yaradıldı', d.name);
+      toast.success(tt('Şirkət yaradıldı', 'Company created'), d.name);
       router.replace('/companies');
       void companyId;
     } catch (e) {
-      toast.error('Xəta', e instanceof Error ? e.message : undefined);
+      toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined);
     } finally { setBusy(false); }
   }
 
@@ -98,7 +101,7 @@ export default function NewCompanyWizard() {
 
   return (
     <div>
-      <PageHeader title="Yeni müştəri qeydiyyatı" subtitle="Daxili məlumat daxiletmə sihirbazı (02 §1)" />
+      <PageHeader title={tt('Yeni müştəri qeydiyyatı', 'New client registration')} subtitle={tt('Daxili məlumat daxiletmə sihirbazı (02 §1)', 'Internal data-entry wizard (02 §1)')} />
 
       {/* Addım göstəricisi */}
       <div className="mb-6 flex items-center gap-1 overflow-x-auto pb-1">
@@ -109,7 +112,7 @@ export default function NewCompanyWizard() {
               <span className={cn('flex h-5 w-5 items-center justify-center rounded-full text-[11px]', i === step ? 'bg-white/20' : i < step ? 'bg-primary/20' : 'bg-background')}>
                 {i < step ? <Check className="h-3 w-3" /> : i + 1}
               </span>
-              {s}
+              {tt(s, STEPS_EN[i])}
             </div>
             {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
           </div>
@@ -121,19 +124,19 @@ export default function NewCompanyWizard() {
           {/* ── Addım 1 ── */}
           {step === 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Şirkətin adı (qısa) *"><Input value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder="Bakı Retail Group" /></Field>
-              <Field label="Hüquqi adı (tam) *"><Input value={d.legalName} onChange={(e) => set({ legalName: e.target.value })} /></Field>
-              <Field label="VÖEN *"><Input value={d.taxId} onChange={(e) => set({ taxId: e.target.value })} placeholder="10 rəqəm" maxLength={10} /></Field>
-              <Field label="Hüquqi forma">
+              <Field label={tt('Şirkətin adı (qısa) *', 'Company name (short) *')}><Input value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder="Bakı Retail Group" /></Field>
+              <Field label={tt('Hüquqi adı (tam) *', 'Legal name (full) *')}><Input value={d.legalName} onChange={(e) => set({ legalName: e.target.value })} /></Field>
+              <Field label={tt('VÖEN *', 'Tax ID *')}><Input value={d.taxId} onChange={(e) => set({ taxId: e.target.value })} placeholder={tt('10 rəqəm', '10 digits')} maxLength={10} /></Field>
+              <Field label={tt('Hüquqi forma', 'Legal form')}>
                 <Select value={d.legalForm} onValueChange={(v) => set({ legalForm: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{LEGAL_FORMS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
-              <Field label="Ünvan"><Input value={d.address} onChange={(e) => set({ address: e.target.value })} /></Field>
-              <Field label="Telefon"><Input value={d.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
-              <Field label="E-poçt"><Input type="email" value={d.email} onChange={(e) => set({ email: e.target.value })} /></Field>
-              <Field label="Rəhbərin adı"><Input value={d.directorName} onChange={(e) => set({ directorName: e.target.value })} /></Field>
+              <Field label={tt('Ünvan', 'Address')}><Input value={d.address} onChange={(e) => set({ address: e.target.value })} /></Field>
+              <Field label={tt('Telefon', 'Phone')}><Input value={d.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
+              <Field label={tt('E-poçt', 'Email')}><Input type="email" value={d.email} onChange={(e) => set({ email: e.target.value })} /></Field>
+              <Field label={tt('Rəhbərin adı', 'Director name')}><Input value={d.directorName} onChange={(e) => set({ directorName: e.target.value })} /></Field>
             </div>
           )}
 
@@ -149,22 +152,22 @@ export default function NewCompanyWizard() {
                       className={cn('flex items-start gap-3 rounded-card border p-4 text-left transition-all', active ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:border-primary/40')}>
                       <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', active ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary')}><Icon className="h-5 w-5" /></span>
                       <span className="min-w-0">
-                        <span className="block font-semibold">{s.name.az}</span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">{s.description.az}</span>
+                        <span className="block font-semibold">{tt(s.name.az, s.name.en)}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">{tt(s.description.az, s.description.en)}</span>
                       </span>
                     </button>
                   );
                 })}
               </div>
               <aside className="rounded-card border border-dashed border-border p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bu sektor üçün defolt</p>
-                <p className="mt-2 text-sm font-medium">{tpl.name.az}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tt('Bu sektor üçün defolt', 'Default for this sector')}</p>
+                <p className="mt-2 text-sm font-medium">{tt(tpl.name.az, tpl.name.en)}</p>
                 <div className="mt-3 space-y-2 text-sm">
-                  <p className="text-muted-foreground">Aktiv modullar: <span className="font-medium text-foreground">{tpl.defaultModulesEnabled.length || 'heç biri'}</span></p>
-                  <p className="text-muted-foreground">Şöbələr: <span className="font-medium text-foreground">{tpl.departmentPreset.map((x) => x.az).join(', ') || '—'}</span></p>
-                  <p className="text-muted-foreground">Tövsiyə KPI: <span className="font-medium text-foreground">{tpl.recommendedKpis.length}</span></p>
+                  <p className="text-muted-foreground">{tt('Aktiv modullar', 'Active modules')}: <span className="font-medium text-foreground">{tpl.defaultModulesEnabled.length || tt('heç biri', 'none')}</span></p>
+                  <p className="text-muted-foreground">{tt('Şöbələr', 'Departments')}: <span className="font-medium text-foreground">{tpl.departmentPreset.map((x) => tt(x.az, x.en)).join(', ') || '—'}</span></p>
+                  <p className="text-muted-foreground">{tt('Tövsiyə KPI', 'Recommended KPIs')}: <span className="font-medium text-foreground">{tpl.recommendedKpis.length}</span></p>
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground/80">{tpl.notes.az}</p>
+                <p className="mt-3 text-xs text-muted-foreground/80">{tt(tpl.notes.az, tpl.notes.en)}</p>
               </aside>
             </div>
           )}
@@ -172,14 +175,14 @@ export default function NewCompanyWizard() {
           {/* ── Addım 3 ── */}
           {step === 2 && (
             <div>
-              <p className="mb-4 text-sm text-muted-foreground">Dashboard və Rol/Səlahiyyət həmişə aktivdir. Aşağıdakı modulları müqaviləyə uyğun fərdiləşdirin (02 §2.2).</p>
+              <p className="mb-4 text-sm text-muted-foreground">{tt('Dashboard və Rol/Səlahiyyət həmişə aktivdir. Aşağıdakı modulları müqaviləyə uyğun fərdiləşdirin (02 §2.2).', 'Dashboard and Roles/Permissions are always active. Customize the modules below according to the contract (02 §2.2).')}</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {TOGGLEABLE_MODULES.map((m) => {
                   const on = d.modulesEnabled.includes(m.key);
                   return (
                     <button key={m.key} onClick={() => toggleModule(m.key)}
                       className={cn('flex items-center justify-between rounded-card border p-3 text-left transition-colors', on ? 'border-primary/50 bg-primary/5' : 'border-border hover:bg-secondary')}>
-                      <span className="text-sm font-medium">{m.label.az}</span>
+                      <span className="text-sm font-medium">{tt(m.label.az, m.label.en)}</span>
                       <span className={cn('flex h-5 w-5 items-center justify-center rounded-md border', on ? 'border-primary bg-primary text-primary-foreground' : 'border-border')}>{on && <Check className="h-3.5 w-3.5" />}</span>
                     </button>
                   );
@@ -191,22 +194,22 @@ export default function NewCompanyWizard() {
           {/* ── Addım 4 ── */}
           {step === 3 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Əsas valyuta"><Input value={d.baseCurrency} onChange={(e) => set({ baseCurrency: e.target.value.toUpperCase() })} maxLength={3} /></Field>
-              <Field label="Fiskal il başlanğıcı (ay)">
+              <Field label={tt('Əsas valyuta', 'Base currency')}><Input value={d.baseCurrency} onChange={(e) => set({ baseCurrency: e.target.value.toUpperCase() })} maxLength={3} /></Field>
+              <Field label={tt('Fiskal il başlanğıcı (ay)', 'Fiscal year start (month)')}>
                 <Select value={String(d.fiscalYearStartMonth)} onValueChange={(v) => set({ fiscalYearStartMonth: Number(v) })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{Array.from({ length: 12 }).map((_, i) => <SelectItem key={i + 1} value={String(i + 1)}>{i + 1}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
-              <Field label="Dil (şirkət defoltu)">
+              <Field label={tt('Dil (şirkət defoltu)', 'Language (company default)')}>
                 <Select value={d.language} onValueChange={(v) => set({ language: v as 'az' | 'en' })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent><SelectItem value="az">Azərbaycanca</SelectItem><SelectItem value="en">English</SelectItem></SelectContent>
                 </Select>
               </Field>
-              <Field label="Brend rəngi (hex, opsional)"><Input value={d.brandColor} onChange={(e) => set({ brandColor: e.target.value })} placeholder="#5B5BF5" /></Field>
+              <Field label={tt('Brend rəngi (hex, opsional)', 'Brand color (hex, optional)')}><Input value={d.brandColor} onChange={(e) => set({ brandColor: e.target.value })} placeholder="#5B5BF5" /></Field>
               {d.sector === 'hospitality' && (
-                <Field label="Ümumi otaq sayı (RevPAR/ADR üçün)"><Input type="number" value={d.totalRooms ?? ''} onChange={(e) => set({ totalRooms: e.target.value ? Number(e.target.value) : null })} /></Field>
+                <Field label={tt('Ümumi otaq sayı (RevPAR/ADR üçün)', 'Total rooms (for RevPAR/ADR)')}><Input type="number" value={d.totalRooms ?? ''} onChange={(e) => set({ totalRooms: e.target.value ? Number(e.target.value) : null })} /></Field>
               )}
             </div>
           )}
@@ -214,17 +217,17 @@ export default function NewCompanyWizard() {
           {/* ── Addım 5 ── */}
           {step === 4 && (
             <div className="max-w-lg space-y-4">
-              <p className="text-sm text-muted-foreground">Opsional: mövcud istifadəçini bu şirkətə təyin edin. Keçə bilərsiniz — sonra İstifadəçilər bölməsindən əlavə edərsiniz (02 §1.2 addım 5).</p>
-              <Field label="İstifadəçi">
+              <p className="text-sm text-muted-foreground">{tt('Opsional: mövcud istifadəçini bu şirkətə təyin edin. Keçə bilərsiniz — sonra İstifadəçilər bölməsindən əlavə edərsiniz (02 §1.2 addım 5).', 'Optional: assign an existing user to this company. You may skip — you can add them later from the Users section (02 §1.2 step 5).')}</p>
+              <Field label={tt('İstifadəçi', 'User')}>
                 <Select value={d.assignUserId ?? ''} onValueChange={(v) => set({ assignUserId: v })}>
-                  <SelectTrigger><SelectValue placeholder="İstifadəçi seç (opsional)" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={tt('İstifadəçi seç (opsional)', 'Select user (optional)')} /></SelectTrigger>
                   <SelectContent>{(users ?? []).filter((u) => u.userType !== 'platform_super_admin').map((u) => <SelectItem key={u.uid} value={u.uid}>{u.displayName} ({u.email})</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
-              <Field label="Rol">
+              <Field label={tt('Rol', 'Role')}>
                 <Select value={d.assignRoleId ?? ''} onValueChange={(v) => set({ assignRoleId: v })}>
-                  <SelectTrigger><SelectValue placeholder="Rol seç" /></SelectTrigger>
-                  <SelectContent>{SYSTEM_ROLES.filter((r) => r.code !== 'platform_super_admin').map((r) => <SelectItem key={r.code} value={r.code}>{r.name.az}</SelectItem>)}</SelectContent>
+                  <SelectTrigger><SelectValue placeholder={tt('Rol seç', 'Select role')} /></SelectTrigger>
+                  <SelectContent>{SYSTEM_ROLES.filter((r) => r.code !== 'platform_super_admin').map((r) => <SelectItem key={r.code} value={r.code}>{tt(r.name.az, r.name.en)}</SelectItem>)}</SelectContent>
                 </Select>
               </Field>
             </div>
@@ -238,25 +241,25 @@ export default function NewCompanyWizard() {
                 <div><p className="font-semibold">{d.name}</p><p className="text-sm text-muted-foreground">{d.legalName} · VÖEN {d.taxId}</p></div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Summary label="Sektor" value={tpl.name.az} />
-                <Summary label="Hüquqi forma" value={d.legalForm} />
-                <Summary label="Əsas valyuta" value={d.baseCurrency} />
-                <Summary label="Fiskal il başlanğıcı" value={`${d.fiscalYearStartMonth}-ci ay`} />
-                <Summary label="Aktiv modullar" value={d.modulesEnabled.length ? d.modulesEnabled.join(', ') : 'yalnız platform nüvəsi'} />
-                <Summary label="Şöbələr (avtomatik)" value={tpl.departmentPreset.map((x) => x.az).join(', ') || '—'} />
+                <Summary label={tt('Sektor', 'Sector')} value={tt(tpl.name.az, tpl.name.en)} />
+                <Summary label={tt('Hüquqi forma', 'Legal form')} value={d.legalForm} />
+                <Summary label={tt('Əsas valyuta', 'Base currency')} value={d.baseCurrency} />
+                <Summary label={tt('Fiskal il başlanğıcı', 'Fiscal year start')} value={tt(`${d.fiscalYearStartMonth}-ci ay`, `month ${d.fiscalYearStartMonth}`)} />
+                <Summary label={tt('Aktiv modullar', 'Active modules')} value={d.modulesEnabled.length ? d.modulesEnabled.join(', ') : tt('yalnız platform nüvəsi', 'platform core only')} />
+                <Summary label={tt('Şöbələr (avtomatik)', 'Departments (automatic)')} value={tpl.departmentPreset.map((x) => tt(x.az, x.en)).join(', ') || '—'} />
               </div>
-              <p className="text-xs text-muted-foreground">«Yarat» düyməsi: şirkət (status: active), sektora uyğun şöbələr və seçilibsə ilkin admin təyinatı yaradılır; audit jurnalına yazılır.</p>
+              <p className="text-xs text-muted-foreground">{tt('«Yarat» düyməsi: şirkət (status: active), sektora uyğun şöbələr və seçilibsə ilkin admin təyinatı yaradılır; audit jurnalına yazılır.', 'The «Create» button: creates the company (status: active), sector-specific departments and, if selected, the initial admin assignment; it is recorded in the audit log.')}</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       <div className="mt-4 flex items-center justify-between">
-        <Button variant="outline" onClick={back} disabled={step === 0 || busy}><ChevronLeft className="h-4 w-4" /> Geri</Button>
+        <Button variant="outline" onClick={back} disabled={step === 0 || busy}><ChevronLeft className="h-4 w-4" /> {tt('Geri', 'Back')}</Button>
         {step < STEPS.length - 1 ? (
-          <Button onClick={next} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : null} Növbəti <ChevronRight className="h-4 w-4" /></Button>
+          <Button onClick={next} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : null} {tt('Növbəti', 'Next')} <ChevronRight className="h-4 w-4" /></Button>
         ) : (
-          <Button onClick={submit} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Check className="h-4 w-4" />} Yarat</Button>
+          <Button onClick={submit} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Check className="h-4 w-4" />} {tt('Yarat', 'Create')}</Button>
         )}
       </div>
     </div>

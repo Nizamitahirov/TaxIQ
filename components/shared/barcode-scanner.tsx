@@ -5,6 +5,7 @@ import { Loader2, ScanBarcode, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTT } from '@/lib/i18n/tt';
 
 /**
  * Barkod skaneri — brauzerin `BarcodeDetector` API-si + kamera (05 §2).
@@ -16,6 +17,7 @@ interface Props { open: boolean; onOpenChange: (o: boolean) => void; onDetected:
 type BD = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
 
 export function BarcodeScanner({ open, onOpenChange, onDetected }: Props) {
+  const tt = useTT();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [supported, setSupported] = useState<boolean | null>(null);
   const [error, setError] = useState('');
@@ -45,7 +47,7 @@ export function BarcodeScanner({ open, onOpenChange, onDetected }: Props) {
         };
         raf = requestAnimationFrame(scan);
       } catch {
-        setError('Kameraya giriş verilmədi. Əl ilə daxil edin.');
+        setError(tt('Kameraya giriş verilmədi. Əl ilə daxil edin.', 'Camera access was denied. Enter manually.'));
         setSupported(false);
       }
     }
@@ -58,21 +60,21 @@ export function BarcodeScanner({ open, onOpenChange, onDetected }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><ScanBarcode className="h-4 w-4 text-primary" /> Barkod skan</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><ScanBarcode className="h-4 w-4 text-primary" /> {tt('Barkod skan', 'Barcode scan')}</DialogTitle></DialogHeader>
         {supported === null ? (
           <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : supported ? (
           <div className="space-y-2">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video ref={videoRef} className="aspect-video w-full rounded-lg bg-black object-cover" playsInline muted />
-            <p className="text-center text-xs text-muted-foreground">Barkodu kameraya tutun…</p>
+            <p className="text-center text-xs text-muted-foreground">{tt('Barkodu kameraya tutun…', 'Point the barcode at the camera…')}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {error && <p className="text-xs text-danger">{error}</p>}
-            <p className="text-sm text-muted-foreground">Bu brauzer kamera skanını dəstəkləmir. Barkodu əl ilə daxil edin:</p>
+            <p className="text-sm text-muted-foreground">{tt('Bu brauzer kamera skanını dəstəkləmir. Barkodu əl ilə daxil edin:', 'This browser does not support camera scanning. Enter the barcode manually:')}</p>
             <div className="flex gap-2">
-              <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="Barkod" autoFocus onKeyDown={(e) => { if (e.key === 'Enter' && manual.trim()) { onDetected(manual.trim()); onOpenChange(false); } }} />
+              <Input value={manual} onChange={(e) => setManual(e.target.value)} placeholder={tt('Barkod', 'Barcode')} autoFocus onKeyDown={(e) => { if (e.key === 'Enter' && manual.trim()) { onDetected(manual.trim()); onOpenChange(false); } }} />
               <Button onClick={() => { if (manual.trim()) { onDetected(manual.trim()); onOpenChange(false); } }}>OK</Button>
             </div>
           </div>

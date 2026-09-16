@@ -18,12 +18,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import type { AppUser } from '@/types';
 
 export function UserAccessDialog({ user, onOpenChange, actorUid }: {
   user: AppUser | null; onOpenChange: (o: boolean) => void; actorUid: string;
 }) {
   const qc = useQueryClient();
+  const tt = useTT();
   const [companyId, setCompanyId] = useState('');
   const [roleId, setRoleId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -39,7 +41,7 @@ export function UserAccessDialog({ user, onOpenChange, actorUid }: {
 
   const companyName = (id: string) => companies?.find((c) => c.id === id)?.name ?? id;
   const roleOptions = [
-    ...SYSTEM_ROLES.filter((r) => r.code !== 'platform_super_admin').map((r) => ({ id: r.code, name: r.name.az })),
+    ...SYSTEM_ROLES.filter((r) => r.code !== 'platform_super_admin').map((r) => ({ id: r.code, name: tt(r.name.az, r.name.en) })),
     ...(customRoles ?? []).filter((r) => r.type === 'custom').map((r) => ({ id: r.id, name: r.name })),
   ];
 
@@ -49,14 +51,14 @@ export function UserAccessDialog({ user, onOpenChange, actorUid }: {
   }
 
   async function add() {
-    if (!user || !companyId || !roleId) { toast.error('Şirkət və rol seçin'); return; }
-    if ((access ?? []).some((a) => a.companyId === companyId)) { toast.error('Bu şirkətə artıq təyin olunub'); return; }
+    if (!user || !companyId || !roleId) { toast.error(tt('Şirkət və rol seçin', 'Select a company and role')); return; }
+    if ((access ?? []).some((a) => a.companyId === companyId)) { toast.error(tt('Bu şirkətə artıq təyin olunub', 'Already assigned to this company')); return; }
     setBusy(true);
     try {
       await assignUserToCompany({ userId: user.uid, companyId, roleId, assignedBy: actorUid });
-      toast.success('Təyinat əlavə edildi');
+      toast.success(tt('Təyinat əlavə edildi', 'Assignment added'));
       setCompanyId(''); setRoleId(''); refresh();
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setBusy(false); }
   }
 
@@ -65,45 +67,48 @@ export function UserAccessDialog({ user, onOpenChange, actorUid }: {
     setBusy(true);
     try {
       await revokeAccess({ accessId, userId: user.uid, companyId: cId, revokedBy: actorUid });
-      toast.success('Təyinat ləğv edildi');
+      toast.success(tt('Təyinat ləğv edildi', 'Assignment revoked'));
       refresh();
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setBusy(false); }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>{user?.displayName} — Şirkət təyinatları</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{user?.displayName} — {tt('Şirkət təyinatları', 'Company assignments')}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
             {(access ?? []).length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">Təyinat yoxdur</p>
-            ) : (access ?? []).map((a) => (
+              <p className="py-4 text-center text-sm text-muted-foreground">{tt('Təyinat yoxdur', 'No assignments')}</p>
+            ) : (access ?? []).map((a) => {
+              const sysRole = SYSTEM_ROLES.find((r) => r.code === a.roleId);
+              return (
               <div key={a.id} className="flex items-center justify-between rounded-lg border border-border/60 p-2.5">
                 <span className="flex items-center gap-2 text-sm"><Building2 className="h-4 w-4 text-primary" /> {companyName(a.companyId)}</span>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{SYSTEM_ROLES.find((r) => r.code === a.roleId)?.name.az ?? a.roleId}</Badge>
+                  <Badge variant="secondary">{sysRole ? tt(sysRole.name.az, sysRole.name.en) : a.roleId}</Badge>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-danger" disabled={busy} onClick={() => remove(a.id, a.companyId)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="rounded-card border border-dashed border-border p-3">
-            <Label className="mb-2 block text-xs uppercase tracking-wide text-muted-foreground">Yeni təyinat</Label>
+            <Label className="mb-2 block text-xs uppercase tracking-wide text-muted-foreground">{tt('Yeni təyinat', 'New assignment')}</Label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Select value={companyId} onValueChange={setCompanyId}>
-                <SelectTrigger><SelectValue placeholder="Şirkət" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tt('Şirkət', 'Company')} /></SelectTrigger>
                 <SelectContent>{(companies ?? []).map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
               <Select value={roleId} onValueChange={setRoleId}>
-                <SelectTrigger><SelectValue placeholder="Rol" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tt('Rol', 'Role')} /></SelectTrigger>
                 <SelectContent>{roleOptions.map((r) => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <Button className="mt-2 w-full" size="sm" onClick={add} disabled={busy}>
-              {busy ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} Təyin et
+              {busy ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} {tt('Təyin et', 'Assign')}
             </Button>
           </div>
         </div>

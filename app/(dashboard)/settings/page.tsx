@@ -15,21 +15,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import type { Currency, PayrollTaxConfig } from '@/types';
 
 export default function SettingsPage() {
   const { active, isSuperAdmin, can } = useAuth();
+  const tt = useTT();
   const canManageTax = isSuperAdmin || can('payroll.run.approve') || can('platform.company.settings.edit');
 
   return (
     <div>
-      <PageHeader title="Tənzimləmələr" subtitle={active?.company.name ?? ''} />
+      <PageHeader title={tt('Tənzimləmələr', 'Settings')} subtitle={active?.company.name ?? ''} />
       <Tabs defaultValue="company">
         <TabsList className="mb-4 flex-wrap">
-          <TabsTrigger value="company">Şirkət</TabsTrigger>
-          <TabsTrigger value="currencies">Valyutalar</TabsTrigger>
-          <TabsTrigger value="tax">Əmək haqqı vergisi</TabsTrigger>
-          <TabsTrigger value="prefs">Tərcihlər</TabsTrigger>
+          <TabsTrigger value="company">{tt('Şirkət', 'Company')}</TabsTrigger>
+          <TabsTrigger value="currencies">{tt('Valyutalar', 'Currencies')}</TabsTrigger>
+          <TabsTrigger value="tax">{tt('Əmək haqqı vergisi', 'Payroll tax')}</TabsTrigger>
+          <TabsTrigger value="prefs">{tt('Tərcihlər', 'Preferences')}</TabsTrigger>
         </TabsList>
         <TabsContent value="company"><CompanyTab /></TabsContent>
         <TabsContent value="currencies"><CurrenciesTab /></TabsContent>
@@ -42,6 +44,7 @@ export default function SettingsPage() {
 
 function CompanyTab() {
   const { active, isSuperAdmin } = useAuth();
+  const tt = useTT();
   return (
     <Card className="rounded-card"><CardContent className="p-6">
       <div className="flex items-center gap-3">
@@ -49,26 +52,27 @@ function CompanyTab() {
         <div><p className="font-semibold">{active?.company.name}</p><p className="text-sm text-muted-foreground">{active?.company.legalName} {active?.company.taxId ? `· VÖEN ${active.company.taxId}` : ''}</p></div>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
-        <Info label="Sektor" value={active?.company.sector ?? '—'} />
-        <Info label="Əsas valyuta" value={active?.company.baseCurrency ?? '—'} />
+        <Info label={tt('Sektor', 'Sector')} value={active?.company.sector ?? '—'} />
+        <Info label={tt('Əsas valyuta', 'Base currency')} value={active?.company.baseCurrency ?? '—'} />
         <Info label="Status" value={active?.company.status ?? '—'} />
       </div>
       {isSuperAdmin && active && (
-        <Link href={`/companies/${active.companyId}`} className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">Şirkət profilini idarə et →</Link>
+        <Link href={`/companies/${active.companyId}`} className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">{tt('Şirkət profilini idarə et →', 'Manage company profile →')}</Link>
       )}
     </CardContent></Card>
   );
 }
 
 function CurrenciesTab() {
+  const tt = useTT();
   const { data, isLoading } = useQuery({ queryKey: ['currencies'], queryFn: () => listDocs<Currency>('currencies') });
   return (
     <Card className="rounded-card"><CardContent className="p-6">
-      <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground"><Coins className="h-4 w-4" /> Qlobal valyuta siyahısı (01 §8.1)</p>
+      <p className="mb-4 flex items-center gap-2 text-sm text-muted-foreground"><Coins className="h-4 w-4" /> {tt('Qlobal valyuta siyahısı (01 §8.1)', 'Global currency list (01 §8.1)')}</p>
       {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (data ?? []).length === 0 ? (
-        <p className="text-sm text-muted-foreground">Valyuta yoxdur. Seed skripti valyutaları qurur.</p>
+        <p className="text-sm text-muted-foreground">{tt('Valyuta yoxdur. Seed skripti valyutaları qurur.', 'No currencies. The seed script sets up currencies.')}</p>
       ) : (
-        <div className="flex flex-wrap gap-2">{(data ?? []).map((c) => <span key={c.id} className="rounded-full border border-border bg-card px-3 py-1 text-sm">{c.symbol} {c.isoCode} · {c.name?.az}</span>)}</div>
+        <div className="flex flex-wrap gap-2">{(data ?? []).map((c) => <span key={c.id} className="rounded-full border border-border bg-card px-3 py-1 text-sm">{c.symbol} {c.isoCode} · {c.name ? tt(c.name.az, c.name.en) : ''}</span>)}</div>
       )}
     </CardContent></Card>
   );
@@ -76,6 +80,7 @@ function CurrenciesTab() {
 
 function TaxTab({ canManage }: { canManage: boolean }) {
   const qc = useQueryClient();
+  const tt = useTT();
   const { data: cfg, isLoading } = useQuery({ queryKey: ['taxcfg'], queryFn: getActiveTaxConfig });
   const [form, setForm] = useState<PayrollTaxConfig | null>(null);
   const [saving, setSaving] = useState(false);
@@ -89,40 +94,40 @@ function TaxTab({ canManage }: { canManage: boolean }) {
     setSaving(true);
     try {
       await saveTaxConfig({ ...c, effectiveFrom: c.effectiveFrom });
-      toast.success('Vergi konfiqurasiyası saxlanıldı', 'Yeni versiya effektiv oldu');
+      toast.success(tt('Vergi konfiqurasiyası saxlanıldı', 'Tax configuration saved'), tt('Yeni versiya effektiv oldu', 'The new version is now effective'));
       qc.invalidateQueries({ queryKey: ['taxcfg'] });
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
   }
 
   return (
-    <Card className="rounded-card"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Receipt className="h-4 w-4 text-primary" /> Əmək haqqı vergi/sığorta konfiqurasiyası (versiyalanan, 10 §6.1)</CardTitle></CardHeader>
+    <Card className="rounded-card"><CardHeader><CardTitle className="flex items-center gap-2 text-base"><Receipt className="h-4 w-4 text-primary" /> {tt('Əmək haqqı vergi/sığorta konfiqurasiyası (versiyalanan, 10 §6.1)', 'Payroll tax/insurance configuration (versioned, 10 §6.1)')}</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-card bg-warning/10 p-3 text-xs text-warning-foreground">⚠️ Dərəcələr tez-tez dəyişir — taxes.gov.az/DSMF-dən təsdiqlənməlidir. Dəyişiklik yeni versiya kimi saxlanılır; keçmiş dövrlər öz versiyalarında qalır.</div>
+        <div className="rounded-card bg-warning/10 p-3 text-xs text-warning-foreground">{tt('⚠️ Dərəcələr tez-tez dəyişir — taxes.gov.az/DSMF-dən təsdiqlənməlidir. Dəyişiklik yeni versiya kimi saxlanılır; keçmiş dövrlər öz versiyalarında qalır.', '⚠️ Rates change often — verify with taxes.gov.az/DSMF. A change is stored as a new version; past periods keep their own versions.')}</div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <F label="Effektiv tarix"><Input type="date" value={c.effectiveFrom} onChange={(e) => edit({ effectiveFrom: e.target.value })} disabled={!canManage} /></F>
-          <F label="Minimum əmək haqqı"><Input type="number" value={c.minimumWage} onChange={(e) => edit({ minimumWage: Number(e.target.value) })} disabled={!canManage} /></F>
+          <F label={tt('Effektiv tarix', 'Effective date')}><Input type="date" value={c.effectiveFrom} onChange={(e) => edit({ effectiveFrom: e.target.value })} disabled={!canManage} /></F>
+          <F label={tt('Minimum əmək haqqı', 'Minimum wage')}><Input type="number" value={c.minimumWage} onChange={(e) => edit({ minimumWage: Number(e.target.value) })} disabled={!canManage} /></F>
         </div>
         <div>
-          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Gəlir vergisi pillələri</Label>
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground">{tt('Gəlir vergisi pillələri', 'Income tax brackets')}</Label>
           <div className="mt-2 space-y-2">
             {c.incomeTaxBrackets.map((b, i) => (
               <div key={i} className="flex items-center gap-2 text-sm">
-                <span className="w-32 text-muted-foreground">{b.uptoAmount == null ? 'üzəri' : `≤ ${b.uptoAmount} ₼`}</span>
+                <span className="w-32 text-muted-foreground">{b.uptoAmount == null ? tt('üzəri', 'above') : `≤ ${b.uptoAmount} ₼`}</span>
                 <Input className="w-24" type="number" step="0.01" value={b.rate} disabled={!canManage} onChange={(e) => { const br = [...c.incomeTaxBrackets]; br[i] = { ...br[i], rate: Number(e.target.value) }; edit({ incomeTaxBrackets: br }); }} />
-                <span className="text-xs text-muted-foreground">dərəcə · sabit</span>
+                <span className="text-xs text-muted-foreground">{tt('dərəcə · sabit', 'rate · fixed')}</span>
                 <Input className="w-24" type="number" value={b.fixedAmount} disabled={!canManage} onChange={(e) => { const br = [...c.incomeTaxBrackets]; br[i] = { ...br[i], fixedAmount: Number(e.target.value) }; edit({ incomeTaxBrackets: br }); }} />
               </div>
             ))}
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 text-sm">
-          <Info label="Sosial (işçi ilk 200₼ / üzəri)" value={`${(c.socialInsurance.employeeBaseRate * 100).toFixed(1)}% / ${(c.socialInsurance.employeeRateAboveThreshold * 100).toFixed(1)}%`} />
-          <Info label="Sosial (işəgötürən)" value={`${(c.socialInsurance.employerRate * 100).toFixed(1)}%`} />
-          <Info label="Tibbi (≤2500 / üzəri)" value={`${(c.medicalInsurance.employeeRateLowerBand * 100).toFixed(1)}% / ${(c.medicalInsurance.employeeRateUpperBand * 100).toFixed(1)}%`} />
-          <Info label="İşsizlik (işçi/işəgötürən)" value={`${(c.unemploymentInsurance.employeeRate * 100).toFixed(1)}% / ${(c.unemploymentInsurance.employerRate * 100).toFixed(1)}%`} />
+          <Info label={tt('Sosial (işçi ilk 200₼ / üzəri)', 'Social (employee first 200₼ / above)')} value={`${(c.socialInsurance.employeeBaseRate * 100).toFixed(1)}% / ${(c.socialInsurance.employeeRateAboveThreshold * 100).toFixed(1)}%`} />
+          <Info label={tt('Sosial (işəgötürən)', 'Social (employer)')} value={`${(c.socialInsurance.employerRate * 100).toFixed(1)}%`} />
+          <Info label={tt('Tibbi (≤2500 / üzəri)', 'Medical (≤2500 / above)')} value={`${(c.medicalInsurance.employeeRateLowerBand * 100).toFixed(1)}% / ${(c.medicalInsurance.employeeRateUpperBand * 100).toFixed(1)}%`} />
+          <Info label={tt('İşsizlik (işçi/işəgötürən)', 'Unemployment (employee/employer)')} value={`${(c.unemploymentInsurance.employeeRate * 100).toFixed(1)}% / ${(c.unemploymentInsurance.employerRate * 100).toFixed(1)}%`} />
         </div>
-        {canManage && <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Save className="h-4 w-4" />} Yeni versiya kimi saxla</Button>}
+        {canManage && <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Save className="h-4 w-4" />} {tt('Yeni versiya kimi saxla', 'Save as new version')}</Button>}
       </CardContent>
     </Card>
   );
@@ -130,6 +135,7 @@ function TaxTab({ canManage }: { canManage: boolean }) {
 
 function PrefsTab() {
   const { profile } = useAuth();
+  const tt = useTT();
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem('theme') ?? 'system'; } catch { return 'system'; } });
   const [cardStyle, setCardStyle] = useState<CardStyle>('gradient');
   useEffect(() => { setCardStyle(loadCardStyle()); }, []);
@@ -148,27 +154,27 @@ function PrefsTab() {
     <Card className="rounded-card"><CardContent className="space-y-5 p-6">
       <div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><User className="h-5 w-5" /></span><div><p className="font-medium">{profile?.displayName}</p><p className="text-sm text-muted-foreground">{profile?.email}</p></div></div>
       <div className="space-y-2">
-        <Label>Tema</Label>
-        <div className="flex gap-2">{['light', 'dark', 'system'].map((th) => <Button key={th} variant={theme === th ? 'default' : 'outline'} size="sm" onClick={() => apply(th)}>{th === 'light' ? 'Açıq' : th === 'dark' ? 'Tünd' : 'Sistem'}</Button>)}</div>
+        <Label>{tt('Tema', 'Theme')}</Label>
+        <div className="flex gap-2">{['light', 'dark', 'system'].map((th) => <Button key={th} variant={theme === th ? 'default' : 'outline'} size="sm" onClick={() => apply(th)}>{th === 'light' ? tt('Açıq', 'Light') : th === 'dark' ? tt('Tünd', 'Dark') : tt('Sistem', 'System')}</Button>)}</div>
       </div>
       <div className="space-y-2">
-        <Label>Dil</Label>
+        <Label>{tt('Dil', 'Language')}</Label>
         <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setLang('az')}>🇦🇿 Azərbaycanca</Button><Button variant="outline" size="sm" onClick={() => setLang('en')}>🇬🇧 English</Button></div>
       </div>
       <div className="space-y-2">
-        <Label className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> Bölmə kartlarının görünüşü <span className="font-normal text-muted-foreground">(Bölmələr səhifəsi)</span></Label>
+        <Label className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> {tt('Bölmə kartlarının görünüşü', 'Section card appearance')} <span className="font-normal text-muted-foreground">{tt('(Bölmələr səhifəsi)', '(Sections page)')}</span></Label>
         <div className="grid max-w-md grid-cols-2 gap-3">
-          <CardStyleOption active={cardStyle === 'gradient'} onClick={() => applyCardStyle('gradient')} label="Rəngli">
+          <CardStyleOption active={cardStyle === 'gradient'} onClick={() => applyCardStyle('gradient')} label={tt('Rəngli', 'Colorful')}>
             <div className="h-full w-full rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]" />
           </CardStyleOption>
-          <CardStyleOption active={cardStyle === 'minimal'} onClick={() => applyCardStyle('minimal')} label="Sadə (ağ + abstrakt)">
+          <CardStyleOption active={cardStyle === 'minimal'} onClick={() => applyCardStyle('minimal')} label={tt('Sadə (ağ + abstrakt)', 'Minimal (white + abstract)')}>
             <div className="relative h-full w-full overflow-hidden rounded-lg border border-border bg-card">
               <div className="absolute -right-2 -top-3 h-10 w-10 rounded-full opacity-50 blur-lg" style={{ background: 'rgba(99,102,241,0.5)' }} />
               <div className="absolute left-2 top-2 h-4 w-4 rounded-md bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]" />
             </div>
           </CardStyleOption>
         </div>
-        <p className="text-xs text-muted-foreground">Dəyişiklik Bölmələr səhifəsinə keçəndə tətbiq olunur.</p>
+        <p className="text-xs text-muted-foreground">{tt('Dəyişiklik Bölmələr səhifəsinə keçəndə tətbiq olunur.', 'The change applies when you go to the Sections page.')}</p>
       </div>
     </CardContent></Card>
   );
