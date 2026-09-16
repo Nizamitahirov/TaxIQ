@@ -23,7 +23,8 @@ export type SystemRoleCode =
   | 'hr_manager'
   | 'sales_manager'
   | 'warehouse_operator'
-  | 'viewer';
+  | 'viewer'
+  | 'client_viewer';
 
 /** users/{uid} — 01 §2.4 */
 export interface AppUser {

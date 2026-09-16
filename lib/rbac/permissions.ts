@@ -226,7 +226,34 @@ export const SYSTEM_ROLES: SystemRoleDef[] = [
     description: L('Bütün icazəli modullarda yalnız oxuma', 'Read-only across permitted modules'),
     permissions: ALL_PERMISSION_IDS.filter((id) => id.endsWith('.view')),
   },
+  {
+    // Xarici müştəri istifadəçisi — yalnız öz şirkətinin maliyyə göstəricilərinə oxuma
+    // girişi; heç bir idarəetmə (istifadəçi/rol/audit), HR/əmək haqqı və ya həssas
+    // icazə YOXDUR (01 §0.2 Client User + §6.2). Şirkət izolyasiyası homeCompanyId ilə.
+    code: 'client_viewer',
+    name: L('Müştəri — Baxış', 'Client — Viewer'),
+    description: L('Xarici müştəri: yalnız öz şirkətinin hesabat, faktura və kassa qalığına oxuma', 'External client: read-only access to their own company\'s reports, invoices and cash balances'),
+    permissions: [
+      'reports.view',
+      'accounting.reports.ifrs.view', 'accounting.reports.ifrs.export',
+      'sales.invoice.view', 'sales.invoice.print', 'sales.invoice.export',
+      'sales.customer.view', 'sales.order.view',
+      'cashbank.transaction.view',
+      'accounting.journal.view', 'accounting.coa.view',
+      'warehouse.stock.view',
+    ],
+  },
 ];
+
+/** İstifadəçi tipinə görə təyin oluna bilən sistem rolları (01 §4.2). */
+export function assignableSystemRoles(userType: 'staff' | 'client_user'): SystemRoleDef[] {
+  if (userType === 'client_user') {
+    // Xarici müştəriyə yalnız client-uyğun rollar təklif olunur
+    return SYSTEM_ROLES.filter((r) => r.code === 'client_viewer');
+  }
+  // Daxili staff-a super admin və client rolları istisna olmaqla hamısı
+  return SYSTEM_ROLES.filter((r) => r.code !== 'platform_super_admin' && r.code !== 'client_viewer');
+}
 
 export const SYSTEM_ROLE_MAP: Record<string, SystemRoleDef> = Object.fromEntries(
   SYSTEM_ROLES.map((r) => [r.code, r]),

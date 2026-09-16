@@ -6,7 +6,7 @@ import { Loader2, Plus, Copy, Check, KeyRound } from 'lucide-react';
 import { createUser, type CreateUserResult } from '@/lib/firebase/user-admin';
 import { listCompanies } from '@/lib/firebase/companies';
 import { listRolesForCompany } from '@/lib/firebase/roles';
-import { SYSTEM_ROLES } from '@/lib/rbac/permissions';
+import { assignableSystemRoles } from '@/lib/rbac/permissions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,7 +46,7 @@ export function UserCreateDialog({ open, onOpenChange, createdBy, onCreated }: {
     enabled: open,
   });
   const roleOptions = [
-    ...SYSTEM_ROLES.filter((r) => r.code !== 'platform_super_admin').map((r) => ({ id: r.code, name: tt(r.name.az, r.name.en) })),
+    ...assignableSystemRoles(userType === 'client_user' ? 'client_user' : 'staff').map((r) => ({ id: r.code, name: tt(r.name.az, r.name.en) })),
     ...(roles ?? []).filter((r) => r.type === 'custom').map((r) => ({ id: r.id, name: r.name })),
   ];
 
@@ -107,7 +107,7 @@ export function UserCreateDialog({ open, onOpenChange, createdBy, onCreated }: {
               <div className="space-y-2"><Label>{tt('E-poçt / istifadəçi adı', 'Email / username')} *</Label><Input value={identifier} onChange={(e) => setIdentifier(e.target.value)} placeholder="ali@nümunə.az" /></div>
               <div className="space-y-2">
                 <Label>{tt('İstifadəçi tipi', 'User type')}</Label>
-                <Select value={userType} onValueChange={(v) => setUserType(v as UserType)}>
+                <Select value={userType} onValueChange={(v) => { setUserType(v as UserType); setRoleId(''); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>{TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{tt(t.label, t.en)}</SelectItem>)}</SelectContent>
                 </Select>
