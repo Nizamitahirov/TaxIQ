@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, AlertTriangle, ScanBarcode } from 'lucide-react';
 import {
@@ -9,6 +9,7 @@ import {
 } from '@/lib/firebase/inventory';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
+import { TableToolbar } from '@/components/shared/table-toolbar';
 import { BarcodeScanner } from '@/components/shared/barcode-scanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,12 +30,25 @@ export function StockTab({ companyId, canCreate, actorUid, baseCurrency }: TabPr
   const qc = useQueryClient();
   const tt = useTT();
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [whFilter, setWhFilter] = useState('');
   const { data: balances, isLoading } = useQuery({ queryKey: ['stockBalances', companyId], queryFn: () => listStockBalances(companyId) });
   const { data: goods } = useQuery({ queryKey: ['goods', companyId], queryFn: () => listGoods(companyId) });
   const { data: warehouses } = useQuery({ queryKey: ['warehouses', companyId], queryFn: () => listWarehouses(companyId) });
 
   const goodName = (id: string) => { const g = goods?.find((x) => x.id === id); return g ? tt(g.name.az, g.name.en) : id; };
   const whName = (id: string) => { const w = warehouses?.find((x) => x.id === id); return w ? tt(w.name.az, w.name.en) : id; };
+
+  const nonZero = useMemo(() => (balances ?? []).filter((b) => b.quantityOnHand !== 0), [balances]);
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return nonZero.filter((b) => {
+      if (whFilter && b.warehouseId !== whFilter) return false;
+      if (q && !goodName(b.goodId).toLowerCase().includes(q)) return false;
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nonZero, search, whFilter, goods, warehouses]);
   const low = goods && balances ? lowStockItems(goods, balances) : [];
   const totalValue = (balances ?? []).reduce((s, b) => s + (b.totalValue ?? 0), 0);
 
@@ -68,14 +82,21 @@ export function StockTab({ companyId, canCreate, actorUid, baseCurrency }: TabPr
         </CardContent></Card>
       )}
 
-      {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (balances ?? []).filter((b) => b.quantityOnHand !== 0).length === 0 ? (
+      {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : nonZero.length === 0 ? (
         <EmptyState title={tt('Anbar qalığı yoxdur', 'No stock')} description={tt('Mal qəbulu (əməliyyat) ilə başlayın.', 'Start with a goods receipt (operation).')} />
       ) : (
+        <>
+        <TableToolbar
+          search={search} onSearch={setSearch} searchPlaceholder={tt('Mal adı…', 'Good name…')}
+          count={visible.length} total={nonZero.length}
+          selects={(warehouses && warehouses.length > 1) ? [{ value: whFilter, onChange: setWhFilter, placeholder: tt('Anbar', 'Warehouse'), options: warehouses.map((w) => ({ value: w.id, label: tt(w.name.az, w.name.en) })) }] : []}
+        />
+        {visible.length === 0 ? <EmptyState title={tt('Nəticə yoxdur', 'No results')} /> : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
             <TableHeader><TableRow><TableHead>{tt('Anbar', 'Warehouse')}</TableHead><TableHead>{tt('Mal', 'Good')}</TableHead><TableHead className="text-right">{tt('Qalıq', 'On hand')}</TableHead><TableHead className="text-right">{tt('Orta qiymət', 'Avg cost')}</TableHead><TableHead className="text-right">{tt('Dəyər', 'Value')}</TableHead></TableRow></TableHeader>
             <TableBody>
-              {(balances ?? []).filter((b) => b.quantityOnHand !== 0).map((b) => (
+              {visible.map((b) => (
                 <TableRow key={b.id}>
                   <TableCell>{whName(b.warehouseId)}</TableCell>
                   <TableCell className="font-medium">{goodName(b.goodId)}</TableCell>
@@ -87,6 +108,8 @@ export function StockTab({ companyId, canCreate, actorUid, baseCurrency }: TabPr
             </TableBody>
           </Table>
         </CardContent></Card>
+        )}
+        </>
       )}
 
       {canCreate && <OperationDialog open={open} onOpenChange={setOpen} companyId={companyId} actorUid={actorUid} baseCurrency={baseCurrency}

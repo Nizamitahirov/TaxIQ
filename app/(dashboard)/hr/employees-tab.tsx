@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Pencil, FileText, FileSignature, UserX, MoreHorizontal } from 'lucide-react';
 import { listEmployees, createEmployee, updateEmployee, terminateEmployee } from '@/lib/firebase/hr';
@@ -8,6 +8,7 @@ import { listDepartments } from '@/lib/firebase/departments';
 import { printLaborContract, printEContractNotification } from '@/lib/hr/documents';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
+import { TableToolbar } from '@/components/shared/table-toolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,8 +43,22 @@ export function EmployeesTab({ companyId, canCreate, actorUid, canViewSalary, ba
   const [edit, setEdit] = useState<Employee | null>(null);
   const [open, setOpen] = useState(false);
   const [term, setTerm] = useState<Employee | null>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [deptFilter, setDeptFilter] = useState('');
   const { data, isLoading } = useQuery({ queryKey: ['employees', companyId], queryFn: () => listEmployees(companyId) });
+  const { data: departments } = useQuery({ queryKey: ['departments', companyId], queryFn: () => listDepartments(companyId) });
   const refresh = () => qc.invalidateQueries({ queryKey: ['employees', companyId] });
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (data ?? []).filter((e) => {
+      if (statusFilter && e.status !== statusFilter) return false;
+      if (deptFilter && (e.departmentId ?? '') !== deptFilter) return false;
+      if (q && !(`${e.firstName} ${e.lastName} ${e.employeeCode ?? ''} ${e.position ?? ''}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [data, search, statusFilter, deptFilter]);
 
   const salary = (e: Employee) => canViewSalary ? formatCurrency(e.baseSalary, e.currency ?? baseCurrency) : '•••••';
   const co = company ?? ({ name: 'Şirkət', baseCurrency } as Company);
@@ -65,11 +80,21 @@ export function EmployeesTab({ companyId, canCreate, actorUid, canViewSalary, ba
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (data ?? []).length === 0 ? (
         <EmptyState title={tt('İşçi yoxdur', 'No employees')} />
       ) : (
+        <>
+        <TableToolbar
+          search={search} onSearch={setSearch} searchPlaceholder={tt('Ad, kod və ya vəzifə…', 'Name, code or position…')}
+          count={filtered.length} total={(data ?? []).length}
+          selects={[
+            { value: statusFilter, onChange: setStatusFilter, placeholder: 'Status', options: [{ value: 'active', label: tt('Aktiv', 'Active') }, { value: 'on_leave', label: tt('Məzuniyyətdə', 'On leave') }, { value: 'terminated', label: tt('İşdən çıxıb', 'Terminated') }] },
+            ...(departments && departments.length > 0 ? [{ value: deptFilter, onChange: setDeptFilter, placeholder: tt('Şöbə', 'Department'), options: departments.map((d) => ({ value: d.id, label: tt(d.name.az, d.name.en) })) }] : []),
+          ]}
+        />
+        {filtered.length === 0 ? <EmptyState title={tt('Nəticə yoxdur', 'No results')} /> : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
             <TableHeader><TableRow><TableHead>{tt('Kod', 'Code')}</TableHead><TableHead>{tt('Ad', 'Name')}</TableHead><TableHead>{tt('Vəzifə', 'Position')}</TableHead><TableHead>{tt('İş növü', 'Employment type')}</TableHead><TableHead className="text-right">{tt('Əmək haqqı', 'Salary')}</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
-              {(data ?? []).map((e) => (
+              {filtered.map((e) => (
                 <TableRow key={e.id}>
                   <TableCell className="font-mono text-sm">{e.employeeCode}</TableCell>
                   <TableCell className="font-medium">{e.firstName} {e.lastName}{!e.laborContractNotified && !e.laborContractNotification?.submittedToEGov && <Badge variant="warning" className="ml-2">{tt('e-müqavilə bildirişi yox', 'no e-contract notice')}</Badge>}</TableCell>
@@ -93,6 +118,8 @@ export function EmployeesTab({ companyId, canCreate, actorUid, canViewSalary, ba
             </TableBody>
           </Table>
         </CardContent></Card>
+        )}
+        </>
       )}
       {canCreate && <EmployeeDialog open={open} onOpenChange={setOpen} companyId={companyId} actorUid={actorUid} edit={edit} baseCurrency={baseCurrency} onSaved={refresh} />}
       {term && <TerminateDialog emp={term} actorUid={actorUid} onClose={() => setTerm(null)} onDone={refresh} />}

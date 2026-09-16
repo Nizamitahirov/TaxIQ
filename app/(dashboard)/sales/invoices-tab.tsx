@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Send, Ban, Printer, FileText, FileCode2, Receipt, Zap, Eye } from 'lucide-react';
 import {
@@ -12,6 +12,7 @@ import { printWithTemplate, renderTemplateDocument, buildInvoiceContext } from '
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
 import { DocumentViewer } from '@/components/shared/document-viewer';
+import { TableToolbar } from '@/components/shared/table-toolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,7 +50,18 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
   const [stsFor, setStsFor] = useState<Invoice | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [viewer, setViewer] = useState<{ html: string; number: string } | null>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const { data, isLoading } = useQuery({ queryKey: ['invoices', companyId], queryFn: () => listInvoices(companyId) });
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (data ?? []).filter((inv) => {
+      if (statusFilter && inv.status !== statusFilter) return false;
+      if (q && !(`${inv.invoiceNumber} ${inv.customerName ?? ''}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [data, search, statusFilter]);
   const { data: customers } = useQuery({ queryKey: ['customers', companyId], queryFn: () => listCustomers(companyId) });
   const { data: templates } = useQuery({ queryKey: ['documentTemplates', companyId], queryFn: () => listDocumentTemplates(companyId) });
 
@@ -120,6 +132,13 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (data ?? []).length === 0 ? (
         <EmptyState title={tt('Faktura yoxdur', 'No invoices')} />
       ) : (
+        <>
+        <TableToolbar
+          search={search} onSearch={setSearch} searchPlaceholder={tt('Nömrə və ya müştəri…', 'Number or customer…')}
+          count={filtered.length} total={(data ?? []).length}
+          selects={[{ value: statusFilter, onChange: setStatusFilter, placeholder: 'Status', options: (Object.keys(STATUS) as InvoiceStatus[]).map((s) => ({ value: s, label: tt(STATUS[s].label, STATUS[s].en) })) }]}
+        />
+        {filtered.length === 0 ? <EmptyState title={tt('Nəticə yoxdur', 'No results')} /> : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
             <TableHeader><TableRow>
@@ -128,7 +147,7 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
               <TableHead>Status</TableHead><TableHead></TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {(data ?? []).map((inv) => (
+              {filtered.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-mono text-sm font-medium">{inv.invoiceNumber}</TableCell>
                   <TableCell>{inv.customerName}</TableCell>
@@ -163,6 +182,8 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
             </TableBody>
           </Table>
         </CardContent></Card>
+        )}
+        </>
       )}
 
       {canCreate && <NewInvoiceDialog open={open} onOpenChange={setOpen} companyId={companyId} actorUid={actorUid} baseCurrency={baseCurrency}

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Pencil } from 'lucide-react';
 import { listCustomers, createCustomer, updateCustomer } from '@/lib/firebase/sales';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
+import { TableToolbar } from '@/components/shared/table-toolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,7 +26,21 @@ export function CustomersTab({ companyId, canCreate, actorUid, baseCurrency }: {
   const tt = useTT();
   const [edit, setEdit] = useState<Customer | null>(null);
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const { data, isLoading } = useQuery({ queryKey: ['customers', companyId], queryFn: () => listCustomers(companyId) });
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (data ?? []).filter((c) => {
+      if (typeFilter && c.type !== typeFilter) return false;
+      if (statusFilter === 'active' && !c.isActive) return false;
+      if (statusFilter === 'inactive' && c.isActive) return false;
+      if (q && !(`${c.name} ${c.taxId ?? ''}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [data, search, typeFilter, statusFilter]);
 
   function openNew() { setEdit(null); setOpen(true); }
   function openEdit(c: Customer) { setEdit(c); setOpen(true); }
@@ -44,11 +59,21 @@ export function CustomersTab({ companyId, canCreate, actorUid, baseCurrency }: {
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (data ?? []).length === 0 ? (
         <EmptyState title={tt('Müştəri yoxdur', 'No customers')} />
       ) : (
+        <>
+        <TableToolbar
+          search={search} onSearch={setSearch} searchPlaceholder={tt('Ad və ya VÖEN…', 'Name or Tax ID…')}
+          count={filtered.length} total={(data ?? []).length}
+          selects={[
+            { value: typeFilter, onChange: setTypeFilter, placeholder: tt('Tip', 'Type'), options: [{ value: 'legal_entity', label: tt('Hüquqi şəxs', 'Legal entity') }, { value: 'individual', label: tt('Fərdi', 'Individual') }] },
+            { value: statusFilter, onChange: setStatusFilter, placeholder: 'Status', options: [{ value: 'active', label: tt('Aktiv', 'Active') }, { value: 'inactive', label: tt('Deaktiv', 'Inactive') }] },
+          ]}
+        />
+        {filtered.length === 0 ? <EmptyState title={tt('Nəticə yoxdur', 'No results')} /> : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
             <TableHeader><TableRow><TableHead>{tt('Ad', 'Name')}</TableHead><TableHead>VÖEN</TableHead><TableHead>{tt('Tip', 'Type')}</TableHead><TableHead>{tt('Ödəniş müddəti', 'Payment term')}</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
-              {(data ?? []).map((c) => (
+              {filtered.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}{c.isRelatedParty && <Badge variant="secondary" className="ml-2">{tt('əlaqəli', 'related')}</Badge>}</TableCell>
                   <TableCell className="text-muted-foreground">{c.taxId ?? '—'}</TableCell>
@@ -61,6 +86,8 @@ export function CustomersTab({ companyId, canCreate, actorUid, baseCurrency }: {
             </TableBody>
           </Table>
         </CardContent></Card>
+        )}
+        </>
       )}
       <CustomerDialog open={open} onOpenChange={setOpen} companyId={companyId} actorUid={actorUid} baseCurrency={baseCurrency} edit={edit}
         onSaved={() => qc.invalidateQueries({ queryKey: ['customers', companyId] })} />

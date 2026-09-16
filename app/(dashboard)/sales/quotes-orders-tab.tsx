@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, ArrowRight, FileText } from 'lucide-react';
 import {
@@ -8,6 +8,7 @@ import {
 } from '@/lib/firebase/sales';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
+import { TableToolbar } from '@/components/shared/table-toolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,9 +40,14 @@ export function QuotesOrdersTab({ companyId, canCreate, actorUid, baseCurrency }
   const st = (s: string) => tt(STATUS_AZ[s] ?? s, STATUS_EN[s] ?? s);
   const [open, setOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const { data: quotes, isLoading: lq } = useQuery({ queryKey: ['quotes', companyId], queryFn: () => listQuotes(companyId) });
   const { data: orders, isLoading: lo } = useQuery({ queryKey: ['orders', companyId], queryFn: () => listOrders(companyId) });
   const { data: customers } = useQuery({ queryKey: ['customers', companyId], queryFn: () => listCustomers(companyId) });
+
+  const q = search.trim().toLowerCase();
+  const fQuotes = useMemo(() => (quotes ?? []).filter((x) => !q || `${x.quoteNumber} ${x.customerName ?? ''}`.toLowerCase().includes(q)), [quotes, q]);
+  const fOrders = useMemo(() => (orders ?? []).filter((x) => !q || `${x.orderNumber} ${x.customerName ?? ''}`.toLowerCase().includes(q)), [orders, q]);
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: ['quotes', companyId] });
@@ -68,6 +74,9 @@ export function QuotesOrdersTab({ companyId, canCreate, actorUid, baseCurrency }
 
   return (
     <div className="space-y-6">
+      {((quotes ?? []).length > 0 || (orders ?? []).length > 0) && (
+        <TableToolbar search={search} onSearch={setSearch} searchPlaceholder={tt('Nömrə və ya müştəri…', 'Number or customer…')} />
+      )}
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h3 className="font-semibold">{tt('Kommersiya təklifləri', 'Sales quotes')}</h3>
@@ -79,12 +88,12 @@ export function QuotesOrdersTab({ companyId, canCreate, actorUid, baseCurrency }
             {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!customers || customers.length === 0}><Plus className="h-4 w-4" /> {tt('Yeni təklif', 'New quote')}</Button>}
           </div>
         </div>
-        {lq ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (quotes ?? []).length === 0 ? <EmptyState title={tt('Təklif yoxdur', 'No quotes')} /> : (
+        {lq ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (quotes ?? []).length === 0 ? <EmptyState title={tt('Təklif yoxdur', 'No quotes')} /> : fQuotes.length === 0 ? <EmptyState title={tt('Nəticə yoxdur', 'No results')} /> : (
           <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
             <Table>
               <TableHeader><TableRow><TableHead>{tt('Nömrə', 'Number')}</TableHead><TableHead>{tt('Müştəri', 'Customer')}</TableHead><TableHead className="text-right">{tt('Yekun', 'Total')}</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
-                {(quotes ?? []).map((q) => (
+                {fQuotes.map((q) => (
                   <TableRow key={q.id}>
                     <TableCell className="font-mono text-sm">{q.quoteNumber}</TableCell>
                     <TableCell>{q.customerName}</TableCell>
@@ -107,12 +116,12 @@ export function QuotesOrdersTab({ companyId, canCreate, actorUid, baseCurrency }
             { header: tt('Yekun', 'Total'), value: 'grandTotal' }, { header: tt('Valyuta', 'Currency'), value: 'currency' }, { header: 'Status', value: 'status' },
           ]} />
         </div>
-        {lo ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (orders ?? []).length === 0 ? <EmptyState title={tt('Sifariş yoxdur', 'No orders')} /> : (
+        {lo ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (orders ?? []).length === 0 ? <EmptyState title={tt('Sifariş yoxdur', 'No orders')} /> : fOrders.length === 0 ? <EmptyState title={tt('Nəticə yoxdur', 'No results')} /> : (
           <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
             <Table>
               <TableHeader><TableRow><TableHead>{tt('Nömrə', 'Number')}</TableHead><TableHead>{tt('Müştəri', 'Customer')}</TableHead><TableHead className="text-right">{tt('Yekun', 'Total')}</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
               <TableBody>
-                {(orders ?? []).map((o) => (
+                {fOrders.map((o) => (
                   <TableRow key={o.id}>
                     <TableCell className="font-mono text-sm">{o.orderNumber}</TableCell>
                     <TableCell>{o.customerName}</TableCell>
