@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Trash2, Building2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Building2, SlidersHorizontal } from 'lucide-react';
 import { assignUserToCompany, revokeAccess } from '@/lib/firebase/user-admin';
+import { AccessOverridesDialog } from './access-overrides-dialog';
 import { listAccessForUser } from '@/lib/firebase/users';
 import { listCompanies } from '@/lib/firebase/companies';
 import { listRolesForCompany } from '@/lib/firebase/roles';
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
 import { useTT } from '@/lib/i18n/tt';
-import type { AppUser } from '@/types';
+import type { AppUser, UserCompanyAccess } from '@/types';
 
 export function UserAccessDialog({ user, onOpenChange, actorUid }: {
   user: AppUser | null; onOpenChange: (o: boolean) => void; actorUid: string;
@@ -29,6 +30,7 @@ export function UserAccessDialog({ user, onOpenChange, actorUid }: {
   const [companyId, setCompanyId] = useState('');
   const [roleId, setRoleId] = useState('');
   const [busy, setBusy] = useState(false);
+  const [overridesFor, setOverridesFor] = useState<UserCompanyAccess | null>(null);
 
   const open = !!user;
   const { data: access } = useQuery({
@@ -88,6 +90,10 @@ export function UserAccessDialog({ user, onOpenChange, actorUid }: {
                 <span className="flex items-center gap-2 text-sm"><Building2 className="h-4 w-4 text-primary" /> {companyName(a.companyId)}</span>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{sysRole ? tt(sysRole.name.az, sysRole.name.en) : a.roleId}</Badge>
+                  {((a.customPermissionOverrides?.add?.length ?? 0) + (a.customPermissionOverrides?.remove?.length ?? 0)) > 0 && (
+                    <Badge variant="outline" title={tt('Fərdi icazə düzəlişləri', 'Custom permission overrides')}>±{(a.customPermissionOverrides?.add?.length ?? 0) + (a.customPermissionOverrides?.remove?.length ?? 0)}</Badge>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-7 w-7" disabled={busy} title={tt('Rol və icazələr', 'Role & permissions')} onClick={() => setOverridesFor(a)}><SlidersHorizontal className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-danger" disabled={busy} onClick={() => remove(a.id, a.companyId)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
@@ -112,6 +118,15 @@ export function UserAccessDialog({ user, onOpenChange, actorUid }: {
             </Button>
           </div>
         </div>
+        {overridesFor && (
+          <AccessOverridesDialog
+            access={overridesFor}
+            companyName={companyName(overridesFor.companyId)}
+            actorUid={actorUid}
+            onClose={() => setOverridesFor(null)}
+            onSaved={refresh}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

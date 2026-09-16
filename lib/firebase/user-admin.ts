@@ -3,9 +3,9 @@ import {
   addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { getDb, getSecondaryAuth } from './config';
-import { normalizeLogin } from './auth';
+import { normalizeLogin, sendPasswordReset } from './auth';
 import { logAudit } from './audit';
-import type { AppUser, UserType } from '@/types';
+import type { AppUser, UserStatus, UserType } from '@/types';
 
 /** Müvəqqəti parol generasiyası — 01 §3.3 (min 10 simvol, qarışıq) */
 export function generateTempPassword(length = 12): string {
@@ -101,6 +101,76 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
     try { await auth.signOut(); } catch { /* ignore */ }
     await cleanup();
   }
+}
+
+/** İstifadəçi profilini yenilə (ad, telefon, tip) — 01 §3.4. */
+export async function updateUserAdmin(params: {
+  userId: string;
+  patch: { displayName?: string; phone?: string | null; userType?: UserType };
+  actorUid: string;
+}): Promise<void> {
+  await updateDoc(doc(getDb(), 'users', params.userId), {
+    ...params.patch,
+    updatedAt: serverTimestamp(),
+  });
+  await logAudit({
+    companyId: null, userId: params.actorUid, action: 'USER_UPDATED',
+    entityType: 'user', entityId: params.userId, after: params.patch as Record<string, unknown>,
+  });
+}
+
+/** İstifadəçi statusunu dəyiş (active/disabled/invited) — 01 §3.4. */
+export async function setUserStatus(params: {
+  userId: string; status: UserStatus; actorUid: string;
+}): Promise<void> {
+  await updateDoc(doc(getDb(), 'users', params.userId), {
+    status: params.status, updatedAt: serverTimestamp(),
+  });
+  await logAudit({
+    companyId: null, userId: params.actorUid,
+    action: params.status === 'disabled' ? 'USER_DISABLED' : 'USER_STATUS_CHANGED',
+    entityType: 'user', entityId: params.userId, after: { status: params.status },
+  });
+}
+
+/** Növbəti girişdə parol dəyişməyi məcbur et — 01 §3.3. */
+export async function requirePasswordChange(userId: string, actorUid: string): Promise<void> {
+  await updateDoc(doc(getDb(), 'users', userId), {
+    mustChangePassword: true, updatedAt: serverTimestamp(),
+  });
+  await logAudit({
+    companyId: null, userId: actorUid, action: 'USER_PASSWORD_CHANGE_REQUIRED',
+    entityType: 'user', entityId: userId,
+  });
+}
+
+/** İstifadəçiyə parol sıfırlama e-poçtu göndər (Firebase Auth) — 01 §3.3. */
+export async function sendUserPasswordReset(email: string, userId: string, actorUid: string): Promise<void> {
+  await sendPasswordReset(email);
+  await logAudit({
+    companyId: null, userId: actorUid, action: 'USER_PASSWORD_RESET_SENT',
+    entityType: 'user', entityId: userId, after: { email },
+  });
+}
+
+/** Mövcud şirkət təyinatını yenilə (rol + icazə override + şöbə əhatəsi) — 01 §2.5. */
+export async function updateAccessAssignment(params: {
+  accessId: string; userId: string; companyId: string;
+  roleId?: string;
+  customPermissionOverrides?: { add: string[]; remove: string[] };
+  departmentScope?: string[] | null;
+  actorUid: string;
+}): Promise<void> {
+  const patch: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  if (params.roleId !== undefined) patch.roleId = params.roleId;
+  if (params.customPermissionOverrides !== undefined) patch.customPermissionOverrides = params.customPermissionOverrides;
+  if (params.departmentScope !== undefined) patch.departmentScope = params.departmentScope;
+  await updateDoc(doc(getDb(), 'userCompanyAccess', params.accessId), patch);
+  await logAudit({
+    companyId: params.companyId, userId: params.actorUid, action: 'USER_ACCESS_UPDATED',
+    entityType: 'userCompanyAccess', entityId: params.accessId,
+    after: { roleId: params.roleId, overrides: params.customPermissionOverrides },
+  });
 }
 
 /** Staff-ı şirkətə təyin et (rol ilə) — 01 §2.5. accessibleCompanyIds sinxronlaşır. */
