@@ -40,12 +40,27 @@ export function buildInvoiceContext(inv: Invoice, company: Company, customer: Cu
   };
 }
 
+/**
+ * Şablonu render edib tam HTML sənədinə çevirir (çap/önizləmə üçün).
+ * `autoPrint` true olduqda yükləndikdən sonra window.print() çağırılır.
+ */
+export function renderTemplateDocument(html: string, ctx: Ctx, opts: { autoPrint?: boolean } = {}): string {
+  const rendered = renderTemplate(html, ctx);
+  const printScript = opts.autoPrint ? '<script>window.onload=function(){window.print()}</script>' : '';
+  if (rendered.includes('<html')) {
+    return opts.autoPrint && !rendered.includes('window.print')
+      ? rendered.replace('</body>', `${printScript}</body>`)
+      : rendered;
+  }
+  return `<!doctype html><html lang="az"><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');body{font-family:Montserrat,Arial,sans-serif;padding:32px;color:#0f1129}table{width:100%;border-collapse:collapse}td,th{border:1px solid #e7e9f2;padding:6px 8px;text-align:left}</style></head><body>${rendered}${printScript}</body></html>`;
+}
+
 /** Şablonu render edib yeni pəncərədə çap edir */
 export function printWithTemplate(html: string, ctx: Ctx): void {
-  const rendered = renderTemplate(html, ctx);
+  const doc = renderTemplateDocument(html, ctx, { autoPrint: true });
   const w = window.open('', '_blank');
   if (!w) return;
-  w.document.write(rendered.includes('<html') ? rendered : `<!doctype html><html lang="az"><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');body{font-family:Montserrat,Arial,sans-serif;padding:32px;color:#0f1129}table{width:100%;border-collapse:collapse}td,th{border:1px solid #e7e9f2;padding:6px 8px;text-align:left}</style></head><body>${rendered}<script>window.onload=function(){window.print()}</script></body></html>`);
+  w.document.write(doc);
   w.document.close();
 }
 

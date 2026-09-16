@@ -4,11 +4,10 @@ const fmt = (n: number, cur: string) => new Intl.NumberFormat('az-AZ', { minimum
 const esc = (s: string) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] ?? c));
 
 /**
- * Sadə WYSIWYG faktura çapı (client-side window.print).
- * Qeyd: tam GrapesJS Sənəd Dizayneri + Puppeteer PDF (06 §6) Cloud Function tələb edir
- * və gələcək faza kimi qeyd olunub; bu, funksional çap alternatividir.
+ * Faktura üçün tam HTML sənədi qurur (çap/önizləmə üçün).
+ * `autoPrint` true olduqda yükləndikdən sonra avtomatik window.print() çağırır.
  */
-export function printInvoice(inv: Invoice, company: Company) {
+export function buildInvoiceHtml(inv: Invoice, company: Company, opts: { autoPrint?: boolean } = {}): string {
   const brand = company.brandColor || '#5B5BF5';
   const rows = inv.lineItems.map((l, i) => `
     <tr>
@@ -59,9 +58,19 @@ export function printInvoice(inv: Invoice, company: Company) {
       <div class="grand"><span>YEKUN:</span><span>${fmt(inv.grandTotal, inv.currency)}</span></div>
     </div>
     <div class="sign"><div>İmza (Satıcı)</div><div>İmza (Alıcı)</div></div>
-    <script>window.onload=function(){window.print()}</script>
+    ${opts.autoPrint ? '<script>window.onload=function(){window.print()}</script>' : ''}
   </body></html>`;
 
+  return html;
+}
+
+/**
+ * Sadə WYSIWYG faktura çapı (client-side window.print).
+ * Qeyd: tam GrapesJS Sənəd Dizayneri + Puppeteer PDF (06 §6) Cloud Function tələb edir
+ * və gələcək faza kimi qeyd olunub; bu, funksional çap alternatividir.
+ */
+export function printInvoice(inv: Invoice, company: Company) {
+  const html = buildInvoiceHtml(inv, company, { autoPrint: true });
   const w = window.open('', '_blank');
   if (!w) return;
   w.document.write(html);

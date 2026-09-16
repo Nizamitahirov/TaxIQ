@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Send, Ban, Printer, FileText, FileCode2, Receipt, Zap } from 'lucide-react';
+import { Loader2, Plus, Send, Ban, Printer, FileText, FileCode2, Receipt, Zap, Eye } from 'lucide-react';
 import {
   listInvoices, listCustomers, createInvoice, postInvoice, cancelInvoice,
   listDocumentTemplates, markEInvoiceSubmitted, refreshOverdue, getCustomer,
 } from '@/lib/firebase/sales';
 import { downloadEInvoiceXml } from '@/lib/sales/einvoice';
-import { printWithTemplate, buildInvoiceContext } from '@/lib/sales/document-template';
+import { printWithTemplate, renderTemplateDocument, buildInvoiceContext } from '@/lib/sales/document-template';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
+import { DocumentViewer } from '@/components/shared/document-viewer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +27,7 @@ import { toast } from '@/components/ui/toast';
 import { useTT } from '@/lib/i18n/tt';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { LineItemsEditor, emptyLine, type DraftLine } from './line-items-editor';
-import { printInvoice } from './print-invoice';
+import { printInvoice, buildInvoiceHtml } from './print-invoice';
 import type { Company, Invoice, InvoiceStatus, Customer } from '@/types';
 
 const STATUS: Record<InvoiceStatus, { label: string; en: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }> = {
@@ -47,6 +48,7 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
   const [posOpen, setPosOpen] = useState(false);
   const [stsFor, setStsFor] = useState<Invoice | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ html: string; number: string } | null>(null);
   const { data, isLoading } = useQuery({ queryKey: ['invoices', companyId], queryFn: () => listInvoices(companyId) });
   const { data: customers } = useQuery({ queryKey: ['customers', companyId], queryFn: () => listCustomers(companyId) });
   const { data: templates } = useQuery({ queryKey: ['documentTemplates', companyId], queryFn: () => listDocumentTemplates(companyId) });
@@ -62,11 +64,21 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
   }
 
   const defaultTemplate = (templates ?? []).find((t) => t.type === 'invoice' && t.isDefault);
+  function invoiceHtml(inv: Invoice): string {
+    if (defaultTemplate) {
+      const customer = customers?.find((c) => c.id === inv.customerId) ?? null;
+      return renderTemplateDocument(defaultTemplate.htmlContent, buildInvoiceContext(inv, company, customer as Customer | null));
+    }
+    return buildInvoiceHtml(inv, company);
+  }
   async function print(inv: Invoice) {
     if (defaultTemplate) {
       const customer = customers?.find((c) => c.id === inv.customerId) ?? null;
       printWithTemplate(defaultTemplate.htmlContent, buildInvoiceContext(inv, company, customer as Customer | null));
     } else { printInvoice(inv, company); }
+  }
+  function view(inv: Invoice) {
+    setViewer({ html: invoiceHtml(inv), number: inv.invoiceNumber });
   }
   async function eInvoice(inv: Invoice) {
     const customer = customers?.find((c) => c.id === inv.customerId) ?? (await getCustomer(inv.customerId));
@@ -129,6 +141,7 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Bax', 'View')} onClick={() => view(inv)}><Eye className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Çap', 'Print')} onClick={() => print(inv)}><Printer className="h-4 w-4" /></Button>
                       {canCreate && inv.status === 'draft' && (
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title={tt('Rəsmiləşdir', 'Post')} disabled={busyId === inv.id} onClick={() => post(inv)}>
@@ -157,6 +170,13 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
       {canCreate && posOpen && <QuickSaleDialog companyId={companyId} actorUid={actorUid} baseCurrency={baseCurrency} company={company}
         customers={customers ?? []} onClose={() => setPosOpen(false)} onSaved={invalidate} onPrint={print} />}
       {stsFor && <StsDialog invoice={stsFor} actorUid={actorUid} onClose={() => setStsFor(null)} onSaved={invalidate} />}
+      <DocumentViewer
+        open={!!viewer}
+        onOpenChange={(o) => !o && setViewer(null)}
+        html={viewer?.html ?? null}
+        title={tt('Faktura', 'Invoice')}
+        subtitle={viewer?.number}
+      />
     </div>
   );
 }
