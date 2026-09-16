@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Building2, UserCog, ShieldCheck, ScrollText,
   Warehouse, Store, Wallet, BookOpen, BarChart3, Users2, Workflow,
-  FileSpreadsheet, Settings, Layers, HardHat, ListChecks, type LucideIcon,
+  FileSpreadsheet, Settings, Layers, HardHat, ListChecks, Target, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
@@ -46,6 +46,7 @@ export const NAV_GROUPS: NavGroup[] = [
     labelKey: 'operations',
     items: [
       { href: '/warehouse', labelKey: 'warehouse', icon: Warehouse, module: 'warehouse', area: 'tax' },
+      { href: '/crm', labelKey: 'crm', icon: Target, module: 'crm', area: 'tax' },
       { href: '/sales', labelKey: 'sales', icon: Store, module: 'sales', area: 'tax' },
       { href: '/cashbank', labelKey: 'cashbank', icon: Wallet, module: 'cashbank', area: 'tax' },
     ],

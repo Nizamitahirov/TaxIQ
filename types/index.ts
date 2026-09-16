@@ -57,7 +57,7 @@ export type Sector =
 
 /** Modul açarları (modulesEnabled üçün) — 02 §2.2 */
 export type CompanyModule =
-  | 'workflow' | 'warehouse' | 'sales' | 'cashbank' | 'accounting' | 'ifrs' | 'hr' | 'payroll';
+  | 'workflow' | 'warehouse' | 'sales' | 'crm' | 'cashbank' | 'accounting' | 'ifrs' | 'hr' | 'payroll';
 
 export interface CompanySettings {
   theme: 'light' | 'dark' | 'system';
@@ -1318,4 +1318,131 @@ export interface ActiveMembership {
   roleName: string;
   /** effektiv permission ID dəsti (rol + override) */
   permissions: Set<string>;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CRM — Müştəri Münasibətlərinin İdarəedilməsi (Modul 13)
+//  Lead → Opportunity → Quote → Customer; kontaktlar, kampaniyalar,
+//  aktivlik tarixçəsi. Satış, Tapşırıq və İş axını modulları ilə bağlı.
+// ─────────────────────────────────────────────────────────────
+export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'unqualified' | 'converted' | 'lost';
+export type OpportunityStage = 'qualification' | 'needs_analysis' | 'proposal' | 'negotiation' | 'won' | 'lost';
+export type LeadSource = 'website' | 'referral' | 'cold_call' | 'campaign' | 'social' | 'event' | 'partner' | 'inbound' | 'other';
+export type CrmActivityType = 'note' | 'call' | 'email' | 'meeting' | 'whatsapp' | 'task' | 'stage_change' | 'status_change';
+export type CrmEntityType = 'lead' | 'opportunity' | 'contact' | 'customer';
+
+/** crmContacts/{id} — şəxs (lead və ya müştəri ilə əlaqəli) */
+export interface CrmContact {
+  id: string;
+  companyId: string;
+  firstName: string;
+  lastName?: string | null;
+  position?: string | null;
+  organization?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  whatsapp?: string | null;
+  customerId?: string | null;   // mövcud müştəri ilə bağ (Satış modulu)
+  leadId?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  isPrimary?: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+/** crmLeads/{id} — potensial müştəri (hələ ixtisaslaşdırılmayıb) */
+export interface Lead {
+  id: string;
+  companyId: string;
+  leadNumber: string;           // L-0001
+  name: string;                 // təşkilat və ya şəxs adı
+  contactName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  source: LeadSource;
+  status: LeadStatus;
+  industry?: string | null;
+  estimatedValue?: number | null;
+  currency?: string;
+  ownerUid?: string | null;
+  ownerName?: string | null;
+  campaignId?: string | null;
+  score?: number;               // 0–100 lead qiymətləndirmə
+  nextFollowUp?: string | null; // növbəti təmas tarixi
+  notes?: string | null;
+  convertedToCustomerId?: string | null;
+  convertedToOpportunityId?: string | null;
+  lostReason?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+/** crmOpportunities/{id} — ixtisaslaşdırılmış satış imkanı (pipeline) */
+export interface Opportunity {
+  id: string;
+  companyId: string;
+  opportunityNumber: string;    // O-0001
+  title: string;
+  customerId?: string | null;
+  customerName?: string | null;
+  leadId?: string | null;
+  contactId?: string | null;
+  stage: OpportunityStage;
+  amount: number;
+  currency: string;
+  probability: number;          // 0–100 (mərhələyə görə avtomatik və ya əl ilə)
+  expectedCloseDate?: string | null;
+  source?: LeadSource | null;
+  ownerUid?: string | null;
+  ownerName?: string | null;
+  campaignId?: string | null;
+  competitors?: string | null;
+  nextStep?: string | null;
+  wonQuoteId?: string | null;   // Satış modulunda yaradılan təklif
+  closedAt?: TS;
+  closeReason?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+/** crmCampaigns/{id} — marketinq kampaniyası */
+export interface Campaign {
+  id: string;
+  companyId: string;
+  name: string;
+  channel: 'email' | 'social' | 'event' | 'ads' | 'referral' | 'other';
+  status: 'planned' | 'active' | 'completed' | 'cancelled';
+  startDate?: string | null;
+  endDate?: string | null;
+  budget?: number | null;
+  currency?: string;
+  target?: string | null;
+  notes?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+/** crmActivities/{id} — aktivlik/qeyd (polimorfik bağ) */
+export interface CrmActivity {
+  id: string;
+  companyId: string;
+  type: CrmActivityType;
+  entityType: CrmEntityType;
+  entityId: string;
+  entityLabel?: string | null;
+  subject?: string | null;
+  body?: string | null;
+  outcome?: string | null;
+  dueDate?: string | null;
+  done?: boolean;
+  ownerUid?: string | null;
+  ownerName?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+  createdByName?: string | null;
 }

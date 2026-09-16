@@ -4,7 +4,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { NAV_GROUPS, type NavItem } from '@/lib/nav';
 import type { CompanyModule } from '@/types';
 
-const TOGGLEABLE = new Set<string>(['workflow', 'warehouse', 'sales', 'cashbank', 'accounting', 'ifrs', 'hr', 'payroll']);
+const TOGGLEABLE = new Set<string>(['workflow', 'warehouse', 'sales', 'crm', 'cashbank', 'accounting', 'ifrs', 'hr', 'payroll']);
 
 /** İcazə + aktiv modul filtrindən keçən bütün nav elementləri (shell komponentləri üçün ortaq) */
 export function usePermittedNavItems(): NavItem[] {
