@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Save, Building2, Coins, Receipt, User, LayoutGrid } from 'lucide-react';
+import { Loader2, Save, Building2, Coins, Receipt, User, LayoutGrid, ImageUp, Trash2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { loadCardStyle, saveCardStyle, type CardStyle } from '@/lib/dashboard/card-style';
 import { listDocs } from '@/lib/firebase/firestore';
 import { getActiveTaxConfig, saveTaxConfig } from '@/lib/firebase/hr';
+import { updateCompany } from '@/lib/firebase/companies';
+import { uploadFile } from '@/lib/firebase/storage';
+import { logAudit } from '@/lib/firebase/audit';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -43,21 +46,88 @@ export default function SettingsPage() {
 }
 
 function CompanyTab() {
-  const { active, isSuperAdmin } = useAuth();
+  const { active, isSuperAdmin, can, profile, refresh } = useAuth();
   const tt = useTT();
+  const canEdit = isSuperAdmin || can('platform.company.settings.edit');
+  const company = active?.company;
+  const [director, setDirector] = useState(company?.directorName ?? '');
+  const [logoUrl, setLogoUrl] = useState(company?.logoUrl ?? '');
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // active şirkət dəyişəndə formu sinxronlaşdır
+  const [key, setKey] = useState('');
+  const k = company?.id ?? '';
+  if (k !== key && company) { setKey(k); setDirector(company.directorName ?? ''); setLogoUrl(company.logoUrl ?? ''); }
+
+  async function onLogo(file?: File) {
+    if (!file || !company) return;
+    if (!/^image\//.test(file.type)) { toast.error(tt('Şəkil faylı seçin', 'Select an image file')); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error(tt('Maksimum 2 MB', 'Max 2 MB')); return; }
+    setUploading(true);
+    try { const up = await uploadFile(company.id, 'logo', file); setLogoUrl(up.url); toast.success(tt('Logo yükləndi — yadda saxlayın', 'Logo uploaded — save to apply')); }
+    catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
+    finally { setUploading(false); }
+  }
+
+  async function save() {
+    if (!company) return;
+    setBusy(true);
+    try {
+      await updateCompany(company.id, { directorName: director.trim(), logoUrl: logoUrl || null } as Record<string, unknown>);
+      await logAudit({ companyId: company.id, userId: profile?.uid ?? '', action: 'COMPANY_UPDATED', entityType: 'company', entityId: company.id, after: { directorName: director.trim(), logo: !!logoUrl } });
+      await refresh();
+      toast.success(tt('Yadda saxlanıldı', 'Saved'));
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
+    finally { setBusy(false); }
+  }
+
   return (
     <Card className="rounded-card"><CardContent className="p-6">
       <div className="flex items-center gap-3">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary"><Building2 className="h-6 w-6" /></span>
-        <div><p className="font-semibold">{active?.company.name}</p><p className="text-sm text-muted-foreground">{active?.company.legalName} {active?.company.taxId ? `· VÖEN ${active.company.taxId}` : ''}</p></div>
+        <div><p className="font-semibold">{company?.name}</p><p className="text-sm text-muted-foreground">{company?.legalName} {company?.taxId ? `· VÖEN ${company.taxId}` : ''}</p></div>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
-        <Info label={tt('Sektor', 'Sector')} value={active?.company.sector ?? '—'} />
-        <Info label={tt('Əsas valyuta', 'Base currency')} value={active?.company.baseCurrency ?? '—'} />
-        <Info label="Status" value={active?.company.status ?? '—'} />
+        <Info label={tt('Sektor', 'Sector')} value={company?.sector ?? '—'} />
+        <Info label={tt('Əsas valyuta', 'Base currency')} value={company?.baseCurrency ?? '—'} />
+        <Info label="Status" value={company?.status ?? '—'} />
       </div>
-      {isSuperAdmin && active && (
-        <Link href={`/companies/${active.companyId}`} className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">{tt('Şirkət profilini idarə et →', 'Manage company profile →')}</Link>
+
+      {/* Faktura üçün logo + direktor (redaktə oluna bilir) — 06 §4 */}
+      <div className="mt-6 grid gap-5 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>{tt('Şirkət loqosu (faktura üçün)', 'Company logo (for invoices)')}</Label>
+          <div className="flex items-center gap-3">
+            <div className="flex h-16 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-secondary/40">
+              {logoUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={logoUrl} alt="logo" className="max-h-full max-w-full object-contain" /> : <span className="text-[11px] text-muted-foreground">{tt('Logo yoxdur', 'No logo')}</span>}
+            </div>
+            {canEdit && (
+              <div className="flex flex-col gap-1.5">
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-button border border-border px-3 py-1.5 text-sm hover:bg-secondary">
+                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageUp className="h-4 w-4" />} {tt('Yüklə', 'Upload')}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => { onLogo(e.target.files?.[0]); e.target.value = ''; }} />
+                </label>
+                {logoUrl && <button type="button" onClick={() => setLogoUrl('')} className="inline-flex items-center gap-1 text-xs text-danger hover:underline"><Trash2 className="h-3.5 w-3.5" /> {tt('Sil', 'Remove')}</button>}
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">{tt('PNG/JPG, maks. 2 MB. Faktura başlığında və çapında istifadə olunur.', 'PNG/JPG, max 2 MB. Used in the invoice header and print.')}</p>
+        </div>
+        <div className="space-y-2">
+          <Label>{tt('Baş Direktor (faktura imzası)', 'Director (invoice signature)')}</Label>
+          <Input value={director} onChange={(e) => setDirector(e.target.value)} disabled={!canEdit} placeholder={tt('Ad Soyad', 'Full name')} />
+          <p className="text-xs text-muted-foreground">{tt('Faktura və rəsmi sənədlərdə imza sətrində göstərilir. Qeydiyyatda da təyin edilə bilər.', 'Shown on the signature line in invoices and official documents. Can also be set at registration.')}</p>
+        </div>
+      </div>
+
+      {canEdit ? (
+        <div className="mt-4 flex items-center gap-3">
+          <Button onClick={save} disabled={busy || uploading}>{busy ? <Loader2 className="animate-spin" /> : <Save className="h-4 w-4" />} {tt('Yadda saxla', 'Save')}</Button>
+          {isSuperAdmin && company && <Link href={`/companies/${company.id}`} className="text-sm font-medium text-primary hover:underline">{tt('Tam profil →', 'Full profile →')}</Link>}
+        </div>
+      ) : (
+        <p className="mt-4 text-xs text-muted-foreground">{tt('Dəyişiklik üçün «platform.company.settings.edit» icazəsi lazımdır.', 'The «platform.company.settings.edit» permission is required to edit.')}</p>
       )}
     </CardContent></Card>
   );
