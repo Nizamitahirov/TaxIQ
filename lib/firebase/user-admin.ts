@@ -1,11 +1,21 @@
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import {
-  addDoc, collection, doc, serverTimestamp, setDoc, updateDoc, arrayUnion, arrayRemove,
+  collection, doc, getDocs, query, where, serverTimestamp, setDoc, updateDoc, arrayUnion, arrayRemove,
 } from 'firebase/firestore';
 import { getDb, getSecondaryAuth } from './config';
 import { normalizeLogin, sendPasswordReset } from './auth';
 import { logAudit } from './audit';
-import type { AppUser, UserStatus, UserType } from '@/types';
+import { listUsers } from './users';
+import type { AppUser, UserCompanyAccess, UserStatus, UserType } from '@/types';
+
+/**
+ * Staff↔Company təyinatının determinik sənəd id-si — `${userId}__${companyId}`.
+ * Bu, təhlükəsizlik qaydalarının (firestore.rules) təyinatın mövcudluğunu birbaşa
+ * `exists()` ilə yoxlamasına imkan verir və hər istifadəçi/şirkət üçün yeganə rol saxlayır.
+ */
+export function accessDocId(userId: string, companyId: string): string {
+  return `${userId}__${companyId}`;
+}
 
 /** Müvəqqəti parol generasiyası — 01 §3.3 (min 10 simvol, qarışıq) */
 export function generateTempPassword(length = 12): string {
@@ -72,9 +82,9 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
       updatedAt: serverTimestamp(),
     });
 
-    // İlkin şirkət təyinatı
+    // İlkin şirkət təyinatı (determinik id ilə — qayda `exists()` yoxlaya bilsin)
     if (input.companyId && input.roleId) {
-      await addDoc(collection(getDb(), 'userCompanyAccess'), {
+      await setDoc(doc(getDb(), 'userCompanyAccess', accessDocId(uid, input.companyId)), {
         userId: uid,
         companyId: input.companyId,
         roleId: input.roleId,
@@ -177,7 +187,7 @@ export async function updateAccessAssignment(params: {
 export async function assignUserToCompany(params: {
   userId: string; companyId: string; roleId: string; assignedBy: string;
 }): Promise<void> {
-  await addDoc(collection(getDb(), 'userCompanyAccess'), {
+  await setDoc(doc(getDb(), 'userCompanyAccess', accessDocId(params.userId, params.companyId)), {
     userId: params.userId,
     companyId: params.companyId,
     roleId: params.roleId,
@@ -213,4 +223,53 @@ export async function revokeAccess(params: {
     companyId: params.companyId, userId: params.revokedBy,
     action: 'USER_ACCESS_REVOKED', entityType: 'userCompanyAccess', entityId: params.accessId,
   });
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  Giriş bərpası / sinxronizasiyası (01 §2.5)
+//  «Missing or insufficient permissions» xətasının kök səbəbi: users/{uid}
+//  sənədindəki denormallaşdırılmış `accessibleCompanyIds` massivi ilə
+//  `userCompanyAccess` (əsl mənbə) arasında uyğunsuzluq (drift). Aşağıdakı
+//  funksiyalar hər ikisini yenidən uyğunlaşdırır. YALNIZ Super Admin çağıra
+//  bilər (firestore.rules users update-i super admin-ə açır).
+// ════════════════════════════════════════════════════════════════════
+
+/** Bir istifadəçinin accessibleCompanyIds massivini `userCompanyAccess`-dən yenidən qurur. */
+export async function resyncUserAccess(user: Pick<AppUser, 'uid' | 'userType' | 'homeCompanyId'>): Promise<string[]> {
+  const snap = await getDocs(query(
+    collection(getDb(), 'userCompanyAccess'),
+    where('userId', '==', user.uid),
+    where('status', '==', 'active'),
+  ));
+  const ids = new Set<string>();
+  for (const d of snap.docs) {
+    const data = d.data() as UserCompanyAccess;
+    if (data.companyId) ids.add(data.companyId);
+    // Determinik id-yə köçürmə (köhnə təsadüfi id-lər üçün)
+    const wanted = accessDocId(user.uid, data.companyId);
+    if (d.id !== wanted) {
+      await setDoc(doc(getDb(), 'userCompanyAccess', wanted), { ...data }, { merge: true });
+      await updateDoc(doc(getDb(), 'userCompanyAccess', d.id), { status: 'superseded', updatedAt: serverTimestamp() });
+    }
+  }
+  // Client user öz ev şirkətinə də sahibdir
+  if (user.userType === 'client_user' && user.homeCompanyId) ids.add(user.homeCompanyId);
+  const list = [...ids];
+  await updateDoc(doc(getDb(), 'users', user.uid), { accessibleCompanyIds: list, updatedAt: serverTimestamp() });
+  return list;
+}
+
+/** Bütün istifadəçilər üçün giriş massivini yenidən qurur — Super Admin alət. */
+export async function resyncAllAccess(actorUid: string): Promise<{ users: number }> {
+  const users = await listUsers();
+  let n = 0;
+  for (const u of users) {
+    if (u.userType === 'platform_super_admin') continue; // super admin bypass — massiv lazım deyil
+    try { await resyncUserAccess(u); n++; } catch { /* bir istifadəçi digərlərini bloklamır */ }
+  }
+  await logAudit({
+    companyId: null, userId: actorUid, action: 'ACCESS_RESYNCED', entityType: 'user', entityId: 'ALL',
+    after: { users: n },
+  });
+  return { users: n };
 }

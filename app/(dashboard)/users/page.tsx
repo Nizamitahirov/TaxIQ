@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Settings2, UserCog } from 'lucide-react';
+import { Loader2, Plus, Settings2, UserCog, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTT } from '@/lib/i18n/tt';
 import { listUsers } from '@/lib/firebase/users';
+import { resyncAllAccess } from '@/lib/firebase/user-admin';
+import { toast } from '@/components/ui/toast';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
@@ -41,6 +43,19 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [resyncing, setResyncing] = useState(false);
+
+  async function resyncAccess() {
+    if (!profile?.uid) return;
+    setResyncing(true);
+    try {
+      const res = await resyncAllAccess(profile.uid);
+      toast.success(tt('Girişlər sinxronlaşdırıldı', 'Access re-synced'), tt(`${res.users} istifadəçi yeniləndi`, `${res.users} users updated`));
+      qc.invalidateQueries({ queryKey: ['users'] });
+    } catch (e) {
+      toast.error(tt('Sinxronizasiya alınmadı', 'Re-sync failed'), e instanceof Error ? e.message : undefined);
+    } finally { setResyncing(false); }
+  }
 
   const { data, isLoading } = useQuery({ queryKey: ['users'], queryFn: listUsers, enabled: allowed });
 
@@ -69,6 +84,11 @@ export default function UsersPage() {
             { header: tt('Tip', 'Type'), value: (u) => typeLabel(u.userType) }, { header: 'Status', value: 'status' },
             { header: tt('Son giriş', 'Last login'), value: (u) => { const t = toMillis(u.lastLoginAt); return t ? formatDateTime(t) : ''; } },
           ]} />
+          {isSuperAdmin && (
+            <Button variant="outline" onClick={resyncAccess} disabled={resyncing} title={tt('«İcazə yoxdur» xətası verən hesabların giriş massivini bərpa edir', 'Repairs the access array for accounts hitting permission errors')}>
+              {resyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} {tt('Girişləri sinxronla', 'Re-sync access')}
+            </Button>
+          )}
           <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> {tt('Yeni istifadəçi', 'New user')}</Button>
         </div>}
       />
