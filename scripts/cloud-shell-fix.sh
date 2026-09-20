@@ -25,6 +25,12 @@ PROMOTE_EMAIL="${PROMOTE_EMAIL:-}"
 echo "▶ TaxIQ giriş bərpası — layihə: $PROJECT"
 gcloud config set project "$PROJECT" >/dev/null 2>&1 || true
 
+echo "▶ Hesab: $(gcloud config get-value account 2>/dev/null)   Layihə: $(gcloud config get-value project 2>/dev/null)"
+
+echo "▶ Lazımi API-lər aktivləşdirilir (bir dəfəlik)…"
+gcloud services enable firebaserules.googleapis.com firestore.googleapis.com cloudresourcemanager.googleapis.com >/dev/null 2>&1 || \
+  echo "  ⚠ API aktivləşdirmə atlandı (icazə ola bilməz) — davam edilir."
+
 TOKEN="$(gcloud auth print-access-token)"
 if [ -z "$TOKEN" ]; then
   echo "✗ gcloud token alınmadı. Cloud Shell-də olduğunuzdan və layihəyə çıxışınızdan əmin olun." >&2
@@ -184,10 +190,17 @@ import json, os, urllib.request, urllib.error
 project = os.environ['PROJECT']; token = os.environ['TOKEN']
 hdr = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-def call(url, method, body=None):
+def call(url, method, body=None, ignore=()):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, headers=hdr, method=method)
-    return urllib.request.urlopen(req)
+    try:
+        return urllib.request.urlopen(req)
+    except urllib.error.HTTPError as e:
+        if e.code in ignore:
+            return None
+        detail = e.read().decode('utf-8', 'replace')
+        print(f"  ✗ HTTP {e.code} {method} {url}\n    {detail}")
+        raise
 
 src = open('firestore.rules').read()
 body = {"source": {"files": [{"name": "firestore.rules", "content": src}]}}
@@ -197,10 +210,7 @@ print("  ✓ ruleset yaradıldı:", name)
 rel_name = f"projects/{project}/releases/cloud.firestore"
 release = {"name": rel_name, "rulesetName": name}
 # Mövcud release-i sil (varsa) və yenisini yarat — patch qeyri-müəyyənliyindən qaçınmaq üçün
-try:
-    call(f"https://firebaserules.googleapis.com/v1/{rel_name}", "DELETE")
-except urllib.error.HTTPError as e:
-    if e.code != 404: raise
+call(f"https://firebaserules.googleapis.com/v1/{rel_name}", "DELETE", ignore=(404,))
 call(f"https://firebaserules.googleapis.com/v1/projects/{project}/releases", "POST", release)
 print("  ✓ release aktivləşdirildi: cloud.firestore")
 PY
@@ -225,10 +235,30 @@ const db = admin.firestore();
 const accessId = (uid, cid) => `${uid}__${cid}`;
 const arrEq = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 
-const [usersSnap, accessSnap] = await Promise.all([
+const [usersSnap, accessAllSnap, companiesSnap] = await Promise.all([
   db.collection('users').get(),
-  db.collection('userCompanyAccess').where('status', '==', 'active').get(),
+  db.collection('userCompanyAccess').get(),
+  db.collection('companies').get(),
 ]);
+
+// ── DİAQNOSTİKA: canlı vəziyyəti çap et ──────────────────────────────────
+const companyName = new Map(companiesSnap.docs.map((c) => [c.id, (c.data().name || '')]));
+console.log('\n═══════════ CANLI VƏZİYYƏT (diaqnostika) ═══════════');
+console.log(`Şirkətlər (${companiesSnap.size}):`);
+for (const c of companiesSnap.docs) console.log(`  • ${c.id}  «${companyName.get(c.id)}»  status=${c.data().status ?? '?'}`);
+console.log(`\nİstifadəçilər (${usersSnap.size}):`);
+for (const u of usersSnap.docs) {
+  const d = u.data();
+  console.log(`  • ${d.email ?? u.id}  type=${d.userType ?? '?'}  home=${d.homeCompanyId ?? '—'}  access=[${(d.accessibleCompanyIds ?? []).join(', ')}]  status=${d.status ?? '?'}`);
+}
+console.log(`\nTəyinatlar userCompanyAccess (${accessAllSnap.size}):`);
+for (const a of accessAllSnap.docs) {
+  const d = a.data();
+  console.log(`  • id=${a.id}  user=${d.userId}  company=${d.companyId}  role=${d.roleId ?? '?'}  status=${d.status ?? '?'}`);
+}
+console.log('════════════════════════════════════════════════════\n');
+
+const accessSnap = { docs: accessAllSnap.docs.filter((d) => d.data().status === 'active'), forEach(fn){ this.docs.forEach(fn); } };
 
 const byUser = new Map();
 accessSnap.forEach((d) => {
