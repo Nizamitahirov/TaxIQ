@@ -12,6 +12,7 @@ import {
 import { DEFAULT_TAX_CONFIG } from '@/lib/payroll/tax';
 import { exportToCsv, exportToExcel } from '@/lib/utils/export';
 import { PageHeader } from '@/components/shared/page-header';
+import { StatutoryReportsPanel } from './statutory-reports';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
 import { Button } from '@/components/ui/button';
@@ -191,6 +192,8 @@ export default function PayrollPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {active?.company && <StatutoryReportsPanel companyId={companyId} company={active.company} canView={canView} />}
 
       {adjOpen && <AdjustmentsDialog companyId={companyId} year={now.getFullYear()} month={now.getMonth() + 1} base={base} onClose={() => setAdjOpen(false)} />}
       {cfgOpen && <TaxConfigDialog current={taxCfg ?? DEFAULT_TAX_CONFIG} onClose={() => setCfgOpen(false)} onSaved={() => qc.invalidateQueries({ queryKey: ['taxcfg'] })} />}

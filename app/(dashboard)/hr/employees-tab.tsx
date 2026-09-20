@@ -167,6 +167,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
     position: '', departmentId: '', employmentType: 'full_time', hireDate: new Date().toISOString().slice(0, 10),
     contractNumber: '', contractType: 'indefinite', contractEndDate: '', salary: '', iban: '',
     notified: false, eGovRef: '',
+    isForeigner: false, citizenshipCountry: '', passportSeries: '', passportNumber: '', residencePermitFin: '',
   };
   const tt = useTT();
   const [form, setForm] = useState(empty);
@@ -185,6 +186,8 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
       contractType: edit.contractType ?? 'indefinite', contractEndDate: edit.contractEndDate ?? '', salary: String(edit.baseSalary ?? ''),
       iban: edit.bankAccountIban ?? '', notified: !!(edit.laborContractNotified || edit.laborContractNotification?.submittedToEGov),
       eGovRef: edit.laborContractNotification?.eGovReferenceNumber ?? '',
+      isForeigner: !!edit.isForeigner, citizenshipCountry: edit.citizenshipCountry ?? '', passportSeries: edit.passportSeries ?? '',
+      passportNumber: edit.passportNumber ?? '', residencePermitFin: edit.residencePermitFin ?? '',
     } : empty);
   }
   const set = (p: Partial<typeof form>) => setForm((f) => ({ ...f, ...p }));
@@ -201,6 +204,11 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
         hireDate: form.hireDate || null, contractNumber: form.contractNumber.trim(), contractType: form.contractType as Employee['contractType'],
         contractEndDate: form.contractType === 'fixed_term' ? (form.contractEndDate || null) : null,
         baseSalary: Number(form.salary) || 0, currency: baseCurrency, bankAccountIban: form.iban.trim(),
+        isForeigner: form.isForeigner,
+        citizenshipCountry: form.isForeigner ? (form.citizenshipCountry.trim() || null) : null,
+        passportSeries: form.isForeigner ? (form.passportSeries.trim() || null) : null,
+        passportNumber: form.isForeigner ? (form.passportNumber.trim() || null) : null,
+        residencePermitFin: form.isForeigner ? (form.residencePermitFin.trim() || null) : null,
         laborContractNotified: form.notified,
         laborContractNotification: { submittedToEGov: form.notified, eGovReferenceNumber: form.eGovRef.trim() || null, submittedAt: form.notified ? new Date().toISOString().slice(0, 10) : null },
       };
@@ -231,6 +239,13 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
               <div className="space-y-2"><Label>{tt('Telefon', 'Phone')}</Label><Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+994 ..." /></div>
               <div className="space-y-2"><Label>{tt('E-poçt', 'Email')}</Label><Input value={form.email} onChange={(e) => set({ email: e.target.value })} /></div>
               <div className="col-span-2 space-y-2"><Label>{tt('Ünvan', 'Address')}</Label><Input value={form.address} onChange={(e) => set({ address: e.target.value })} /></div>
+              <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.isForeigner} onChange={(e) => set({ isForeigner: e.target.checked })} /> {tt('Xarici əməkdaş (FİN-siz — DSMF Hissə 4)', 'Foreign employee (no FİN — DSMF Part 4)')}</label>
+              {form.isForeigner && <>
+                <div className="space-y-2"><Label>{tt('Vətəndaşı olduğu ölkə', 'Citizenship country')}</Label><Input value={form.citizenshipCountry} onChange={(e) => set({ citizenshipCountry: e.target.value })} /></div>
+                <div className="space-y-2"><Label>{tt('Yaşayış icazəsi FİN (varsa)', 'Residence permit FİN (if any)')}</Label><Input value={form.residencePermitFin} onChange={(e) => set({ residencePermitFin: e.target.value })} /></div>
+                <div className="space-y-2"><Label>{tt('Pasport seriyası', 'Passport series')}</Label><Input value={form.passportSeries} onChange={(e) => set({ passportSeries: e.target.value })} /></div>
+                <div className="space-y-2"><Label>{tt('Pasport nömrəsi', 'Passport number')}</Label><Input value={form.passportNumber} onChange={(e) => set({ passportNumber: e.target.value })} /></div>
+              </>}
             </div>
           </div>
           <div>

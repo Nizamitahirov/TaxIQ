@@ -948,6 +948,12 @@ export interface Employee {
   baseSalary: number;
   currency?: string;
   bankAccountIban?: string;
+  // ── Xarici əməkdaş məlumatları (DSMF Əlavə1 Hissə4) ──
+  isForeigner?: boolean;
+  citizenshipCountry?: string | null;
+  passportSeries?: string | null;
+  passportNumber?: string | null;
+  residencePermitFin?: string | null;   // AR-də müvəqqəti/daimi yaşamaq icazəsi FİN
   status: EmployeeStatus;
   terminationDate?: string | null;
   terminationReason?: TerminationReason | null;
