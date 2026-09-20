@@ -14,8 +14,13 @@
 #
 #  İSTİFADƏ (Cloud Shell-də):
 #    bash cloud-shell-fix.sh
-#    # və ya admin hesabınızın rolunu bərpa etmək üçün:
+#    # admin hesabının rolunu bərpa etmək üçün:
 #    PROMOTE_EMAIL='admin@taxiq.system' bash cloud-shell-fix.sh
+#    # PAROLU UNUTMUSUNUZSA — hesabları görüb yeni parol təyin et + super admin et:
+#    RESET_EMAIL='admin@taxiq.system' NEW_PASSWORD='<özünüz-seçin>' \
+#      PROMOTE_EMAIL='admin@taxiq.system' bash cloud-shell-fix.sh
+#  (QEYD: Firebase parolları hash-lanır — köhnə parolu OXUMAQ mümkün deyil,
+#         yalnız YENİSİNİ təyin etmək olar.)
 # ════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -28,7 +33,7 @@ gcloud config set project "$PROJECT" >/dev/null 2>&1 || true
 echo "▶ Hesab: $(gcloud config get-value account 2>/dev/null)   Layihə: $(gcloud config get-value project 2>/dev/null)"
 
 echo "▶ Lazımi API-lər aktivləşdirilir (bir dəfəlik)…"
-gcloud services enable firebaserules.googleapis.com firestore.googleapis.com cloudresourcemanager.googleapis.com >/dev/null 2>&1 || \
+gcloud services enable firebaserules.googleapis.com firestore.googleapis.com cloudresourcemanager.googleapis.com identitytoolkit.googleapis.com >/dev/null 2>&1 || \
   echo "  ⚠ API aktivləşdirmə atlandı (icazə ola bilməz) — davam edilir."
 
 TOKEN="$(gcloud auth print-access-token)"
@@ -235,6 +240,34 @@ const db = admin.firestore();
 const accessId = (uid, cid) => `${uid}__${cid}`;
 const arrEq = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
 
+// ── FIREBASE AUTH: hesabları siyahıla + (opsional) parol sıfırla ──────────
+const resetEmail = (process.env.RESET_EMAIL || '').trim().toLowerCase();
+const newPassword = process.env.NEW_PASSWORD || '';
+try {
+  const auth = admin.auth();
+  let all = [], pageToken;
+  do { const r = await auth.listUsers(1000, pageToken); all = all.concat(r.users); pageToken = r.pageToken; } while (pageToken);
+  console.log('\n═══════════ FIREBASE AUTH HESABLARI ═══════════');
+  for (const u of all) {
+    console.log(`  • ${u.email || '(email yox)'}  uid=${u.uid}  disabled=${u.disabled}  sonGiriş=${u.metadata.lastSignInTime || '—'}`);
+  }
+  console.log('════════════════════════════════════════════════');
+  if (resetEmail) {
+    const target = all.find((u) => (u.email || '').toLowerCase() === resetEmail);
+    if (!target) {
+      console.log(`  ✗ Parol sıfırlanmadı — ${resetEmail} tapılmadı.`);
+    } else if (!newPassword || newPassword.length < 6) {
+      console.log('  ✗ Parol sıfırlanmadı — NEW_PASSWORD ən az 6 simvol olmalıdır.');
+    } else {
+      await auth.updateUser(target.uid, { password: newPassword, disabled: false });
+      console.log(`  ✓ ${resetEmail} üçün YENİ PAROL təyin edildi (indi bu parolla giriş edin).`);
+    }
+  }
+} catch (e) {
+  console.log('  ⚠ Auth əməliyyatı alınmadı:', e?.message || e);
+  console.log('    (identitytoolkit.googleapis.com API-si və ya IAM icazəsi ola bilməz.)');
+}
+
 const [usersSnap, accessAllSnap, companiesSnap] = await Promise.all([
   db.collection('users').get(),
   db.collection('userCompanyAccess').get(),
@@ -310,7 +343,8 @@ console.log(`✓ Bitdi. Massiv bərpa: ${repaired}, təyinat köçürüldü: ${m
 process.exit(0);
 JS_EOF
 
-PROJECT="$PROJECT" TOKEN="$TOKEN" PROMOTE_EMAIL="$PROMOTE_EMAIL" node repair.mjs
+PROJECT="$PROJECT" TOKEN="$TOKEN" PROMOTE_EMAIL="$PROMOTE_EMAIL" \
+  RESET_EMAIL="${RESET_EMAIL:-}" NEW_PASSWORD="${NEW_PASSWORD:-}" node repair.mjs
 
 echo ""
 echo "✅ Tamamlandı. İndi tətbiqdə Tabel/Məzuniyyət və digər əməliyyatlar işləməlidir."
