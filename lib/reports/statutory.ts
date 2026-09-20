@@ -10,7 +10,7 @@ import type ExcelJSNS from 'exceljs';
 import { calcPayrollLine } from '@/lib/payroll/tax';
 import { resolveRate } from '@/lib/firebase/treasury';
 import type {
-  Company, Employee, ExchangeRate, LeaveBalance, LeaveRequest, MonthlyTimesheet, PayrollRun, PayrollTaxConfig,
+  BusinessTrip, Company, Employee, ExchangeRate, LeaveBalance, LeaveRequest, MonthlyTimesheet, PayrollRun, PayrollTaxConfig,
 } from '@/types';
 
 const MONTHS_AZ = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
@@ -26,6 +26,7 @@ export interface ReportContext {
   leaveRequests: LeaveRequest[];
   leaveBalances: LeaveBalance[];
   timesheets: MonthlyTimesheet[];
+  businessTrips: BusinessTrip[];
   rates: ExchangeRate[];
   cfg: PayrollTaxConfig;
   year: number;
@@ -368,10 +369,113 @@ export async function genForeignEmployees(ctx: ReportContext): Promise<Generated
   });
 }
 
-export type StatutoryReportKey = 'salary' | 'emp-general' | 'days-not-worked' | 'leave-compensation' | 'foreign';
+// ═══════════════════════════════════════════════════════════════
+//  6) İş vaxtının uçotu tabeli (per-day timesheet) — tək ay
+//  Şablon sistemdə olmadığından exceljs ilə standart formada qurulur.
+//  Kodlar: rəqəm=işlənmiş saat, İ=istirahət/bayram, M=məzuniyyət,
+//          X=xəstəlik, E=ezamiyyət, Q=qayıb/davamiyyətsizlik.
+// ═══════════════════════════════════════════════════════════════
+export const TABEL_LEGEND = 'Kodlar:  8 = işlənmiş saat · İ = istirahət/bayram · M = məzuniyyət · X = xəstəlik · E = ezamiyyət · Q = qayıb';
+
+function dayMark(ctx: ReportContext, e: Employee, day: number): string | number {
+  const date = new Date(ctx.year, ctx.month - 1, day);
+  const iso = `${ym(ctx.year, ctx.month)}-${String(day).padStart(2, '0')}`;
+  const wd = date.getDay();
+  // təsdiqlənmiş məzuniyyət/xəstəlik
+  for (const lr of ctx.leaveRequests) {
+    if (lr.employeeId !== e.id || lr.status !== 'approved') continue;
+    if (iso >= lr.startDate && iso <= lr.endDate) {
+      const nm = (lr.leaveTypeName || '').toLowerCase();
+      return nm.includes('xəstə') || nm.includes('sick') || nm.includes('bülleten') ? 'X' : 'M';
+    }
+  }
+  // ezamiyyət
+  for (const bt of ctx.businessTrips) {
+    if (bt.employeeId !== e.id || (bt.status !== 'approved' && bt.status !== 'completed')) continue;
+    if (iso >= bt.startDate && iso <= bt.endDate) return 'E';
+  }
+  if (wd === 0 || wd === 6) return 'İ';
+  return 8; // iş günü
+}
+
+export async function genTimeTabel(ctx: ReportContext): Promise<GeneratedReport> {
+  const ExcelJS = (await import('exceljs')).default;
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet(`${monthNameAz(ctx.month)} ${ctx.year}`);
+  const daysInMonth = new Date(ctx.year, ctx.month, 0).getDate();
+  const active = ctx.employees.filter((e) => e.status !== 'terminated');
+  const dayCols = daysInMonth;
+  const totalCols = 3 + dayCols + 5; // №, A.S.A, Vəzifə + günlər + 5 yekun
+  const lastColLetter = ws.getColumn(totalCols).letter;
+
+  // Başlıq
+  ws.mergeCells(1, 1, 1, totalCols);
+  const t = ws.getCell(1, 1);
+  t.value = 'İş vaxtının uçotu tabeli';
+  t.font = { bold: true, size: 14 }; t.alignment = { horizontal: 'center' };
+  ws.mergeCells(2, 1, 2, totalCols);
+  ws.getCell(2, 1).value = `${ctx.company.name}${ctx.company.taxId ? ' · VÖEN ' + ctx.company.taxId : ''} — ${monthNameAz(ctx.month)} ${ctx.year}`;
+  ws.getCell(2, 1).alignment = { horizontal: 'center' };
+
+  // Sütun başlıqları (4-cü sətir)
+  const hr = 4;
+  const head = (col: number, val: string | number) => { const c = ws.getCell(hr, col); c.value = val; c.font = { bold: true, size: 9 }; c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; c.border = box; };
+  head(1, '№'); head(2, 'Soyadı, adı, atasının adı'); head(3, 'Vəzifə');
+  for (let d = 1; d <= dayCols; d++) head(3 + d, d);
+  const totalStart = 3 + dayCols;
+  head(totalStart + 1, 'İşlənmiş gün'); head(totalStart + 2, 'İşlənmiş saat'); head(totalStart + 3, 'Məzuniyyət (gün)'); head(totalStart + 4, 'Xəstəlik (gün)'); head(totalStart + 5, 'Ezamiyyət (gün)');
+  ws.getColumn(1).width = 4; ws.getColumn(2).width = 28; ws.getColumn(3).width = 16;
+  for (let d = 1; d <= dayCols; d++) ws.getColumn(3 + d).width = 3.4;
+  for (let k = 1; k <= 5; k++) ws.getColumn(totalStart + k).width = 11;
+
+  const preview: PreviewTable = {
+    title: `İş vaxtının uçotu tabeli — ${monthNameAz(ctx.month)} ${ctx.year}`,
+    note: TABEL_LEGEND,
+    columns: ['№', 'A.S.A', 'Vəzifə', ...Array.from({ length: dayCols }, (_, i) => String(i + 1)), 'Gün', 'Saat', 'M', 'X', 'E'],
+    rows: [],
+  };
+
+  active.forEach((e, i) => {
+    const r = hr + 1 + i;
+    ws.getCell(r, 1).value = i + 1; ws.getCell(r, 2).value = empName(e); ws.getCell(r, 3).value = e.position ?? '';
+    let workedDays = 0, workedHours = 0, mDays = 0, xDays = 0, eDays = 0;
+    const marks: (string | number)[] = [];
+    for (let d = 1; d <= dayCols; d++) {
+      const m = dayMark(ctx, e, d);
+      marks.push(m);
+      const cell = ws.getCell(r, 3 + d);
+      cell.value = m; cell.alignment = { horizontal: 'center' }; cell.font = { size: 9 }; cell.border = box;
+      if (typeof m === 'number') { workedDays++; workedHours += m; }
+      else if (m === 'M') mDays++; else if (m === 'X') xDays++; else if (m === 'E') eDays++;
+    }
+    for (let c = 1; c <= 3; c++) ws.getCell(r, c).border = box;
+    const tot = [workedDays, workedHours, mDays, xDays, eDays];
+    tot.forEach((v, k) => { const c = ws.getCell(r, totalStart + 1 + k); c.value = v; c.alignment = { horizontal: 'center' }; c.border = box; });
+    preview.rows.push([i + 1, empName(e), e.position ?? '', ...marks, workedDays, workedHours, mDays, xDays, eDays]);
+  });
+
+  // Leqenda + imza
+  const legRow = hr + active.length + 2;
+  ws.mergeCells(legRow, 1, legRow, totalCols);
+  ws.getCell(legRow, 1).value = TABEL_LEGEND;
+  ws.getCell(legRow, 1).font = { italic: true, size: 9 };
+  ws.getCell(legRow + 2, 2).value = `Baş Direktor: ${ctx.company.directorName ?? '________________'}`;
+
+  void lastColLetter;
+  const out = await wb.xlsx.writeBuffer();
+  const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  return { blob, filename: `Is-vaxti-tabeli-${ctx.year}-${String(ctx.month).padStart(2, '0')}.xlsx`, preview };
+}
+
+const box: Partial<ExcelJSNS.Borders> = {
+  top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' },
+};
+
+export type StatutoryReportKey = 'salary' | 'timesheet' | 'emp-general' | 'days-not-worked' | 'leave-compensation' | 'foreign';
 
 export const STATUTORY_REPORTS: { key: StatutoryReportKey; az: string; en: string; desc: string; periodic: 'month' | 'quarter'; gen: (ctx: ReportContext) => Promise<GeneratedReport> }[] = [
   { key: 'salary', az: 'Əməkhaqqı Cədvəli', en: 'Salary table', desc: 'Aylıq əməkhaqqı hesablanması (vergi/DSMF ilə)', periodic: 'month', gen: genSalaryTable },
+  { key: 'timesheet', az: 'İş vaxtının uçotu tabeli', en: 'Work-time record', desc: 'Gün-gün tabel (təqvim + məzuniyyət + ezamiyyət)', periodic: 'month', gen: genTimeTabel },
   { key: 'emp-general', az: 'İşçilər üzrə ümumi məlumat', en: 'Employees general info', desc: 'DSMF Əlavə №1 - Hissə 1 (rüblük)', periodic: 'quarter', gen: genEmpGeneral },
   { key: 'days-not-worked', az: 'İşlənməyən iş günləri', en: 'Days not worked', desc: 'DSMF Əlavə №1 - Hissə 3 (rüblük)', periodic: 'quarter', gen: genDaysNotWorked },
   { key: 'leave-compensation', az: 'Məzuniyyət kompensasiyası', en: 'Leave compensation', desc: 'DSMF Əlavə №1 - Hissə 6 (rüblük)', periodic: 'quarter', gen: genLeaveCompensation },
