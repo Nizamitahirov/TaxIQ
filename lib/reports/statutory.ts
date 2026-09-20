@@ -8,7 +8,10 @@
  */
 import type ExcelJSNS from 'exceljs';
 import { calcPayrollLine } from '@/lib/payroll/tax';
-import type { Company, Employee, LeaveRequest, PayrollRun, PayrollTaxConfig } from '@/types';
+import { resolveRate } from '@/lib/firebase/treasury';
+import type {
+  Company, Employee, ExchangeRate, LeaveBalance, LeaveRequest, MonthlyTimesheet, PayrollRun, PayrollTaxConfig,
+} from '@/types';
 
 const MONTHS_AZ = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
 export const monthNameAz = (m: number) => MONTHS_AZ[m - 1] ?? '';
@@ -21,10 +24,46 @@ export interface ReportContext {
   employees: Employee[];
   runs: PayrollRun[];           // bütün əmək haqqı dövrləri
   leaveRequests: LeaveRequest[];
+  leaveBalances: LeaveBalance[];
+  timesheets: MonthlyTimesheet[];
+  rates: ExchangeRate[];
   cfg: PayrollTaxConfig;
   year: number;
   quarter: number;              // 1–4 (DSMF formaları üçün)
   month: number;                // əməkhaqqı cədvəli üçün
+}
+
+const ym = (year: number, month: number) => `${year}-${String(month).padStart(2, '0')}`;
+const lastDay = (year: number, month: number) => `${ym(year, month)}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
+
+/** Timesheet varsa faktiki iş günləri; yoxdursa təqvim norması */
+function actualWorkdays(ctx: ReportContext, employeeId: string, month: number): number {
+  const t = ctx.timesheets.find((x) => x.employeeId === employeeId && x.yearMonth === ym(ctx.year, month));
+  return t ? t.workedDays : workdays(ctx.year, month);
+}
+/** Timesheet varsa faktiki iş saatları; yoxdursa norma (gün×8) */
+function actualHours(ctx: ReportContext, employeeId: string, month: number): number {
+  const t = ctx.timesheets.find((x) => x.employeeId === employeeId && x.yearMonth === ym(ctx.year, month));
+  return t ? round2(t.totalWorkedHours) : workdays(ctx.year, month) * 8;
+}
+/** İşçinin qalıq (istifadə edilməmiş) məzuniyyət günləri — leaveBalances-dan */
+function remainingLeaveDays(ctx: ReportContext, employeeId: string, year: number): number {
+  const lb = ctx.leaveBalances.find((b) => b.employeeId === employeeId && b.year === year)
+    ?? ctx.leaveBalances.filter((b) => b.employeeId === employeeId).sort((a, b) => (b.year ?? 0) - (a.year ?? 0))[0];
+  if (!lb) return 0;
+  return round2(lb.balances.reduce((s, it) => s + (it.remainingDays || 0), 0));
+}
+/** Xarici valyutada aylıq əməkhaqqı (manat + valyuta) */
+function foreignMonthlyAmounts(ctx: ReportContext, e: Employee, month: number): { manat: number; fx: number; currency: string } {
+  const base = ctx.company.baseCurrency || 'AZN';
+  const cur = e.currency || base;
+  const gross = grossFor(ctx, e.id, month);
+  if (cur === base) return { manat: gross, fx: 0, currency: cur };
+  // xarici valyutada saxlanılan maaş: baseSalary valyutadadır → manata çevir
+  const rate = resolveRate(ctx.rates, cur, lastDay(ctx.year, month), base) || 1;
+  const fxAmount = round2(e.baseSalary);
+  const manat = gross > 0 ? gross : round2(fxAmount * rate);
+  return { manat, fx: fxAmount, currency: cur };
 }
 
 const empName = (e: Employee) => `${e.firstName} ${e.lastName}${e.fatherName ? ' ' + e.fatherName : ''}`.trim();
@@ -46,21 +85,39 @@ function grossFor(ctx: ReportContext, employeeId: string, month: number): number
   return line ? round2(line.grossSalary) : 0;
 }
 
-/** Ayda işçinin işləmədiyi (məzuniyyət/qeyri-iş) günlərinin sayı və səbəbi */
+/** Ayda işçinin işləmədiyi (məzuniyyət/qeyri-iş) günlərinin sayı və səbəbi.
+ *  Timesheet varsa faktiki (norma − işlənmiş) götürülür; yoxdursa təsdiqlənmiş
+ *  məzuniyyət sorğularından hesablanır. */
 function notWorked(ctx: ReportContext, employeeId: string, month: number): { days: number; reasons: string[] } {
   const start = new Date(ctx.year, month - 1, 1);
   const end = new Date(ctx.year, month, 0);
-  let days = 0; const reasons = new Set<string>();
+  const reasons = new Set<string>();
+  // Səbəbləri hər halda məzuniyyət sorğularından yığırıq
   for (const lr of ctx.leaveRequests) {
     if (lr.employeeId !== employeeId || lr.status !== 'approved') continue;
     const s = new Date(lr.startDate); const e = new Date(lr.endDate);
     const os = s > start ? s : start; const oe = e < end ? e : end;
     if (os > oe) continue;
-    // kəsişən iş günləri
+    reasons.add(lr.leaveTypeName || lr.reason || 'Məzuniyyət');
+  }
+  const t = ctx.timesheets.find((x) => x.employeeId === employeeId && x.yearMonth === ym(ctx.year, month));
+  if (t) {
+    const missed = Math.max(0, t.absenceDays + t.leaveDays + t.sickDays);
+    if (t.leaveDays > 0) reasons.add('Məzuniyyət');
+    if (t.sickDays > 0) reasons.add('Xəstəlik');
+    if (t.absenceDays > 0) reasons.add('Digər');
+    return { days: missed, reasons: [...reasons] };
+  }
+  // timesheet yoxdursa məzuniyyət sorğularından iş günlərini hesabla
+  let days = 0;
+  for (const lr of ctx.leaveRequests) {
+    if (lr.employeeId !== employeeId || lr.status !== 'approved') continue;
+    const s = new Date(lr.startDate); const e = new Date(lr.endDate);
+    const os = s > start ? s : start; const oe = e < end ? e : end;
+    if (os > oe) continue;
     for (let d = new Date(os); d <= oe; d.setDate(d.getDate() + 1)) {
       const wd = d.getDay(); if (wd !== 0 && wd !== 6) days++;
     }
-    reasons.add(lr.leaveTypeName || lr.reason || 'Məzuniyyət');
   }
   return { days, reasons: [...reasons] };
 }
@@ -104,7 +161,7 @@ export async function genSalaryTable(ctx: ReportContext): Promise<GeneratedRepor
   const { wb } = await loadTemplate('salary-table.xlsx');
   const ws = wb.worksheets[0];
   const active = ctx.employees.filter((e) => e.status === 'active');
-  const hours = workdays(ctx.year, ctx.month) * 8;
+  const normHours = workdays(ctx.year, ctx.month) * 8;
 
   // Dinamik başlıqlar
   ws.getCell('B4').value = ctx.company.name;
@@ -133,19 +190,20 @@ export async function genSalaryTable(ctx: ReportContext): Promise<GeneratedRepor
     rows: [],
   };
 
-  const T = { F: 0, I: 0, L: 0, M: 0, N: 0, O: 0, P: 0, Q: 0, R: 0, S: 0, TT: 0, U: 0 };
+  const T = { F: 0, G: 0, H: 0, I: 0, L: 0, M: 0, N: 0, O: 0, P: 0, Q: 0, R: 0, S: 0, TT: 0, U: 0 };
   lines.forEach(({ e, line }, i) => {
     const r = FIRST + i;
     const empDed = round2(line.incomeTax + line.employeeMedicalInsurance + line.employeeSocialInsurance + line.employeeUnemploymentInsurance);
     const net = round2(line.grossSalary - empDed);
     const set = (c: string, v: string | number) => { ws.getCell(`${c}${r}`).value = v; };
+    const actHours = actualHours(ctx, e.id, ctx.month);
     set('B', i + 1); set('C', empName(e)); set('D', e.personalId ?? ''); set('E', e.position ?? '');
-    set('F', round2(e.baseSalary)); set('G', hours); set('H', hours);
+    set('F', round2(e.baseSalary)); set('G', normHours); set('H', actHours);
     set('I', round2(line.grossSalary)); set('J', 0); set('K', 0); set('L', round2(line.grossSalary));
     set('M', round2(line.incomeTax)); set('N', round2(line.employeeSocialInsurance)); set('O', round2(line.employeeUnemploymentInsurance)); set('P', round2(line.employeeMedicalInsurance));
     set('Q', round2(line.employerSocialInsurance)); set('R', round2(line.employerUnemploymentInsurance)); set('S', round2(line.employerMedicalInsurance));
     set('T', empDed); set('U', net);
-    T.F += e.baseSalary; T.I += line.grossSalary; T.L += line.grossSalary; T.M += line.incomeTax;
+    T.F += e.baseSalary; T.G += normHours; T.H += actHours; T.I += line.grossSalary; T.L += line.grossSalary; T.M += line.incomeTax;
     T.N += line.employeeSocialInsurance; T.O += line.employeeUnemploymentInsurance; T.P += line.employeeMedicalInsurance;
     T.Q += line.employerSocialInsurance; T.R += line.employerUnemploymentInsurance; T.S += line.employerMedicalInsurance;
     T.TT += empDed; T.U += net;
@@ -155,7 +213,7 @@ export async function genSalaryTable(ctx: ReportContext): Promise<GeneratedRepor
   // Cəmi sətri (literal)
   const st = (c: string, v: number) => { ws.getCell(`${c}${totalsRow}`).value = round2(v); };
   ws.getCell(`B${totalsRow}`).value = 'Cəmi';
-  st('F', T.F); st('G', hours); st('H', hours); st('I', T.I); st('L', T.L); st('M', T.M); st('N', T.N); st('O', T.O); st('P', T.P); st('Q', T.Q); st('R', T.R); st('S', T.S); st('T', T.TT); st('U', T.U);
+  st('F', T.F); st('G', T.G); st('H', T.H); st('I', T.I); st('L', T.L); st('M', T.M); st('N', T.N); st('O', T.O); st('P', T.P); st('Q', T.Q); st('R', T.R); st('S', T.S); st('T', T.TT); st('U', T.U);
 
   // Fond xülasəsi (J17..J25 → şablonda formul; literal ilə əvəz olunur, mövqe extra qədər sürüşür)
   const jrow = (base: number) => base + extra;
@@ -198,9 +256,9 @@ export async function genEmpGeneral(ctx: ReportContext): Promise<GeneratedReport
       const active = c.employees.filter((e) => e.status !== 'terminated');
       const rows = active.map((e) => ({
         B: empName(e), C: e.personalId ?? '',
-        D: 'Bəli', E: workdays(c.year, m1), F: grossFor(c, e.id, m1),
-        O: 'Bəli', P: workdays(c.year, m2), Q: grossFor(c, e.id, m2),
-        Z: 'Bəli', AA: workdays(c.year, m3), AB: grossFor(c, e.id, m3),
+        D: 'Bəli', E: actualWorkdays(c, e.id, m1), F: grossFor(c, e.id, m1),
+        O: 'Bəli', P: actualWorkdays(c, e.id, m2), Q: grossFor(c, e.id, m2),
+        Z: 'Bəli', AA: actualWorkdays(c, e.id, m3), AB: grossFor(c, e.id, m3),
       }));
       return {
         rows,
@@ -252,8 +310,10 @@ export async function genLeaveCompensation(ctx: ReportContext): Promise<Generate
     fill: (c) => {
       // Bu rübdə işdən çıxmış işçilər üçün istifadə edilməmiş məzuniyyət kompensasiyası
       const terms = c.employees.filter((e) => e.status === 'terminated' && e.terminationDate && Number(e.terminationDate.slice(0, 4)) === c.year && months.includes(Number(e.terminationDate.slice(5, 7))));
-      const dailyRate = (e: Employee) => round2(e.baseSalary / 30);
-      const compFor = (e: Employee) => round2(dailyRate(e) * 14); // nümunə: 14 gün qalıq (real balans olduqda əvəzlənir)
+      // Orta günlük məzuniyyət haqqı ≈ aylıq əməkhaqqı / 30.4 (AR ƏM 140-cı maddə üzrə sadələşdirilmiş)
+      const dailyRate = (e: Employee) => round2(e.baseSalary / 30.4);
+      const days = (e: Employee) => remainingLeaveDays(c, e.id, c.year);
+      const compFor = (e: Employee) => round2(dailyRate(e) * days(e));
       const rows = terms.map((e) => {
         const tm = Number(e.terminationDate!.slice(5, 7));
         const comp = compFor(e);
@@ -267,9 +327,9 @@ export async function genLeaveCompensation(ctx: ReportContext): Promise<Generate
         filename: `Mezuniyyet-kompensasiya-${c.year}-R${c.quarter}.xlsx`,
         preview: {
           title: `İstifadə edilməmiş məzuniyyət kompensasiyası — ${c.year} R${c.quarter}`,
-          note: terms.length === 0 ? 'Bu rübdə işdən çıxan işçi yoxdur.' : 'Qalıq məzuniyyət günləri balansdan götürülür (nümunə: 14 gün).',
-          columns: ['№', 'A.S.A', 'FİN', 'İl', 'Kompensasiya'],
-          rows: terms.map((e, i) => [i + 1, empName(e), e.personalId ?? '', c.year, compFor(e)]),
+          note: terms.length === 0 ? 'Bu rübdə işdən çıxan işçi yoxdur.' : 'Qalıq məzuniyyət günləri işçinin balansından (leaveBalances) götürülür.',
+          columns: ['№', 'A.S.A', 'FİN', 'İl', 'Qalıq gün', 'Kompensasiya'],
+          rows: terms.map((e, i) => [i + 1, empName(e), e.personalId ?? '', c.year, days(e), compFor(e)]),
         },
       };
     },
@@ -280,22 +340,28 @@ export async function genLeaveCompensation(ctx: ReportContext): Promise<Generate
 export async function genForeignEmployees(ctx: ReportContext): Promise<GeneratedReport> {
   const [m1, m2, m3] = quarterMonths(ctx.quarter);
   return genList(ctx, {
-    slug: 'foreign-employees.xlsx', firstRow: 6, seqCol: 'A', cols: ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'M', 'N', 'O'],
+    // manat: G/H/I (2.1) + M/N/O (2.3); valyuta (dollar): J/K/L (2.2) + P/Q/R (2.4)
+    slug: 'foreign-employees.xlsx', firstRow: 6, seqCol: 'A',
+    cols: ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R'],
     fill: (c) => {
       const foreign = c.employees.filter((e) => e.isForeigner);
-      const rows = foreign.map((e) => ({
-        B: empName(e), C: e.residencePermitFin ?? '', D: e.passportSeries ?? '', E: e.passportNumber ?? '', F: e.citizenshipCountry ?? '',
-        G: grossFor(c, e.id, m1), H: grossFor(c, e.id, m2), I: grossFor(c, e.id, m3),
-        M: grossFor(c, e.id, m1), N: grossFor(c, e.id, m2), O: grossFor(c, e.id, m3),
-      }));
+      const amt = (e: Employee, m: number) => foreignMonthlyAmounts(c, e, m);
+      const rows = foreign.map((e) => {
+        const a1 = amt(e, m1), a2 = amt(e, m2), a3 = amt(e, m3);
+        return {
+          B: empName(e), C: e.residencePermitFin ?? '', D: e.passportSeries ?? '', E: e.passportNumber ?? '', F: e.citizenshipCountry ?? '',
+          G: a1.manat, H: a2.manat, I: a3.manat, J: a1.fx, K: a2.fx, L: a3.fx,
+          M: a1.manat, N: a2.manat, O: a3.manat, P: a1.fx, Q: a2.fx, R: a3.fx,
+        };
+      });
       return {
         rows,
         filename: `Xarici-emekdaslar-${c.year}-R${c.quarter}.xlsx`,
         preview: {
           title: `FİN-i olmayan xarici əməkdaşlar — ${c.year} R${c.quarter}`,
-          note: foreign.length === 0 ? 'Sistemdə xarici əməkdaş qeyd olunmayıb (İşçi kartında «Xarici əməkdaş»).' : undefined,
-          columns: ['№', 'A.S.A', 'Ölkə', 'Pasport', `Ə/h ${monthNameAz(m1)}`, monthNameAz(m2), monthNameAz(m3)],
-          rows: foreign.map((e, i) => [i + 1, empName(e), e.citizenshipCountry ?? '', `${e.passportSeries ?? ''} ${e.passportNumber ?? ''}`.trim(), grossFor(c, e.id, m1), grossFor(c, e.id, m2), grossFor(c, e.id, m3)]),
+          note: foreign.length === 0 ? 'Sistemdə xarici əməkdaş qeyd olunmayıb (İşçi kartında «Xarici əməkdaş»). Valyuta sütunları işçinin valyutası baza valyutadan fərqli olduqda FX məzənnə ilə doldurulur.' : 'Valyuta (dollar) sütunları işçinin valyutasından, manat sütunları FX məzənnə ilə hesablanır.',
+          columns: ['№', 'A.S.A', 'Ölkə', 'Pasport', `Manat ${monthNameAz(m1)}`, monthNameAz(m2), monthNameAz(m3), 'Valyuta (aylıq)'],
+          rows: foreign.map((e, i) => { const a1 = amt(e, m1), a2 = amt(e, m2), a3 = amt(e, m3); return [i + 1, empName(e), e.citizenshipCountry ?? '', `${e.passportSeries ?? ''} ${e.passportNumber ?? ''}`.trim(), a1.manat, a2.manat, a3.manat, `${a1.fx || ''} ${a1.currency !== (c.company.baseCurrency || 'AZN') ? a1.currency : ''}`.trim()]; }),
         },
       };
     },

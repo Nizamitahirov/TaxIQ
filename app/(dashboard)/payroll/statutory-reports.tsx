@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, FileSpreadsheet, Eye, Download, Landmark } from 'lucide-react';
-import { listEmployees, listPayrollRuns, listLeaveRequests, getActiveTaxConfig } from '@/lib/firebase/hr';
+import { listEmployees, listPayrollRuns, listLeaveRequests, listLeaveBalances, listMonthlyTimesheets, getActiveTaxConfig } from '@/lib/firebase/hr';
+import { listExchangeRates } from '@/lib/firebase/treasury';
 import {
   STATUTORY_REPORTS, downloadBlob, type ReportContext, type GeneratedReport, type StatutoryReportKey,
 } from '@/lib/reports/statutory';
@@ -30,15 +31,18 @@ export function StatutoryReportsPanel({ companyId, company, canView }: { company
   const { data: employees } = useQuery({ queryKey: ['employees', companyId], queryFn: () => listEmployees(companyId), enabled: canView });
   const { data: runs } = useQuery({ queryKey: ['payrollRuns', companyId], queryFn: () => listPayrollRuns(companyId), enabled: canView });
   const { data: leave } = useQuery({ queryKey: ['leaveRequests', companyId], queryFn: () => listLeaveRequests(companyId), enabled: canView });
+  const { data: balances } = useQuery({ queryKey: ['leaveBalances', companyId], queryFn: () => listLeaveBalances(companyId), enabled: canView });
+  const { data: timesheets } = useQuery({ queryKey: ['monthlyTimesheets', companyId], queryFn: () => listMonthlyTimesheets(companyId), enabled: canView });
+  const { data: rates } = useQuery({ queryKey: ['exchangeRates', companyId], queryFn: () => listExchangeRates(companyId), enabled: canView });
   const { data: cfg } = useQuery({ queryKey: ['taxcfg'], queryFn: getActiveTaxConfig, enabled: canView });
 
-  const ready = !!employees && !!runs && !!leave && !!cfg;
+  const ready = !!employees && !!runs && !!leave && !!cfg && !!balances && !!timesheets && !!rates;
   const years = useMemo(() => Array.from({ length: 5 }, (_, i) => now.getFullYear() - i), [now]);
 
   async function run(key: StatutoryReportKey) {
     if (!ready) { toast.error(tt('Məlumat yüklənir…', 'Loading data…')); return; }
     const def = STATUTORY_REPORTS.find((r) => r.key === key)!;
-    const ctx: ReportContext = { company, employees: employees!, runs: runs!, leaveRequests: leave!, cfg: cfg!, year, quarter, month };
+    const ctx: ReportContext = { company, employees: employees!, runs: runs!, leaveRequests: leave!, leaveBalances: balances!, timesheets: timesheets!, rates: rates!, cfg: cfg!, year, quarter, month };
     setBusyKey(key);
     try {
       const gen = await def.gen(ctx);
