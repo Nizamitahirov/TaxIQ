@@ -1,5 +1,5 @@
-import { orderBy } from 'firebase/firestore';
-import { listByCompany, createDoc, updateDocById, deleteDocById, setDocById } from './firestore';
+import {  } from 'firebase/firestore';
+import { listByCompany, listByCompanySorted, createDoc, updateDocById, deleteDocById, setDocById } from './firestore';
 import { logAudit } from './audit';
 import { uploadFile, deleteStorageFile } from './storage';
 import type {
@@ -26,14 +26,14 @@ export function trainingStatus(nextDueDate: string): TrainingStatus {
 }
 
 // ── Kitabxana: qovluqlar ──
-export const listHseFolders = (companyId: string) => listByCompany<HseFolder>('hseFolders', companyId, [orderBy('name', 'asc')]);
+export const listHseFolders = (companyId: string) => listByCompanySorted<HseFolder>('hseFolders', companyId, 'name', 'asc');
 export async function createHseFolder(companyId: string, name: string, parentId: string | null, uid: string): Promise<string> {
   return createDoc('hseFolders', { companyId, name: name.trim(), parentId: parentId ?? null, createdBy: uid });
 }
 export async function deleteHseFolder(id: string): Promise<void> { await deleteDocById('hseFolders', id); }
 
 // ── Kitabxana: fayllar ──
-export const listHseDocuments = (companyId: string) => listByCompany<HseDocument>('hseDocuments', companyId, [orderBy('createdAt', 'desc')]);
+export const listHseDocuments = (companyId: string) => listByCompanySorted<HseDocument>('hseDocuments', companyId, 'createdAt', 'desc');
 
 export async function uploadHseDocument(input: {
   companyId: string; folderId: string | null; file: File; name?: string; category?: string | null; uid: string;
@@ -54,7 +54,7 @@ export async function deleteHseDocument(doc: HseDocument): Promise<void> {
 }
 
 // ── Təlim növləri (konfiqurasiya) ──
-export const listHseTrainingTypes = (companyId: string) => listByCompany<HseTrainingType>('hseTrainingTypes', companyId, [orderBy('name', 'asc')]);
+export const listHseTrainingTypes = (companyId: string) => listByCompanySorted<HseTrainingType>('hseTrainingTypes', companyId, 'name', 'asc');
 export async function saveHseTrainingType(input: { id?: string; companyId: string; name: string; validityMonths: number }): Promise<void> {
   if (input.id) { await updateDocById('hseTrainingTypes', input.id, { name: input.name.trim(), validityMonths: input.validityMonths }); }
   else { await createDoc('hseTrainingTypes', { companyId: input.companyId, name: input.name.trim(), validityMonths: input.validityMonths, isActive: true }); }
@@ -62,7 +62,7 @@ export async function saveHseTrainingType(input: { id?: string; companyId: strin
 export async function deleteHseTrainingType(id: string): Promise<void> { await deleteDocById('hseTrainingTypes', id); }
 
 // ── SƏTƏM jurnalı: təlim qeydləri ──
-export const listHseTrainingRecords = (companyId: string) => listByCompany<HseTrainingRecord>('hseTrainingRecords', companyId, [orderBy('completedDate', 'desc')]);
+export const listHseTrainingRecords = (companyId: string) => listByCompanySorted<HseTrainingRecord>('hseTrainingRecords', companyId, 'completedDate', 'desc');
 
 export async function createHseTrainingRecord(input: {
   companyId: string; employeeId: string; employeeName: string;
@@ -96,7 +96,7 @@ export async function deleteHseTrainingRecord(rec: HseTrainingRecord): Promise<v
 }
 
 // ── HSE Audit ──
-export const listHseAudits = (companyId: string) => listByCompany<HseAudit>('hseAudits', companyId, [orderBy('auditDate', 'desc')]);
+export const listHseAudits = (companyId: string) => listByCompanySorted<HseAudit>('hseAudits', companyId, 'auditDate', 'desc');
 export async function saveHseAudit(input: Omit<HseAudit, 'id' | 'createdAt'> & { id?: string }): Promise<void> {
   const { id, ...data } = input;
   if (id) await updateDocById('hseAudits', id, data as Record<string, unknown>);
@@ -105,7 +105,7 @@ export async function saveHseAudit(input: Omit<HseAudit, 'id' | 'createdAt'> & {
 export async function deleteHseAudit(id: string): Promise<void> { await deleteDocById('hseAudits', id); }
 
 // ── İş icazələri ──
-export const listHseWorkPermits = (companyId: string) => listByCompany<HseWorkPermit>('hseWorkPermits', companyId, [orderBy('createdAt', 'desc')]);
+export const listHseWorkPermits = (companyId: string) => listByCompanySorted<HseWorkPermit>('hseWorkPermits', companyId, 'createdAt', 'desc');
 export async function nextPermitNumber(companyId: string): Promise<string> {
   const rows = await listByCompany<HseWorkPermit>('hseWorkPermits', companyId, []);
   const year = new Date().getFullYear();

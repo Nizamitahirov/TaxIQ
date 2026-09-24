@@ -1,8 +1,8 @@
 import {
-  writeBatch, doc, collection, serverTimestamp, getDoc, setDoc, where, orderBy,
+  writeBatch, doc, collection, serverTimestamp, getDoc, setDoc, where, 
 } from 'firebase/firestore';
 import { getDb } from './config';
-import { listDocs, listByCompany, createDoc, getDocById, updateDocById } from './firestore';
+import { listDocs, listByCompany, listByCompanySorted, createDoc, getDocById, updateDocById } from './firestore';
 import { logAudit } from './audit';
 import { buildCoaTemplate } from '@/lib/accounting/coa-template';
 import type {
@@ -162,7 +162,7 @@ export async function postJournalEntry(input: PostEntryInput): Promise<string> {
 }
 
 export async function listJournalEntries(companyId: string): Promise<JournalEntry[]> {
-  const rows = await listByCompany<JournalEntry>('journalEntries', companyId, [orderBy('entryDateStr', 'desc')]);
+  const rows = await listByCompanySorted<JournalEntry>('journalEntries', companyId, 'entryDateStr', 'desc');
   return rows;
 }
 

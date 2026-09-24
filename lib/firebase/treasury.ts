@@ -1,8 +1,8 @@
 import {
-  runTransaction, doc, serverTimestamp, orderBy, where,
+  runTransaction, doc, serverTimestamp, where,
 } from 'firebase/firestore';
 import { getDb } from './config';
-import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById, setDocById } from './firestore';
+import { listByCompany, listByCompanySorted, getDocById, createDoc, updateDocById, deleteDocById, setDocById } from './firestore';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
 import { resolvePostingRule, codeFor } from './posting-rules';
@@ -38,7 +38,7 @@ async function adjustBalance(coll: 'bankAccounts' | 'cashRegisters', id: string,
 export const listVendors = (companyId: string) => listByCompany<Vendor>('vendors', companyId);
 export const createVendor = (d: Omit<Vendor, 'id'>) => createDoc('vendors', d as Record<string, unknown>);
 export const getVendor = (id: string) => getDocById<Vendor>('vendors', id);
-export const listPurchaseBills = (companyId: string) => listByCompany<PurchaseBill>('purchaseBills', companyId, [orderBy('issueDate', 'desc')]);
+export const listPurchaseBills = (companyId: string) => listByCompanySorted<PurchaseBill>('purchaseBills', companyId, 'issueDate', 'desc');
 
 async function nextSeq(companyId: string, field: string, prefix: string): Promise<string> {
   const db = getDb();
@@ -95,7 +95,7 @@ export async function approveBill(bill: PurchaseBill, baseCurrency: string, acto
 }
 
 // ── Kassa əməliyyatları ─────────────────────────────────────
-export const listCashTransactions = (companyId: string) => listByCompany<CashTransaction>('cashTransactions', companyId, [orderBy('transactionDate', 'desc')]);
+export const listCashTransactions = (companyId: string) => listByCompanySorted<CashTransaction>('cashTransactions', companyId, 'transactionDate', 'desc');
 
 const CATEGORY_ACCOUNT: Record<CashTxnCategory, string> = {
   sales_receipt: '601', expense: '721', owner_contribution: '301',
@@ -134,7 +134,7 @@ export async function createCashTransaction(input: {
 }
 
 // ── Ödənişlər (Payments) — 07 §3 ────────────────────────────
-export const listPayments = (companyId: string) => listByCompany<Payment>('payments', companyId, [orderBy('paymentDate', 'desc')]);
+export const listPayments = (companyId: string) => listByCompanySorted<Payment>('payments', companyId, 'paymentDate', 'desc');
 
 /** Müştərinin açıq fakturaları (ən köhnə əvvəldə) */
 export async function openInvoicesForCustomer(companyId: string, customerId: string): Promise<Invoice[]> {
@@ -266,7 +266,7 @@ export function buildBulkPaymentRows(items: { beneficiaryIban: string; beneficia
 }
 
 // ── Məzənnələr (07 §6 / 01 §8) ──────────────────────────────
-export const listExchangeRates = (companyId: string) => listByCompany<ExchangeRate>('exchangeRates', companyId, [orderBy('date', 'desc')]);
+export const listExchangeRates = (companyId: string) => listByCompanySorted<ExchangeRate>('exchangeRates', companyId, 'date', 'desc');
 export async function saveExchangeRate(companyId: string, date: string, currency: string, rate: number): Promise<void> {
   await setDocById('exchangeRates', `${companyId}_${currency}_${date}`, { companyId, date, currency, rate } as Record<string, unknown>);
 }
@@ -285,7 +285,7 @@ export const updateBankFileFormat = (id: string, d: Partial<BankFileFormat>) => 
 export const deleteBankFileFormat = (id: string) => deleteDocById('bankFileFormats', id);
 
 // ── Toplu ödəniş partiyaları (07 §4.3) ──────────────────────
-export const listPaymentBatches = (companyId: string) => listByCompany<PaymentOrderBatch>('paymentOrderBatches', companyId, [orderBy('createdAt', 'desc')]);
+export const listPaymentBatches = (companyId: string) => listByCompanySorted<PaymentOrderBatch>('paymentOrderBatches', companyId, 'createdAt', 'desc');
 export async function createPaymentBatch(d: Omit<PaymentOrderBatch, 'id' | 'totalAmount' | 'status'>): Promise<string> {
   const totalAmount = round2(d.items.reduce((s, i) => s + i.amount, 0));
   return createDoc('paymentOrderBatches', { ...d, totalAmount, status: 'draft' } as Record<string, unknown>);
@@ -298,12 +298,12 @@ export async function confirmPaymentBatch(batch: PaymentOrderBatch, baseCurrency
 }
 
 // ── Bank çıxarışı idxalı + uzlaşdırma (07 §5) ───────────────
-export const listStatementImports = (companyId: string) => listByCompany<BankStatementImport>('bankStatementImports', companyId, [orderBy('createdAt', 'desc')]);
+export const listStatementImports = (companyId: string) => listByCompanySorted<BankStatementImport>('bankStatementImports', companyId, 'createdAt', 'desc');
 export const createStatementImport = (d: Omit<BankStatementImport, 'id'>) => createDoc('bankStatementImports', d as Record<string, unknown>);
 export const updateStatementLines = (id: string, lines: StatementLine[]) => updateDocById('bankStatementImports', id, { lines } as Record<string, unknown>);
 
 // ── Gündəlik kassa bağlanışı (07 §2.3) ──────────────────────
-export const listDailyClosings = (companyId: string) => listByCompany<CashDailyClosing>('cashRegisterDailyClosings', companyId, [orderBy('date', 'desc')]);
+export const listDailyClosings = (companyId: string) => listByCompanySorted<CashDailyClosing>('cashRegisterDailyClosings', companyId, 'date', 'desc');
 export async function createDailyClosing(input: {
   companyId: string; cashRegisterId: string; cashRegisterName: string; date: string;
   systemClosingBalance: number; physicallyCountedBalance: number; totalCashIn: number; totalCashOut: number; note?: string; closedBy: string;
@@ -320,7 +320,7 @@ export async function createDailyClosing(input: {
 }
 
 // ── Dövr sonu FX yenidən qiymətləndirmə (07 §6.3) ───────────
-export const listRevaluations = (companyId: string) => listByCompany<PeriodEndRevaluation>('periodEndRevaluations', companyId, [orderBy('periodEndDate', 'desc')]);
+export const listRevaluations = (companyId: string) => listByCompanySorted<PeriodEndRevaluation>('periodEndRevaluations', companyId, 'periodEndDate', 'desc');
 
 /** Açıq xarici valyuta qələmlərini dövr sonu kursu ilə yenidən qiymətləndir */
 export async function computeRevaluation(companyId: string, periodEndDate: string, baseCurrency: string, rates: ExchangeRate[]): Promise<RevaluedItem[]> {

@@ -1,8 +1,8 @@
 import {
-  runTransaction, doc, serverTimestamp, orderBy, where,
+  runTransaction, doc, serverTimestamp, where,
 } from 'firebase/firestore';
 import { getDb } from './config';
-import { listByCompany, getDocById, createDoc, updateDocById } from './firestore';
+import { listByCompany, listByCompanySorted, getDocById, createDoc, updateDocById } from './firestore';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
 import type {
@@ -27,7 +27,7 @@ export const createWarehouse = (d: Omit<Warehouse, 'id'>) => createDoc('warehous
 
 // ── Qalıqlar və hərəkətlər ───────────────────────────────────
 export const listStockBalances = (companyId: string) => listByCompany<StockBalance>('stockBalances', companyId);
-export const listStockMovements = (companyId: string) => listByCompany<StockMovement>('stockMovements', companyId, [orderBy('movementDate', 'desc')]);
+export const listStockMovements = (companyId: string) => listByCompanySorted<StockMovement>('stockMovements', companyId, 'movementDate', 'desc');
 
 export interface PostMovementInput {
   companyId: string;
@@ -145,7 +145,7 @@ export function lowStockItems(goods: Good[], balances: StockBalance[]): { good: 
 }
 
 // ── Transfer (2 addımlı, 05 §7) ──────────────────────────────
-export const listTransfers = (companyId: string) => listByCompany<StockTransfer>('stockTransfers', companyId, [orderBy('createdAt', 'desc')]);
+export const listTransfers = (companyId: string) => listByCompanySorted<StockTransfer>('stockTransfers', companyId, 'createdAt', 'desc');
 
 export async function createTransfer(d: Omit<StockTransfer, 'id' | 'status'> & { requestedBy: string }): Promise<string> {
   return createDoc('stockTransfers', { ...d, status: 'pending' } as Record<string, unknown>);
@@ -195,7 +195,7 @@ export function toBaseUnit(g: Good, unit: string, qty: number): number {
 export const goodUnits = (g: Good): string[] => [g.baseUnit, ...(g.unitConversions ?? []).map((u) => u.code)];
 
 // ── İnventarizasiya (stocktake, 05 §6) ──────────────────────
-export const listStockCounts = (companyId: string) => listByCompany<StockCount>('stockCounts', companyId, [orderBy('createdAt', 'desc')]);
+export const listStockCounts = (companyId: string) => listByCompanySorted<StockCount>('stockCounts', companyId, 'createdAt', 'desc');
 
 /** Seçilmiş anbar üzrə cari qalıqlardan sayım sessiyası qurur (draft) */
 export async function startStockCount(companyId: string, warehouseId: string, warehouseName: string, goods: Good[], balances: StockBalance[], createdBy: string): Promise<string> {
@@ -234,7 +234,7 @@ export async function finalizeStockCount(count: StockCount, actorUid: string): P
 }
 
 // ── Qiymət siyahıları (05 §2, B2B) ──────────────────────────
-export const listPriceLists = (companyId: string) => listByCompany<PriceList>('priceLists', companyId, [orderBy('createdAt', 'desc')]);
+export const listPriceLists = (companyId: string) => listByCompanySorted<PriceList>('priceLists', companyId, 'createdAt', 'desc');
 export const createPriceList = (d: Omit<PriceList, 'id'>) => createDoc('priceLists', d as Record<string, unknown>);
 export const updatePriceList = (id: string, d: Partial<PriceList>) => updateDocById('priceLists', id, d as Record<string, unknown>);
 

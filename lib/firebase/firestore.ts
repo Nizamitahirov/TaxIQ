@@ -37,6 +37,39 @@ export async function listByCompany<T>(
   return listDocs<T>(path, [where('companyId', '==', companyId), ...extra]);
 }
 
+/** Firestore Timestamp / tarix / rəqəm / mətn dəyərini müqayisə üçün normallaşdırır */
+function sortVal(v: unknown): number | string {
+  if (v == null) return '';
+  if (typeof v === 'object') {
+    const o = v as { toMillis?: () => number; seconds?: number; nanoseconds?: number };
+    if (typeof o.toMillis === 'function') return o.toMillis();
+    if (typeof o.seconds === 'number') return o.seconds * 1000 + (o.nanoseconds ?? 0) / 1e6;
+  }
+  return v as number | string;
+}
+
+/**
+ * companyId ilə gətirir və KLİENT tərəfdə sıralayır — Firestore composite index
+ * TƏLƏB ETMİR (where('companyId') + orderBy(başqa sahə) əks halda index istəyir).
+ * Bir şirkətin sənədləri az olduğundan klient sıralaması təhlükəsizdir.
+ */
+export async function listByCompanySorted<T>(
+  path: string,
+  companyId: string,
+  sortField: string,
+  dir: 'asc' | 'desc' = 'desc',
+  extra: QueryConstraint[] = [],
+): Promise<T[]> {
+  const rows = await listByCompany<T>(path, companyId, extra);
+  return rows.sort((a, b) => {
+    const av = sortVal((a as Record<string, unknown>)[sortField]);
+    const bv = sortVal((b as Record<string, unknown>)[sortField]);
+    if (av < bv) return dir === 'asc' ? -1 : 1;
+    if (av > bv) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
 export async function getDocById<T>(path: string, id: string): Promise<T | null> {
   const snap = await getDoc(doc(getDb(), path, id));
   if (!snap.exists()) return null;

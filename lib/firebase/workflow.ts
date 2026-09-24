@@ -1,5 +1,5 @@
-import { where, orderBy } from 'firebase/firestore';
-import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById } from './firestore';
+import { where } from 'firebase/firestore';
+import { listByCompany, listByCompanySorted, getDocById, createDoc, updateDocById, deleteDocById } from './firestore';
 import { logAudit } from './audit';
 import { runActions } from '@/lib/workflow/engine';
 import type {
@@ -26,11 +26,11 @@ export async function toggleWorkflow(wf: WorkflowDefinition, actorUid: string): 
 }
 
 // ── İcra tarixçəsi (workflowRuns, 04 §8) ────────────────────
-export const listWorkflowRuns = (companyId: string) => listByCompany<WorkflowRun>('workflowRuns', companyId, [orderBy('createdAt', 'desc')]);
+export const listWorkflowRuns = (companyId: string) => listByCompanySorted<WorkflowRun>('workflowRuns', companyId, 'createdAt', 'desc');
 
 // ── Təsdiq tapşırıqları (approvalTasks, 04 §5.3) ────────────
-export const listApprovalTasks = (companyId: string) => listByCompany<ApprovalTask>('approvalTasks', companyId, [orderBy('createdAt', 'desc')]);
-export const listWorkflowTasks = (companyId: string) => listByCompany<WorkflowTaskItem>('workflowTasks', companyId, [orderBy('createdAt', 'desc')]);
+export const listApprovalTasks = (companyId: string) => listByCompanySorted<ApprovalTask>('approvalTasks', companyId, 'createdAt', 'desc');
+export const listWorkflowTasks = (companyId: string) => listByCompanySorted<WorkflowTaskItem>('workflowTasks', companyId, 'createdAt', 'desc');
 
 /**
  * Təsdiq qərarı — SoD run-time yoxlaması (04 §5.2): istifadəçi öz yaratdığı

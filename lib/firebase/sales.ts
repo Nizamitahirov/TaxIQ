@@ -1,8 +1,8 @@
 import {
-  runTransaction, doc, collection, serverTimestamp, where, orderBy,
+  runTransaction, doc, collection, serverTimestamp, where, 
 } from 'firebase/firestore';
 import { getDb } from './config';
-import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById } from './firestore';
+import { listByCompany, listByCompanySorted, getDocById, createDoc, updateDocById, deleteDocById } from './firestore';
 import { fireWorkflows } from '@/lib/workflow/engine';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
@@ -64,7 +64,7 @@ async function nextInvoiceNumber(companyId: string): Promise<string> {
 
 // ── Fakturalar ───────────────────────────────────────────────
 export async function listInvoices(companyId: string): Promise<Invoice[]> {
-  return listByCompany<Invoice>('invoices', companyId, [orderBy('issueDate', 'desc')]);
+  return listByCompanySorted<Invoice>('invoices', companyId, 'issueDate', 'desc');
 }
 
 export interface CreateInvoiceInput {
@@ -188,10 +188,10 @@ async function nextSeq(companyId: string, field: string, prefix: string): Promis
 }
 
 export async function listQuotes(companyId: string): Promise<SalesQuote[]> {
-  return listByCompany<SalesQuote>('salesQuotes', companyId, [orderBy('issueDate', 'desc')]);
+  return listByCompanySorted<SalesQuote>('salesQuotes', companyId, 'issueDate', 'desc');
 }
 export async function listOrders(companyId: string): Promise<SalesOrder[]> {
-  return listByCompany<SalesOrder>('salesOrders', companyId, [orderBy('createdAt', 'desc')]);
+  return listByCompanySorted<SalesOrder>('salesOrders', companyId, 'createdAt', 'desc');
 }
 
 export async function createQuote(input: { companyId: string; customerId: string; customerName: string; issueDate: string; validUntil?: string; currency: string; lineItems: Omit<DocLineItem, 'lineTotal'>[]; createdBy: string }): Promise<string> {
@@ -271,7 +271,7 @@ export async function setDefaultTemplate(companyId: string, tpl: DocumentTemplat
 }
 
 // ── Təkrarlanan fakturalar (06 §4) ──────────────────────────
-export const listRecurringTemplates = (companyId: string) => listByCompany<RecurringInvoiceTemplate>('recurringInvoiceTemplates', companyId, [orderBy('createdAt', 'desc')]);
+export const listRecurringTemplates = (companyId: string) => listByCompanySorted<RecurringInvoiceTemplate>('recurringInvoiceTemplates', companyId, 'createdAt', 'desc');
 export const createRecurringTemplate = (d: Omit<RecurringInvoiceTemplate, 'id'>) => createDoc('recurringInvoiceTemplates', d as Record<string, unknown>);
 export const updateRecurringTemplate = (id: string, d: Partial<RecurringInvoiceTemplate>) => updateDocById('recurringInvoiceTemplates', id, d as Record<string, unknown>);
 export const deleteRecurringTemplate = (id: string) => deleteDocById('recurringInvoiceTemplates', id);

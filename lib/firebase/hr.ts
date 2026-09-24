@@ -1,6 +1,6 @@
-import { where, orderBy, serverTimestamp, doc, setDoc } from 'firebase/firestore';
+import { where, serverTimestamp, doc, setDoc } from 'firebase/firestore';
 import { getDb } from './config';
-import { listByCompany, getDocById, createDoc, updateDocById, deleteDocById, setDocById, listDocs } from './firestore';
+import { listByCompany, listByCompanySorted, getDocById, createDoc, updateDocById, deleteDocById, setDocById, listDocs } from './firestore';
 import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
 import { resolvePostingRule, codeFor } from './posting-rules';
@@ -48,7 +48,7 @@ export async function seedLeaveTypes(companyId: string): Promise<void> {
 }
 
 // ── Məzuniyyət tələbləri (10 §4.3) ──────────────────────────
-export const listLeaveRequests = (companyId: string) => listByCompany<LeaveRequest>('leaveRequests', companyId, [orderBy('createdAt', 'desc')]);
+export const listLeaveRequests = (companyId: string) => listByCompanySorted<LeaveRequest>('leaveRequests', companyId, 'createdAt', 'desc');
 
 export async function createLeaveRequest(d: Omit<LeaveRequest, 'id' | 'status'>): Promise<string> {
   const id = await createDoc('leaveRequests', { ...d, status: 'pending' } as Record<string, unknown>);
@@ -121,7 +121,7 @@ export const updateLeaveType = (id: string, d: Partial<LeaveType>) => updateDocB
 export const deleteLeaveType = (id: string) => deleteDocById('leaveTypes', id);
 
 // ── Saatlıq icazə (time permissions) ────────────────────────
-export const listTimePermissions = (companyId: string) => listByCompany<TimePermission>('timePermissions', companyId, [orderBy('createdAt', 'desc')]);
+export const listTimePermissions = (companyId: string) => listByCompanySorted<TimePermission>('timePermissions', companyId, 'createdAt', 'desc');
 export const createTimePermission = (d: Omit<TimePermission, 'id' | 'status'>) => createDoc('timePermissions', { ...d, status: 'pending' } as Record<string, unknown>);
 export async function decideTimePermission(p: TimePermission, approve: boolean, actorUid: string): Promise<void> {
   await updateDocById('timePermissions', p.id, { status: approve ? 'approved' : 'rejected' });
@@ -129,7 +129,7 @@ export async function decideTimePermission(p: TimePermission, approve: boolean, 
 }
 
 // ── Ezamiyyət (business trips) ──────────────────────────────
-export const listBusinessTrips = (companyId: string) => listByCompany<BusinessTrip>('businessTrips', companyId, [orderBy('createdAt', 'desc')]);
+export const listBusinessTrips = (companyId: string) => listByCompanySorted<BusinessTrip>('businessTrips', companyId, 'createdAt', 'desc');
 export const createBusinessTrip = (d: Omit<BusinessTrip, 'id' | 'status'>) => createDoc('businessTrips', { ...d, status: 'pending' } as Record<string, unknown>);
 export async function decideBusinessTrip(t: BusinessTrip, status: BusinessTrip['status'], actorUid: string): Promise<void> {
   await updateDocById('businessTrips', t.id, { status });
@@ -163,7 +163,7 @@ export async function seedTimesheets(companyId: string, yearMonth: string): Prom
 }
 
 // ── HR Əmrləri (əmrləşdirmə) ────────────────────────────────
-export const listHROrders = (companyId: string) => listByCompany<HROrder>('hrOrders', companyId, [orderBy('createdAt', 'desc')]);
+export const listHROrders = (companyId: string) => listByCompanySorted<HROrder>('hrOrders', companyId, 'createdAt', 'desc');
 export async function nextOrderNumber(companyId: string): Promise<string> {
   const all = await listByCompany<HROrder>('hrOrders', companyId);
   const year = new Date().getFullYear();
@@ -179,7 +179,7 @@ export async function createHROrder(d: Omit<HROrder, 'id' | 'status' | 'orderNum
 export const cancelHROrder = (id: string) => updateDocById('hrOrders', id, { status: 'cancelled' });
 
 // ── Xidməti (mülki-hüquqi) müqavilələr ──────────────────────
-export const listServiceContracts = (companyId: string) => listByCompany<ServiceContract>('serviceContracts', companyId, [orderBy('createdAt', 'desc')]);
+export const listServiceContracts = (companyId: string) => listByCompanySorted<ServiceContract>('serviceContracts', companyId, 'createdAt', 'desc');
 export async function nextServiceContractNumber(companyId: string): Promise<string> {
   const all = await listByCompany<ServiceContract>('serviceContracts', companyId);
   const year = new Date().getFullYear();
@@ -222,7 +222,7 @@ export async function savePayrollAdjustment(d: Omit<PayrollAdjustment, 'id'>): P
 }
 
 // ── Əmək haqqı dövrləri (10 §6) ─────────────────────────────
-export const listPayrollRuns = (companyId: string) => listByCompany<PayrollRun>('payrollRuns', companyId, [orderBy('createdAt', 'desc')]);
+export const listPayrollRuns = (companyId: string) => listByCompanySorted<PayrollRun>('payrollRuns', companyId, 'createdAt', 'desc');
 
 /** Dövr üçün bütün aktiv işçiləri hesabla (draft), aylıq düzəlişlərlə birlikdə */
 export async function calculatePayrollRun(companyId: string, month: number, year: number, createdBy: string): Promise<string> {
