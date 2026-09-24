@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { where } from 'firebase/firestore';
 import { ShieldCheck, Lock, Eye, AlertTriangle, Plus, Pencil, Copy, Trash2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
 import { listRolesForCompany, deleteRole } from '@/lib/firebase/roles';
 import { listDocs } from '@/lib/firebase/firestore';
 import { logAudit } from '@/lib/firebase/audit';
@@ -32,6 +33,7 @@ interface RoleView {
 
 export default function RolesPage() {
   const { can, isSuperAdmin, activeCompanyId, profile } = useAuth();
+  const tt = useTT();
   const qc = useQueryClient();
   const allowed = isSuperAdmin || can('platform.roles.manage');
   const [view, setView] = useState<RoleView | null>(null);
@@ -47,11 +49,11 @@ export default function RolesPage() {
   });
 
   if (!allowed) {
-    return <div><PageHeader title="Rollar və İcazələr" /><EmptyState title="İcazə yoxdur" description="'platform.roles.manage' icazəsi lazımdır." /></div>;
+    return <div><PageHeader title={tt('Rollar və İcazələr', 'Roles & Permissions')} /><EmptyState title={tt('İcazə yoxdur', 'No permission')} description={tt("'platform.roles.manage' icazəsi lazımdır.", "The 'platform.roles.manage' permission is required.")} /></div>;
   }
 
   const systemViews: RoleView[] = SYSTEM_ROLES.map((r) => ({
-    id: r.code, name: r.name.az, description: r.description.az, type: 'system',
+    id: r.code, name: tt(r.name.az, r.name.en), description: tt(r.description.az, r.description.en), type: 'system',
     permissions: resolveRolePermissions(r),
   }));
   const customViews: RoleView[] = (customRoles ?? [])
@@ -61,7 +63,7 @@ export default function RolesPage() {
 
   function openNew() { setSeed(null); setFormOpen(true); }
   function openEdit(r: RoleView) { setSeed({ id: r.id, name: r.name, description: r.description, permissions: [...r.permissions] }); setFormOpen(true); }
-  function openClone(r: RoleView) { setSeed({ name: `${r.name} (kopya)`, description: r.description, permissions: [...r.permissions] }); setFormOpen(true); }
+  function openClone(r: RoleView) { setSeed({ name: `${r.name} ${tt('(kopya)', '(copy)')}`, description: r.description, permissions: [...r.permissions] }); setFormOpen(true); }
 
   async function confirmDelete() {
     if (!delRole) return;
@@ -72,24 +74,24 @@ export default function RolesPage() {
         where('roleId', '==', delRole.id), where('status', '==', 'active'),
       ]);
       if (assigned.length > 0) {
-        toast.error('Silinə bilməz', `Bu rola ${assigned.length} istifadəçi təyin olunub — əvvəlcə onları başqa rola köçürün.`);
+        toast.error(tt('Silinə bilməz', 'Cannot delete'), tt(`Bu rola ${assigned.length} istifadəçi təyin olunub — əvvəlcə onları başqa rola köçürün.`, `${assigned.length} user(s) are assigned to this role — reassign them to another role first.`));
         setDelRole(null); return;
       }
       await deleteRole(delRole.id);
       await logAudit({ companyId: activeCompanyId, userId: profile?.uid ?? '', action: 'ROLE_DELETED', entityType: 'role', entityId: delRole.id });
-      toast.success('Rol silindi');
+      toast.success(tt('Rol silindi', 'Role deleted'));
       qc.invalidateQueries({ queryKey: ['roles', activeCompanyId] });
       setDelRole(null);
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setDeleting(false); }
   }
 
   return (
     <div>
       <PageHeader
-        title="Rollar və İcazələr"
-        subtitle="Sistem rolları və şirkətə xas fərdi rollar (01 §4, §6)"
-        action={<Button onClick={openNew}><Plus className="h-4 w-4" /> Yeni rol</Button>}
+        title={tt('Rollar və İcazələr', 'Roles & Permissions')}
+        subtitle={tt('Sistem rolları və şirkətə xas fərdi rollar (01 §4, §6)', 'System roles and company-specific custom roles (01 §4, §6)')}
+        action={<Button onClick={openNew}><Plus className="h-4 w-4" /> {tt('Yeni rol', 'New role')}</Button>}
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {all.map((r) => {
@@ -99,23 +101,23 @@ export default function RolesPage() {
               <CardContent className="p-5">
                 <div className="flex items-start justify-between gap-2">
                   <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"><ShieldCheck className="h-5 w-5" /></span>
-                  <Badge variant={r.type === 'system' ? 'secondary' : 'default'}>{r.type === 'system' ? 'Sistem' : 'Fərdi'}</Badge>
+                  <Badge variant={r.type === 'system' ? 'secondary' : 'default'}>{r.type === 'system' ? tt('Sistem', 'System') : tt('Fərdi', 'Custom')}</Badge>
                 </div>
                 <p className="mt-3 font-semibold">{r.name}</p>
                 <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{r.description}</p>
                 {sod.length > 0 && (
                   <div className="mt-3 flex items-start gap-1.5 rounded-lg bg-warning/10 p-2 text-[11px] text-warning-foreground">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" /> SoD: yaratma + təsdiqləmə ({sod.length} modul)
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" /> {tt(`SoD: yaratma + təsdiqləmə (${sod.length} modul)`, `SoD: create + approve (${sod.length} module(s))`)}
                   </div>
                 )}
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{r.permissions.size} icazə</span>
+                  <span className="text-xs text-muted-foreground">{tt(`${r.permissions.size} icazə`, `${r.permissions.size} permission(s)`)}</span>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Matris" onClick={() => setView(r)}><Eye className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" title="Klonla" onClick={() => openClone(r)}><Copy className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Matris', 'Matrix')} onClick={() => setView(r)}><Eye className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Klonla', 'Clone')} onClick={() => openClone(r)}><Copy className="h-4 w-4" /></Button>
                     {r.type === 'custom' && <>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Redaktə" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-danger" title="Sil" onClick={() => setDelRole(r)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Redaktə', 'Edit')} onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-danger" title={tt('Sil', 'Delete')} onClick={() => setDelRole(r)}><Trash2 className="h-4 w-4" /></Button>
                     </>}
                   </div>
                 </div>
@@ -127,8 +129,8 @@ export default function RolesPage() {
 
       <Dialog open={!!view} onOpenChange={(o) => !o && setView(null)}>
         <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Lock className="h-4 w-4 text-primary" /> {view?.name} — İcazə matrisi</DialogTitle></DialogHeader>
-          {view && <PermissionMatrix permissions={view.permissions} />}
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Lock className="h-4 w-4 text-primary" /> {view?.name} — {tt('İcazə matrisi', 'Permission matrix')}</DialogTitle></DialogHeader>
+          {view && <PermissionMatrix permissions={view.permissions} tt={tt} />}
         </DialogContent>
       </Dialog>
 
@@ -140,14 +142,14 @@ export default function RolesPage() {
 
       <ConfirmDialog
         open={!!delRole} onOpenChange={(o) => !o && setDelRole(null)}
-        title="Rolu sil" description={`"${delRole?.name}" rolunu silmək istədiyinizə əminsiniz?`}
-        confirmLabel="Sil" loading={deleting} onConfirm={confirmDelete}
+        title={tt('Rolu sil', 'Delete role')} description={tt(`"${delRole?.name}" rolunu silmək istədiyinizə əminsiniz?`, `Are you sure you want to delete the "${delRole?.name}" role?`)}
+        confirmLabel={tt('Sil', 'Delete')} loading={deleting} onConfirm={confirmDelete}
       />
     </div>
   );
 }
 
-function PermissionMatrix({ permissions }: { permissions: Set<string> }) {
+function PermissionMatrix({ permissions, tt }: { permissions: Set<string>; tt: (az: string, en: string) => string }) {
   return (
     <div className="space-y-4">
       {MODULES.map((mod) => {
@@ -157,7 +159,7 @@ function PermissionMatrix({ permissions }: { permissions: Set<string> }) {
         return (
           <div key={mod.key} className="rounded-card border border-border p-3">
             <div className="mb-2 flex items-center justify-between">
-              <p className="text-sm font-semibold">{mod.label.az}</p>
+              <p className="text-sm font-semibold">{tt(mod.label.az, mod.label.en)}</p>
               <Badge variant={granted > 0 ? 'success' : 'secondary'}>{granted}/{perms.length}</Badge>
             </div>
             <div className="flex flex-wrap gap-1.5">

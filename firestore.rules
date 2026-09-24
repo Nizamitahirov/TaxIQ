@@ -21,12 +21,21 @@ service cloud.firestore {
       return isSignedIn() && userDoc().userType == 'platform_super_admin';
     }
 
+    // Determinik təyinat sənədi mövcuddur və aktivdirmi? (əsl mənbə — 01 §2.5)
+    // Bu, denormallaşdırılmış `accessibleCompanyIds` massivi drift etsə belə,
+    // istifadəçinin real təyinatına görə girişi təmin edir.
+    function hasActiveAccessRecord(companyId) {
+      return exists(/databases/$(database)/documents/userCompanyAccess/$(request.auth.uid + '__' + companyId)) &&
+        get(/databases/$(database)/documents/userCompanyAccess/$(request.auth.uid + '__' + companyId)).data.status == 'active';
+    }
+
     // companyId həmin istifadəçinin əlçatan şirkətləri arasındadırmı?
     function hasCompanyAccess(companyId) {
       return isSignedIn() && (
         isSuperAdmin() ||
         (userDoc().accessibleCompanyIds != null && companyId in userDoc().accessibleCompanyIds) ||
-        userDoc().homeCompanyId == companyId
+        userDoc().homeCompanyId == companyId ||
+        hasActiveAccessRecord(companyId)
       );
     }
 

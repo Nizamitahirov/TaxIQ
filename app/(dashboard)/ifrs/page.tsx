@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, CheckCircle2, AlertTriangle, FileBarChart, Building2, SlidersHorizontal, Save, BookText } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
 import {
   generateBalanceSheet, generateProfitLoss, generateCashFlow, generateEquityChanges,
   generateFixedAssetSchedule, generateAccountingPolicies,
@@ -26,18 +27,19 @@ import { cn } from '@/lib/utils/cn';
 import type { FinancialStatementTemplate } from '@/types';
 
 type StatementType = 'balance_sheet' | 'profit_loss' | 'cash_flow' | 'equity_changes' | 'fixed_asset_schedule' | 'accounting_policies';
-const TYPES: { value: StatementType; label: string }[] = [
-  { value: 'balance_sheet', label: 'Maliyyə Vəziyyəti (Balans)' },
-  { value: 'profit_loss', label: 'Mənfəət və Zərər' },
-  { value: 'cash_flow', label: 'Pul Vəsaitlərinin Hərəkəti' },
-  { value: 'equity_changes', label: 'Kapitalda Dəyişikliklər' },
-  { value: 'fixed_asset_schedule', label: 'Əsas Vəsaitlərin Hərəkəti' },
-  { value: 'accounting_policies', label: 'Uçot Siyasəti və Qeydlər' },
+const TYPES: { value: StatementType; label: string; en: string }[] = [
+  { value: 'balance_sheet', label: 'Maliyyə Vəziyyəti (Balans)', en: 'Statement of Financial Position (Balance Sheet)' },
+  { value: 'profit_loss', label: 'Mənfəət və Zərər', en: 'Profit & Loss' },
+  { value: 'cash_flow', label: 'Pul Vəsaitlərinin Hərəkəti', en: 'Cash Flow Statement' },
+  { value: 'equity_changes', label: 'Kapitalda Dəyişikliklər', en: 'Changes in Equity' },
+  { value: 'fixed_asset_schedule', label: 'Əsas Vəsaitlərin Hərəkəti', en: 'Fixed Asset Movement' },
+  { value: 'accounting_policies', label: 'Uçot Siyasəti və Qeydlər', en: 'Accounting Policies & Notes' },
 ];
 const TEMPLATABLE = new Set<StatementType>(['balance_sheet', 'profit_loss', 'cash_flow', 'equity_changes', 'fixed_asset_schedule']);
 
 export default function IfrsPage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
+  const tt = useTT();
   const qc = useQueryClient();
   const companyId = active?.companyId;
   const allowed = isSuperAdmin || can('accounting.reports.ifrs.view');
@@ -70,8 +72,8 @@ export default function IfrsPage() {
     enabled: !!companyId && allowed,
   });
 
-  if (!companyId) return <div><PageHeader title="IFRS Hesabatlar" /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">Aktiv şirkət seçin.</CardContent></Card></div>;
-  if (!allowed) return <div><PageHeader title="IFRS Hesabatlar" /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">İcazə yoxdur (accounting.reports.ifrs.view).</CardContent></Card></div>;
+  if (!companyId) return <div><PageHeader title={tt('IFRS Hesabatlar', 'IFRS Reports')} /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('Aktiv şirkət seçin.', 'Select an active company.')}</CardContent></Card></div>;
+  if (!allowed) return <div><PageHeader title={tt('IFRS Hesabatlar', 'IFRS Reports')} /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('İcazə yoxdur (accounting.reports.ifrs.view).', 'No permission (accounting.reports.ifrs.view).')}</CardContent></Card></div>;
 
   const base = active?.company.baseCurrency ?? 'AZN';
   const isNotes = type === 'accounting_policies';
@@ -82,16 +84,16 @@ export default function IfrsPage() {
   return (
     <div>
       <PageHeader
-        title="IFRS Maliyyə Hesabatları"
-        subtitle={`${active?.company.name} · IAS 1 (Modul 9) · Modul 8 qalıqlarından avtomatik`}
+        title={tt('IFRS Maliyyə Hesabatları', 'IFRS Financial Statements')}
+        subtitle={`${active?.company.name} · IAS 1 (${tt('Modul 9', 'Module 9')}) · ${tt('Modul 8 qalıqlarından avtomatik', 'automatic from Module 8 balances')}`}
         action={stmt && (
           <div className="flex gap-2">
-            {canManage && TEMPLATABLE.has(type) && <Button variant="outline" size="sm" onClick={() => setTplOpen(true)}><SlidersHorizontal className="h-4 w-4" /> Şablon</Button>}
+            {canManage && TEMPLATABLE.has(type) && <Button variant="outline" size="sm" onClick={() => setTplOpen(true)}><SlidersHorizontal className="h-4 w-4" /> {tt('Şablon', 'Template')}</Button>}
             <ExportButton filename={`ifrs-${type}-${year}`} rows={stmt.rows}
               columns={[
-                { header: 'Maddə', value: 'label' },
-                { header: `Cari (${year})`, value: 'current' },
-                ...(showComparison ? [{ header: `Əvvəlki (${year - 1})`, value: 'prior' as const }] : []),
+                { header: tt('Maddə', 'Item'), value: 'label' },
+                { header: `${tt('Cari', 'Current')} (${year})`, value: 'current' },
+                ...(showComparison ? [{ header: `${tt('Əvvəlki', 'Prior')} (${year - 1})`, value: 'prior' as const }] : []),
               ]} />
           </div>
         )}
@@ -100,7 +102,7 @@ export default function IfrsPage() {
       <div className="mb-4 flex flex-wrap gap-2">
         <Select value={type} onValueChange={(v) => setType(v as StatementType)}>
           <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
-          <SelectContent>{TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
+          <SelectContent>{TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{tt(t.label, t.en)}</SelectItem>)}</SelectContent>
         </Select>
         {!isNotes && (
           <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
@@ -110,10 +112,10 @@ export default function IfrsPage() {
         )}
         {type === 'profit_loss' && (departments ?? []).length > 0 && (
           <Select value={departmentId || 'all'} onValueChange={(v) => setDepartmentId(v === 'all' ? '' : v)}>
-            <SelectTrigger className="w-56"><Building2 className="mr-1 h-4 w-4 text-muted-foreground" /><SelectValue placeholder="Bütün şöbələr" /></SelectTrigger>
+            <SelectTrigger className="w-56"><Building2 className="mr-1 h-4 w-4 text-muted-foreground" /><SelectValue placeholder={tt('Bütün şöbələr', 'All departments')} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Bütün şöbələr (konsolidə)</SelectItem>
-              {(departments ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{d.name.az}</SelectItem>)}
+              <SelectItem value="all">{tt('Bütün şöbələr (konsolidə)', 'All departments (consolidated)')}</SelectItem>
+              {(departments ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{tt(d.name.az, d.name.en)}</SelectItem>)}
             </SelectContent>
           </Select>
         )}
@@ -136,7 +138,7 @@ export default function IfrsPage() {
               </div>
             ))}
           </div>
-          <p className="border-t border-border px-6 py-3 text-xs text-muted-foreground">Bu bölmə Fayl 5 (ehtiyat metodu) və Fayl 8 (amortizasiya metodu) seçimlərinə avtomatik istinad edir — əl ilə uyğunsuzluq riski aradan qalxır (09 §7).</p>
+          <p className="border-t border-border px-6 py-3 text-xs text-muted-foreground">{tt('Bu bölmə Fayl 5 (ehtiyat metodu) və Fayl 8 (amortizasiya metodu) seçimlərinə avtomatik istinad edir — əl ilə uyğunsuzluq riski aradan qalxır (09 §7).', 'This section automatically references the Module 5 (inventory method) and Module 8 (depreciation method) selections — the risk of manual inconsistency is eliminated (09 §7).')}</p>
         </CardContent></Card>
       ) : stmt && (
         <Card className="rounded-card">
@@ -145,14 +147,14 @@ export default function IfrsPage() {
               <FileBarChart className="mx-auto mb-2 h-6 w-6 text-primary" />
               <p className="text-lg font-bold">{stmt.title}</p>
               <p className="text-sm text-muted-foreground">{active?.company.name} · VÖEN {active?.company.taxId || '—'} · {stmt.periodLabel} · {base}
-                {type === 'profit_loss' && departmentId && (departments ?? []).find((d) => d.id === departmentId) && <> · <span className="text-primary">{(departments ?? []).find((d) => d.id === departmentId)!.name.az}</span></>}
+                {type === 'profit_loss' && departmentId && (departments ?? []).find((d) => d.id === departmentId) && <> · <span className="text-primary">{tt((departments ?? []).find((d) => d.id === departmentId)!.name.az, (departments ?? []).find((d) => d.id === departmentId)!.name.en)}</span></>}
               </p>
             </div>
 
             {stmt.balanced !== undefined && (
               <div className={cn('flex items-center gap-2 px-5 py-2 text-sm font-medium', stmt.balanced ? 'text-success' : 'text-danger')}>
                 {stmt.balanced ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                {stmt.balanced ? 'Balans tənliyi doğrulandı (Aktivlər = Kapital + Öhdəliklər)' : stmt.warning}
+                {stmt.balanced ? tt('Balans tənliyi doğrulandı (Aktivlər = Kapital + Öhdəliklər)', 'Balance equation verified (Assets = Equity + Liabilities)') : stmt.warning}
               </div>
             )}
             {stmt.warning && stmt.balanced === undefined && (
@@ -163,9 +165,9 @@ export default function IfrsPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-5 py-2 text-left">Maddə</th>
-                    <th className="px-5 py-2 text-right">Cari ({year})</th>
-                    {showComparison && <th className="px-5 py-2 text-right">Əvvəlki ({year - 1})</th>}
+                    <th className="px-5 py-2 text-left">{tt('Maddə', 'Item')}</th>
+                    <th className="px-5 py-2 text-right">{tt('Cari', 'Current')} ({year})</th>
+                    {showComparison && <th className="px-5 py-2 text-right">{tt('Əvvəlki', 'Prior')} ({year - 1})</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -182,7 +184,7 @@ export default function IfrsPage() {
                 </tbody>
               </table>
             </div>
-            <p className="px-5 py-3 text-xs text-muted-foreground">Qeyd: Cash Flow (dolayı metod) və Kapital dəyişiklikləri dövr açılış/bağlanış qalıqlarından hesablanır. Hesabat şablonu kod dəyişikliyi olmadan fərdiləşdirilə bilər (09 §9).</p>
+            <p className="px-5 py-3 text-xs text-muted-foreground">{tt('Qeyd: Cash Flow (dolayı metod) və Kapital dəyişiklikləri dövr açılış/bağlanış qalıqlarından hesablanır. Hesabat şablonu kod dəyişikliyi olmadan fərdiləşdirilə bilər (09 §9).', 'Note: Cash Flow (indirect method) and Changes in Equity are calculated from period opening/closing balances. The statement template can be customized without code changes (09 §9).')}</p>
           </CardContent>
         </Card>
       )}
@@ -199,6 +201,7 @@ function TemplateDialog({ companyId, statementType, rows, tpl, actorUid, onClose
   companyId: string; statementType: FinancialStatementTemplate['statementType']; rows: string[]; tpl: FinancialStatementTemplate | null | undefined;
   actorUid: string; onClose: () => void; onSaved: () => void;
 }) {
+  const tt = useTT();
   const [title, setTitle] = useState(tpl?.titleOverride ?? '');
   const [comparative, setComparative] = useState(tpl?.showComparative ?? true);
   const [hidden, setHidden] = useState<Set<string>>(new Set(tpl?.hidden ?? []));
@@ -214,31 +217,31 @@ function TemplateDialog({ companyId, statementType, rows, tpl, actorUid, onClose
         titleOverride: title.trim() || null, showComparative: comparative,
         hidden: Array.from(hidden), renames: cleanRenames,
       }, actorUid);
-      toast.success('Şablon saxlanıldı');
+      toast.success(tt('Şablon saxlanıldı', 'Template saved'));
       onSaved(); onClose();
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
   }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[88vh] max-w-lg overflow-y-auto">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><SlidersHorizontal className="h-5 w-5 text-primary" /> Hesabat şablonu</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><SlidersHorizontal className="h-5 w-5 text-primary" /> {tt('Hesabat şablonu', 'Statement template')}</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-2"><Label>Başlıq (override)</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Boş = defolt başlıq" /></div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={comparative} onChange={(e) => setComparative(e.target.checked)} className="h-4 w-4 rounded border-input" /> Müqayisəli dövr göstərilsin</label>
+          <div className="space-y-2"><Label>{tt('Başlıq (override)', 'Title (override)')}</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tt('Boş = defolt başlıq', 'Empty = default title')} /></div>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={comparative} onChange={(e) => setComparative(e.target.checked)} className="h-4 w-4 rounded border-input" /> {tt('Müqayisəli dövr göstərilsin', 'Show comparative period')}</label>
           <div>
-            <Label className="mb-2 block">Sətirlər — gizlət / adını dəyiş</Label>
+            <Label className="mb-2 block">{tt('Sətirlər — gizlət / adını dəyiş', 'Rows — hide / rename')}</Label>
             <div className="space-y-1.5">
               {rows.map((label) => (
                 <div key={label} className="flex items-center gap-2">
-                  <input type="checkbox" title="Gizlət" checked={!hidden.has(label)} onChange={(e) => setHidden((s) => { const n = new Set(s); if (e.target.checked) n.delete(label); else n.add(label); return n; })} className="h-4 w-4 shrink-0 rounded border-input" />
+                  <input type="checkbox" title={tt('Gizlət', 'Hide')} checked={!hidden.has(label)} onChange={(e) => setHidden((s) => { const n = new Set(s); if (e.target.checked) n.delete(label); else n.add(label); return n; })} className="h-4 w-4 shrink-0 rounded border-input" />
                   <Input value={renames[label] ?? ''} onChange={(e) => setRenames((r) => ({ ...r, [label]: e.target.value }))} placeholder={label} className={cn('h-8 text-xs', hidden.has(label) && 'opacity-40')} />
                 </div>
               ))}
             </div>
           </div>
         </div>
-        <DialogFooter><Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Yadda saxla</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {tt('Yadda saxla', 'Save')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

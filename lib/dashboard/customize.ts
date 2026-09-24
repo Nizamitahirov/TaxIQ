@@ -3,22 +3,22 @@
  * sıralaya bilir; dəyişiklik «Yadda saxla»dan sonra qalıcılaşır (istifadəçi + şirkət
  * üzrə localStorage). Cloud Function tələb etmədən cihazlar arası olmadan işləyir.
  */
-export interface DashItem { key: string; label: string }
+export interface DashItem { key: string; label: string; labelEn: string }
 
 /** Sıralana/gizlədilə bilən qrafik widget-ləri (aşağı qrafik şəbəkəsi) */
 export const DASH_CHART_WIDGETS: DashItem[] = [
-  { key: 'revenueTrend', label: 'Gəlir trendi və kümulyativ' },
-  { key: 'collection', label: 'Yığım faizi (collection)' },
-  { key: 'statusDist', label: 'Faktura statusu' },
-  { key: 'aging', label: 'Debitor yaş analizi' },
-  { key: 'topCustomers', label: 'Top müştərilər (qrafik)' },
-  { key: 'summary', label: 'İcmal' },
+  { key: 'revenueTrend', label: 'Gəlir trendi və kümulyativ', labelEn: 'Revenue trend & cumulative' },
+  { key: 'collection', label: 'Yığım faizi (collection)', labelEn: 'Collection rate' },
+  { key: 'statusDist', label: 'Faktura statusu', labelEn: 'Invoice status' },
+  { key: 'aging', label: 'Debitor yaş analizi', labelEn: 'AR aging analysis' },
+  { key: 'topCustomers', label: 'Top müştərilər (qrafik)', labelEn: 'Top customers (chart)' },
+  { key: 'summary', label: 'İcmal', labelEn: 'Summary' },
 ];
 
 /** Yalnız göstər/gizlə edilən tam-en bölmələr */
 export const DASH_SECTIONS: DashItem[] = [
-  { key: 'alerts', label: 'Xəbərdarlıqlar' },
-  { key: 'recentInvoices', label: 'Son fakturalar' },
+  { key: 'alerts', label: 'Xəbərdarlıqlar', labelEn: 'Alerts' },
+  { key: 'recentInvoices', label: 'Son fakturalar', labelEn: 'Recent invoices' },
 ];
 
 export interface DashConfig {

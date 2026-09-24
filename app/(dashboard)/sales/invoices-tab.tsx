@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Send, Ban, Printer, FileText, FileCode2, Receipt, Zap } from 'lucide-react';
+import { Loader2, Plus, Send, Ban, Printer, FileText, FileCode2, Receipt, Zap, Eye } from 'lucide-react';
 import {
   listInvoices, listCustomers, createInvoice, postInvoice, cancelInvoice,
   listDocumentTemplates, markEInvoiceSubmitted, refreshOverdue, getCustomer,
 } from '@/lib/firebase/sales';
 import { downloadEInvoiceXml } from '@/lib/sales/einvoice';
-import { printWithTemplate, buildInvoiceContext } from '@/lib/sales/document-template';
+import { printWithTemplate, renderTemplateDocument, buildInvoiceContext } from '@/lib/sales/document-template';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
+import { DocumentViewer } from '@/components/shared/document-viewer';
+import { TableToolbar } from '@/components/shared/table-toolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,29 +25,43 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import { LineItemsEditor, emptyLine, type DraftLine } from './line-items-editor';
-import { printInvoice } from './print-invoice';
+import { printInvoice, buildInvoiceHtml } from './print-invoice';
 import type { Company, Invoice, InvoiceStatus, Customer } from '@/types';
 
-const STATUS: Record<InvoiceStatus, { label: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }> = {
-  draft: { label: 'qaralama', variant: 'secondary' },
-  sent: { label: 'göndərilib', variant: 'default' },
-  partially_paid: { label: 'qismən ödənilib', variant: 'warning' },
-  paid: { label: 'ödənilib', variant: 'success' },
-  overdue: { label: 'vaxtı keçib', variant: 'destructive' },
-  cancelled: { label: 'ləğv', variant: 'secondary' },
+const STATUS: Record<InvoiceStatus, { label: string; en: string; variant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' }> = {
+  draft: { label: 'qaralama', en: 'draft', variant: 'secondary' },
+  sent: { label: 'göndərilib', en: 'sent', variant: 'default' },
+  partially_paid: { label: 'qismən ödənilib', en: 'partially paid', variant: 'warning' },
+  paid: { label: 'ödənilib', en: 'paid', variant: 'success' },
+  overdue: { label: 'vaxtı keçib', en: 'overdue', variant: 'destructive' },
+  cancelled: { label: 'ləğv', en: 'cancelled', variant: 'secondary' },
 };
 
 export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, company }: {
   companyId: string; canCreate: boolean; actorUid: string; baseCurrency: string; company: Company;
 }) {
   const qc = useQueryClient();
+  const tt = useTT();
   const [open, setOpen] = useState(false);
   const [posOpen, setPosOpen] = useState(false);
   const [stsFor, setStsFor] = useState<Invoice | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ html: string; number: string } | null>(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const { data, isLoading } = useQuery({ queryKey: ['invoices', companyId], queryFn: () => listInvoices(companyId) });
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (data ?? []).filter((inv) => {
+      if (statusFilter && inv.status !== statusFilter) return false;
+      if (q && !(`${inv.invoiceNumber} ${inv.customerName ?? ''}`.toLowerCase().includes(q))) return false;
+      return true;
+    });
+  }, [data, search, statusFilter]);
   const { data: customers } = useQuery({ queryKey: ['customers', companyId], queryFn: () => listCustomers(companyId) });
   const { data: templates } = useQuery({ queryKey: ['documentTemplates', companyId], queryFn: () => listDocumentTemplates(companyId) });
 
@@ -60,29 +76,39 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
   }
 
   const defaultTemplate = (templates ?? []).find((t) => t.type === 'invoice' && t.isDefault);
+  function invoiceHtml(inv: Invoice): string {
+    if (defaultTemplate) {
+      const customer = customers?.find((c) => c.id === inv.customerId) ?? null;
+      return renderTemplateDocument(defaultTemplate.htmlContent, buildInvoiceContext(inv, company, customer as Customer | null));
+    }
+    return buildInvoiceHtml(inv, company);
+  }
   async function print(inv: Invoice) {
     if (defaultTemplate) {
       const customer = customers?.find((c) => c.id === inv.customerId) ?? null;
       printWithTemplate(defaultTemplate.htmlContent, buildInvoiceContext(inv, company, customer as Customer | null));
     } else { printInvoice(inv, company); }
   }
+  function view(inv: Invoice) {
+    setViewer({ html: invoiceHtml(inv), number: inv.invoiceNumber });
+  }
   async function eInvoice(inv: Invoice) {
     const customer = customers?.find((c) => c.id === inv.customerId) ?? (await getCustomer(inv.customerId));
     downloadEInvoiceXml(inv, company, (customer as Customer) ?? null);
-    toast.success('e-Qaimə XML endirildi', 'e-taxes.gov.az-a əl ilə yükləyin, sonra STS nömrəsini daxil edin');
+    toast.success(tt('e-Qaimə XML endirildi', 'e-Invoice XML downloaded'), tt('e-taxes.gov.az-a əl ilə yükləyin, sonra STS nömrəsini daxil edin', 'Upload it manually to e-taxes.gov.az, then enter the STS number'));
     setStsFor(inv);
   }
 
   async function post(inv: Invoice) {
     setBusyId(inv.id);
-    try { await postInvoice(inv, baseCurrency, actorUid); toast.success('Faktura rəsmiləşdi', 'Satış jurnal yazısı yaradıldı'); invalidate(); }
-    catch (e) { toast.error('Alınmadı', e instanceof Error ? e.message : undefined); }
+    try { await postInvoice(inv, baseCurrency, actorUid); toast.success(tt('Faktura rəsmiləşdi', 'Invoice posted'), tt('Satış jurnal yazısı yaradıldı', 'Sales journal entry created')); invalidate(); }
+    catch (e) { toast.error(tt('Alınmadı', 'Failed'), e instanceof Error ? e.message : undefined); }
     finally { setBusyId(null); }
   }
   async function cancel(inv: Invoice) {
     setBusyId(inv.id);
-    try { await cancelInvoice(inv, actorUid); toast.success('Faktura ləğv edildi'); invalidate(); }
-    catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    try { await cancelInvoice(inv, actorUid); toast.success(tt('Faktura ləğv edildi', 'Invoice cancelled')); invalidate(); }
+    catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setBusyId(null); }
   }
 
@@ -91,30 +117,37 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
       <div className="mb-4 flex items-center justify-between">
         <ExportButton filename="fakturalar" rows={data ?? []}
           columns={[
-            { header: 'Nömrə', value: 'invoiceNumber' }, { header: 'Müştəri', value: (i) => i.customerName ?? '' },
-            { header: 'Tarix', value: 'issueDate' }, { header: 'Ödəmə tarixi', value: 'dueDate' },
-            { header: 'Yekun', value: 'grandTotal' }, { header: 'Ödənilib', value: 'amountPaid' },
-            { header: 'Qalıq', value: 'amountDue' }, { header: 'Status', value: 'status' },
+            { header: tt('Nömrə', 'Number'), value: 'invoiceNumber' }, { header: tt('Müştəri', 'Customer'), value: (i) => i.customerName ?? '' },
+            { header: tt('Tarix', 'Date'), value: 'issueDate' }, { header: tt('Ödəmə tarixi', 'Due date'), value: 'dueDate' },
+            { header: tt('Yekun', 'Total'), value: 'grandTotal' }, { header: tt('Ödənilib', 'Paid'), value: 'amountPaid' },
+            { header: tt('Qalıq', 'Balance'), value: 'amountDue' }, { header: 'Status', value: 'status' },
           ]} />
         <div className="flex gap-2">
-          {canCreate && <Button size="sm" variant="outline" onClick={() => setPosOpen(true)} disabled={!customers || customers.length === 0}><Zap className="h-4 w-4" /> Sürətli satış</Button>}
-          {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!customers || customers.length === 0}><Plus className="h-4 w-4" /> Yeni faktura</Button>}
+          {canCreate && <Button size="sm" variant="outline" onClick={() => setPosOpen(true)} disabled={!customers || customers.length === 0}><Zap className="h-4 w-4" /> {tt('Sürətli satış', 'Quick sale')}</Button>}
+          {canCreate && <Button size="sm" onClick={() => setOpen(true)} disabled={!customers || customers.length === 0}><Plus className="h-4 w-4" /> {tt('Yeni faktura', 'New invoice')}</Button>}
         </div>
       </div>
-      {(!customers || customers.length === 0) && <p className="mb-3 text-xs text-warning-foreground">Əvvəlcə «Müştərilər» bölməsindən müştəri əlavə edin.</p>}
+      {(!customers || customers.length === 0) && <p className="mb-3 text-xs text-warning-foreground">{tt('Əvvəlcə «Müştərilər» bölməsindən müştəri əlavə edin.', 'First add a customer from the “Customers” tab.')}</p>}
 
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (data ?? []).length === 0 ? (
-        <EmptyState title="Faktura yoxdur" />
+        <EmptyState title={tt('Faktura yoxdur', 'No invoices')} />
       ) : (
+        <>
+        <TableToolbar
+          search={search} onSearch={setSearch} searchPlaceholder={tt('Nömrə və ya müştəri…', 'Number or customer…')}
+          count={filtered.length} total={(data ?? []).length}
+          selects={[{ value: statusFilter, onChange: setStatusFilter, placeholder: 'Status', options: (Object.keys(STATUS) as InvoiceStatus[]).map((s) => ({ value: s, label: tt(STATUS[s].label, STATUS[s].en) })) }]}
+        />
+        {filtered.length === 0 ? <EmptyState title={tt('Nəticə yoxdur', 'No results')} /> : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
             <TableHeader><TableRow>
-              <TableHead>Nömrə</TableHead><TableHead>Müştəri</TableHead><TableHead>Ödəmə tarixi</TableHead>
-              <TableHead className="text-right">Yekun</TableHead><TableHead className="text-right">Qalıq</TableHead>
+              <TableHead>{tt('Nömrə', 'Number')}</TableHead><TableHead>{tt('Müştəri', 'Customer')}</TableHead><TableHead>{tt('Ödəmə tarixi', 'Due date')}</TableHead>
+              <TableHead className="text-right">{tt('Yekun', 'Total')}</TableHead><TableHead className="text-right">{tt('Qalıq', 'Balance')}</TableHead>
               <TableHead>Status</TableHead><TableHead></TableHead>
             </TableRow></TableHeader>
             <TableBody>
-              {(data ?? []).map((inv) => (
+              {filtered.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-mono text-sm font-medium">{inv.invoiceNumber}</TableCell>
                   <TableCell>{inv.customerName}</TableCell>
@@ -122,23 +155,24 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
                   <TableCell className="text-right tnum">{formatCurrency(inv.grandTotal, inv.currency)}</TableCell>
                   <TableCell className="text-right tnum">{formatCurrency(inv.amountDue, inv.currency)}</TableCell>
                   <TableCell>
-                    <Badge variant={STATUS[inv.status].variant}>{STATUS[inv.status].label}</Badge>
-                    {inv.eInvoice?.submittedToSTS && <Badge variant="outline" className="ml-1" title={`STS: ${inv.eInvoice.stsReferenceNumber ?? ''}`}>e-qaimə</Badge>}
+                    <Badge variant={STATUS[inv.status].variant}>{tt(STATUS[inv.status].label, STATUS[inv.status].en)}</Badge>
+                    {inv.eInvoice?.submittedToSTS && <Badge variant="outline" className="ml-1" title={`STS: ${inv.eInvoice.stsReferenceNumber ?? ''}`}>{tt('e-qaimə', 'e-invoice')}</Badge>}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Çap" onClick={() => print(inv)}><Printer className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Bax', 'View')} onClick={() => view(inv)}><Eye className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Çap', 'Print')} onClick={() => print(inv)}><Printer className="h-4 w-4" /></Button>
                       {canCreate && inv.status === 'draft' && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="Rəsmiləşdir" disabled={busyId === inv.id} onClick={() => post(inv)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title={tt('Rəsmiləşdir', 'Post')} disabled={busyId === inv.id} onClick={() => post(inv)}>
                           {busyId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                         </Button>
                       )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><FileCode2 className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => eInvoice(inv)}><FileCode2 className="h-4 w-4" /> e-Qaimə XML endir</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setStsFor(inv)}><Receipt className="h-4 w-4" /> STS nömrəsi daxil et</DropdownMenuItem>
-                          {canCreate && !['paid', 'cancelled'].includes(inv.status) && <DropdownMenuItem onClick={() => cancel(inv)} className="text-danger"><Ban className="h-4 w-4" /> Ləğv et</DropdownMenuItem>}
+                          <DropdownMenuItem onClick={() => eInvoice(inv)}><FileCode2 className="h-4 w-4" /> {tt('e-Qaimə XML endir', 'Download e-Invoice XML')}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setStsFor(inv)}><Receipt className="h-4 w-4" /> {tt('STS nömrəsi daxil et', 'Enter STS number')}</DropdownMenuItem>
+                          {canCreate && !['paid', 'cancelled'].includes(inv.status) && <DropdownMenuItem onClick={() => cancel(inv)} className="text-danger"><Ban className="h-4 w-4" /> {tt('Ləğv et', 'Cancel')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -148,6 +182,8 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
             </TableBody>
           </Table>
         </CardContent></Card>
+        )}
+        </>
       )}
 
       {canCreate && <NewInvoiceDialog open={open} onOpenChange={setOpen} companyId={companyId} actorUid={actorUid} baseCurrency={baseCurrency}
@@ -155,28 +191,36 @@ export function InvoicesTab({ companyId, canCreate, actorUid, baseCurrency, comp
       {canCreate && posOpen && <QuickSaleDialog companyId={companyId} actorUid={actorUid} baseCurrency={baseCurrency} company={company}
         customers={customers ?? []} onClose={() => setPosOpen(false)} onSaved={invalidate} onPrint={print} />}
       {stsFor && <StsDialog invoice={stsFor} actorUid={actorUid} onClose={() => setStsFor(null)} onSaved={invalidate} />}
+      <DocumentViewer
+        open={!!viewer}
+        onOpenChange={(o) => !o && setViewer(null)}
+        html={viewer?.html ?? null}
+        title={tt('Faktura', 'Invoice')}
+        subtitle={viewer?.number}
+      />
     </div>
   );
 }
 
 function StsDialog({ invoice, actorUid, onClose, onSaved }: { invoice: Invoice; actorUid: string; onClose: () => void; onSaved: () => void }) {
+  const tt = useTT();
   const [ref, setRef] = useState(invoice.eInvoice?.stsReferenceNumber ?? '');
   const [busy, setBusy] = useState(false);
   async function save() {
-    if (!ref.trim()) { toast.error('STS nömrəsi tələb olunur'); return; }
+    if (!ref.trim()) { toast.error(tt('STS nömrəsi tələb olunur', 'STS number is required')); return; }
     setBusy(true);
-    try { await markEInvoiceSubmitted(invoice, ref.trim(), actorUid); toast.success('e-Qaimə STS-ə təqdim edilmiş kimi işarələndi'); onSaved(); onClose(); }
-    catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
+    try { await markEInvoiceSubmitted(invoice, ref.trim(), actorUid); toast.success(tt('e-Qaimə STS-ə təqdim edilmiş kimi işarələndi', 'e-Invoice marked as submitted to STS')); onSaved(); onClose(); }
+    catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
   }
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>e-Qaimə — STS qeydiyyat nömrəsi</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tt('e-Qaimə — STS qeydiyyat nömrəsi', 'e-Invoice — STS registration number')}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">XML faylını e-taxes.gov.az-a ASAN İmza ilə yüklədikdən sonra STS-dən aldığınız təsdiq nömrəsini daxil edin (06 §5).</p>
-          <div className="space-y-2"><Label>STS nömrəsi</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} /></div>
+          <p className="text-xs text-muted-foreground">{tt('XML faylını e-taxes.gov.az-a ASAN İmza ilə yüklədikdən sonra STS-dən aldığınız təsdiq nömrəsini daxil edin (06 §5).', 'After uploading the XML file to e-taxes.gov.az with ASAN Signature, enter the confirmation number you received from STS (06 §5).')}</p>
+          <div className="space-y-2"><Label>{tt('STS nömrəsi', 'STS number')}</Label><Input value={ref} onChange={(e) => setRef(e.target.value)} /></div>
         </div>
-        <DialogFooter><Button onClick={save} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Receipt className="h-4 w-4" />} Təsdiq et</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Receipt className="h-4 w-4" />} {tt('Təsdiq et', 'Confirm')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -186,39 +230,40 @@ function QuickSaleDialog({ companyId, actorUid, baseCurrency, company, customers
   companyId: string; actorUid: string; baseCurrency: string; company: Company;
   customers: { id: string; name: string; paymentTermDays?: number }[]; onClose: () => void; onSaved: () => void; onPrint: (inv: Invoice) => void;
 }) {
+  const tt = useTT();
   const [customerId, setCustomerId] = useState(customers[0]?.id ?? '');
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
   const [busy, setBusy] = useState(false);
 
   async function sell() {
     const customer = customers.find((c) => c.id === customerId);
-    if (!customer) { toast.error('Müştəri seçin'); return; }
+    if (!customer) { toast.error(tt('Müştəri seçin', 'Select a customer')); return; }
     const valid = lines.filter((l) => l.description && l.unitPrice > 0);
-    if (valid.length === 0) { toast.error('Ən azı 1 sətir'); return; }
+    if (valid.length === 0) { toast.error(tt('Ən azı 1 sətir', 'At least 1 line')); return; }
     setBusy(true);
     try {
       const id = await createInvoice({ companyId, customerId, customerName: customer.name, issueDate: new Date().toISOString().slice(0, 10), paymentTermDays: 0, currency: baseCurrency, lineItems: valid, createdBy: actorUid });
       const inv = await (await import('@/lib/firebase/sales')).listInvoices(companyId);
       const created = inv.find((x) => x.id === id);
       if (created) { await postInvoice(created, baseCurrency, actorUid); onPrint({ ...created, status: 'sent' }); }
-      toast.success('Satış tamamlandı', 'Faktura rəsmiləşdi və çap edildi');
+      toast.success(tt('Satış tamamlandı', 'Sale completed'), tt('Faktura rəsmiləşdi və çap edildi', 'The invoice was posted and printed'));
       onSaved(); onClose();
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
   }
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary" /> Sürətli satış (POS)</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-primary" /> {tt('Sürətli satış (POS)', 'Quick sale (POS)')}</DialogTitle></DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-2"><Label>Müştəri</Label>
-            <Select value={customerId} onValueChange={setCustomerId}><SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
+          <div className="space-y-2"><Label>{tt('Müştəri', 'Customer')}</Label>
+            <Select value={customerId} onValueChange={setCustomerId}><SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
               <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
           </div>
           <LineItemsEditor lines={lines} onChange={setLines} currency={baseCurrency} />
-          <p className="text-xs text-muted-foreground">«Sat və çap et» faktura yaradır, dərhal rəsmiləşdirir (jurnal yazısı) və çap edir.</p>
+          <p className="text-xs text-muted-foreground">{tt('«Sat və çap et» faktura yaradır, dərhal rəsmiləşdirir (jurnal yazısı) və çap edir.', '“Sell & print” creates the invoice, posts it immediately (journal entry) and prints it.')}</p>
         </div>
-        <DialogFooter><Button onClick={sell} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Receipt className="h-4 w-4" />} Sat və çap et</Button></DialogFooter>
+        <DialogFooter><Button onClick={sell} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Receipt className="h-4 w-4" />} {tt('Sat və çap et', 'Sell & print')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -228,6 +273,7 @@ function NewInvoiceDialog({ open, onOpenChange, companyId, actorUid, baseCurrenc
   open: boolean; onOpenChange: (o: boolean) => void; companyId: string; actorUid: string; baseCurrency: string;
   customers: { id: string; name: string; paymentTermDays?: number }[]; onSaved: () => void;
 }) {
+  const tt = useTT();
   const [customerId, setCustomerId] = useState('');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
   const [lines, setLines] = useState<DraftLine[]>([emptyLine()]);
@@ -235,39 +281,39 @@ function NewInvoiceDialog({ open, onOpenChange, companyId, actorUid, baseCurrenc
 
   async function save() {
     const customer = customers.find((c) => c.id === customerId);
-    if (!customer) { toast.error('Müştəri seçin'); return; }
+    if (!customer) { toast.error(tt('Müştəri seçin', 'Select a customer')); return; }
     const valid = lines.filter((l) => l.description && l.unitPrice > 0);
-    if (valid.length === 0) { toast.error('Ən azı 1 sətir daxil edin'); return; }
+    if (valid.length === 0) { toast.error(tt('Ən azı 1 sətir daxil edin', 'Enter at least 1 line')); return; }
     setSaving(true);
     try {
       await createInvoice({
         companyId, customerId, customerName: customer.name, issueDate,
         paymentTermDays: customer.paymentTermDays ?? 0, currency: baseCurrency, lineItems: valid, createdBy: actorUid,
       });
-      toast.success('Faktura yaradıldı (qaralama)', 'Rəsmiləşdirmək üçün «göndər» düyməsinə basın');
+      toast.success(tt('Faktura yaradıldı (qaralama)', 'Invoice created (draft)'), tt('Rəsmiləşdirmək üçün «göndər» düyməsinə basın', 'Press “send” to post it'));
       setCustomerId(''); setLines([emptyLine()]);
       onSaved(); onOpenChange(false);
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] max-w-3xl overflow-y-auto">
-        <DialogHeader><DialogTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Yeni faktura</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> {tt('Yeni faktura', 'New invoice')}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-2"><Label>Müştəri</Label>
+            <div className="space-y-2"><Label>{tt('Müştəri', 'Customer')}</Label>
               <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger><SelectValue placeholder="Müştəri seç" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tt('Müştəri seç', 'Select customer')} /></SelectTrigger>
                 <SelectContent>{customers.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Tarix</Label><Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{tt('Tarix', 'Date')}</Label><Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></div>
           </div>
           <LineItemsEditor lines={lines} onChange={setLines} currency={baseCurrency} />
         </div>
-        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} Yarat</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} {tt('Yarat', 'Create')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

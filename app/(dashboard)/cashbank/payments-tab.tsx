@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import { formatCurrency, formatDate } from '@/lib/utils/format';
 import type { PaymentAllocation } from '@/types';
 
@@ -26,6 +27,7 @@ interface TabProps { companyId: string; canCreate: boolean; actorUid: string; ba
 
 export function PaymentsTab({ companyId, canCreate, actorUid, baseCurrency }: TabProps) {
   const qc = useQueryClient();
+  const tt = useTT();
   const [open, setOpen] = useState(false);
   const { data, isLoading } = useQuery({ queryKey: ['payments', companyId], queryFn: () => listPayments(companyId) });
 
@@ -34,19 +36,19 @@ export function PaymentsTab({ companyId, canCreate, actorUid, baseCurrency }: Ta
       <div className="mb-4 flex items-center justify-between">
         <ExportButton filename="odenisler" rows={data ?? []}
           columns={[
-            { header: 'İstiqamət', value: (p) => p.direction === 'incoming' ? 'Daxil olan' : 'Çıxan' },
-            { header: 'Tərəf', value: (p) => p.counterpartyRef?.name ?? '' },
-            { header: 'Tarix', value: 'paymentDate' }, { header: 'Məbləğ', value: 'amount' },
-            { header: 'Metod', value: 'method' }, { header: 'Status', value: 'status' },
+            { header: tt('İstiqamət', 'Direction'), value: (p) => p.direction === 'incoming' ? tt('Daxil olan', 'Incoming') : tt('Çıxan', 'Outgoing') },
+            { header: tt('Tərəf', 'Party'), value: (p) => p.counterpartyRef?.name ?? '' },
+            { header: tt('Tarix', 'Date'), value: 'paymentDate' }, { header: tt('Məbləğ', 'Amount'), value: 'amount' },
+            { header: tt('Metod', 'Method'), value: 'method' }, { header: 'Status', value: 'status' },
           ]} />
-        {canCreate && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Ödəniş qeyd et</Button>}
+        {canCreate && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> {tt('Ödəniş qeyd et', 'Record payment')}</Button>}
       </div>
       {isLoading ? <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (data ?? []).length === 0 ? (
-        <EmptyState title="Ödəniş yoxdur" />
+        <EmptyState title={tt('Ödəniş yoxdur', 'No payments')} />
       ) : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
-            <TableHeader><TableRow><TableHead></TableHead><TableHead>Tərəf</TableHead><TableHead>Tarix</TableHead><TableHead className="text-right">Məbləğ</TableHead><TableHead>Metod</TableHead><TableHead>Tətbiq</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead></TableHead><TableHead>{tt('Tərəf', 'Party')}</TableHead><TableHead>{tt('Tarix', 'Date')}</TableHead><TableHead className="text-right">{tt('Məbləğ', 'Amount')}</TableHead><TableHead>{tt('Metod', 'Method')}</TableHead><TableHead>{tt('Tətbiq', 'Applied')}</TableHead></TableRow></TableHeader>
             <TableBody>
               {(data ?? []).map((p) => (
                 <TableRow key={p.id}>
@@ -55,7 +57,7 @@ export function PaymentsTab({ companyId, canCreate, actorUid, baseCurrency }: Ta
                   <TableCell className="text-muted-foreground">{formatDate(new Date(p.paymentDate).getTime())}</TableCell>
                   <TableCell className="text-right tnum">{formatCurrency(p.amount, p.currency)}</TableCell>
                   <TableCell><Badge variant="secondary">{p.method}</Badge></TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{p.allocations?.length ?? 0} faktura{p.unallocatedAmount > 0 ? ` · avans ${formatCurrency(p.unallocatedAmount, p.currency)}` : ''}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{p.allocations?.length ?? 0} {tt('faktura', 'invoices')}{p.unallocatedAmount > 0 ? ` · ${tt('avans', 'advance')} ${formatCurrency(p.unallocatedAmount, p.currency)}` : ''}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -79,6 +81,7 @@ export function PaymentsTab({ companyId, canCreate, actorUid, baseCurrency }: Ta
 function RecordPaymentDialog({ open, onOpenChange, companyId, actorUid, baseCurrency, onSaved }: {
   open: boolean; onOpenChange: (o: boolean) => void; companyId: string; actorUid: string; baseCurrency: string; onSaved: () => void;
 }) {
+  const tt = useTT();
   const [direction, setDirection] = useState<'incoming' | 'outgoing'>('incoming');
   const [counterpartyId, setCounterpartyId] = useState('');
   const [sourceId, setSourceId] = useState('');
@@ -130,7 +133,7 @@ function RecordPaymentDialog({ open, onOpenChange, companyId, actorUid, baseCurr
     const src = sources.find((s) => s.id === sourceId);
     const cp = counterparties.find((c) => c.id === counterpartyId);
     const amt = Number(amount) || 0;
-    if (!src || !cp || amt <= 0) { toast.error('Tərəf, hesab və məbləğ tələb olunur'); return; }
+    if (!src || !cp || amt <= 0) { toast.error(tt('Tərəf, hesab və məbləğ tələb olunur', 'Party, account and amount are required')); return; }
     const allocations: PaymentAllocation[] = docs
       .filter((d) => Number(alloc[d.id]) > 0)
       .map((d) => ({
@@ -145,57 +148,57 @@ function RecordPaymentDialog({ open, onOpenChange, companyId, actorUid, baseCurr
         source: { type: src.type, id: src.id }, counterparty: { type: direction === 'incoming' ? 'customer' : 'vendor', id: cp.id, name: cp.name },
         amount: amt, currency: baseCurrency, paymentDate, allocations, baseCurrency, createdBy: actorUid,
       });
-      toast.success('Ödəniş qeyd edildi', 'Faktura(lar) və balans yeniləndi, jurnal yazıldı');
+      toast.success(tt('Ödəniş qeyd edildi', 'Payment recorded'), tt('Faktura(lar) və balans yeniləndi, jurnal yazıldı', 'Invoice(s) and balance updated, journal posted'));
       setCounterpartyId(''); setSourceId(''); setAmount(''); setAlloc({});
       onSaved(); onOpenChange(false);
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] max-w-2xl overflow-y-auto">
-        <DialogHeader><DialogTitle>Ödəniş qeyd et</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tt('Ödəniş qeyd et', 'Record payment')}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>İstiqamət</Label>
+            <div className="space-y-2"><Label>{tt('İstiqamət', 'Direction')}</Label>
               <Select value={direction} onValueChange={(v) => { setDirection(v as 'incoming' | 'outgoing'); setCounterpartyId(''); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="incoming">Daxil olan (müştəridən)</SelectItem><SelectItem value="outgoing">Çıxan (kreditora)</SelectItem></SelectContent>
+                <SelectContent><SelectItem value="incoming">{tt('Daxil olan (müştəridən)', 'Incoming (from customer)')}</SelectItem><SelectItem value="outgoing">{tt('Çıxan (kreditora)', 'Outgoing (to supplier)')}</SelectItem></SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Tarix</Label><Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{tt('Tarix', 'Date')}</Label><Input type="date" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} /></div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>{direction === 'incoming' ? 'Müştəri' : 'Kreditor'}</Label>
+            <div className="space-y-2"><Label>{direction === 'incoming' ? tt('Müştəri', 'Customer') : tt('Kreditor', 'Supplier')}</Label>
               <Select value={counterpartyId} onValueChange={setCounterpartyId}>
-                <SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
                 <SelectContent>{counterparties.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Hesab / Kassa</Label>
+            <div className="space-y-2"><Label>{tt('Hesab / Kassa', 'Account / Register')}</Label>
               <Select value={sourceId} onValueChange={setSourceId}>
-                <SelectTrigger><SelectValue placeholder="Seç" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
                 <SelectContent>{sources.map((s) => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
           </div>
-          <div className="space-y-2"><Label>Məbləğ ({baseCurrency})</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div className="space-y-2"><Label>{tt('Məbləğ', 'Amount')} ({baseCurrency})</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
 
           {counterpartyId && (
             <div className="rounded-card border border-border p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Açıq {direction === 'incoming' ? 'fakturalar' : 'kreditor fakturalar'} (köhnədən paylanır)</p>
-              {docs.length === 0 ? <p className="py-2 text-sm text-muted-foreground">Açıq sənəd yoxdur — məbləğ avans kimi qalacaq</p> : docs.map((d) => (
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tt('Açıq', 'Open')} {direction === 'incoming' ? tt('fakturalar', 'invoices') : tt('kreditor fakturalar', 'purchase bills')} {tt('(köhnədən paylanır)', '(allocated oldest-first)')}</p>
+              {docs.length === 0 ? <p className="py-2 text-sm text-muted-foreground">{tt('Açıq sənəd yoxdur — məbləğ avans kimi qalacaq', 'No open documents — the amount will remain as an advance')}</p> : docs.map((d) => (
                 <div key={d.id} className="flex items-center justify-between gap-2 border-b border-border/40 py-1.5 text-sm last:border-0">
                   <span className="font-mono text-xs">{'invoiceNumber' in d ? d.invoiceNumber : (d as { billNumber: string }).billNumber}</span>
-                  <span className="text-muted-foreground">qalıq {formatCurrency(d.amountDue ?? 0, baseCurrency)}</span>
+                  <span className="text-muted-foreground">{tt('qalıq', 'balance')} {formatCurrency(d.amountDue ?? 0, baseCurrency)}</span>
                   <Input className="w-28" type="number" value={alloc[d.id] ?? ''} onChange={(e) => setAlloc((a) => ({ ...a, [d.id]: e.target.value }))} />
                 </div>
               ))}
             </div>
           )}
         </div>
-        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} Qeyd et</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} {tt('Qeyd et', 'Record')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

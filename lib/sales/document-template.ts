@@ -1,4 +1,7 @@
 import type { Company, Customer, Invoice } from '@/types';
+import { amountToWordsAz } from '@/lib/utils/number-to-words-az';
+
+const CUR_WORDS: Record<string, [string, string]> = { AZN: ['manat', 'qəpik'], USD: ['dollar', 'sent'], EUR: ['avro', 'sent'], TRY: ['lirə', 'quruş'], RUB: ['rubl', 'qəpik'] };
 
 /**
  * Sadə merge-tag şablon mühərriki (06 §6.4) — Handlebars alt-toplusu:
@@ -33,19 +36,34 @@ const money = (n: number, cur: string) => new Intl.NumberFormat('az-AZ', { minim
 /** Faktura üçün şablon konteksti qurur */
 export function buildInvoiceContext(inv: Invoice, company: Company, customer: Customer | null): Ctx {
   return {
-    company: { name: company.name, legalName: company.legalName ?? '', taxId: company.taxId ?? '', address: company.address ?? '', phone: company.phone ?? '', logoUrl: company.logoUrl ?? '', brandColor: company.brandColor ?? '#5B5BF5' },
+    company: { name: company.name, legalName: company.legalName ?? '', taxId: company.taxId ?? '', address: company.address ?? '', phone: company.phone ?? '', logoUrl: company.logoUrl ?? '', brandColor: company.brandColor ?? '#5B5BF5', directorName: company.directorName ?? '' },
     customer: { name: inv.customerName ?? customer?.name ?? '', taxId: customer?.taxId ?? '', address: customer?.billingAddress ?? '' },
-    invoice: { invoiceNumber: inv.invoiceNumber, issueDate: inv.issueDate, dueDate: inv.dueDate, currency: inv.currency, subtotal: money(inv.subtotal - inv.discountTotal, inv.currency), vatTotal: money(inv.vatTotal, inv.currency), grandTotal: money(inv.grandTotal, inv.currency) },
+    invoice: { invoiceNumber: inv.invoiceNumber, issueDate: inv.issueDate, dueDate: inv.dueDate, currency: inv.currency, subtotal: money(inv.subtotal - inv.discountTotal, inv.currency), vatTotal: money(inv.vatTotal, inv.currency), grandTotal: money(inv.grandTotal, inv.currency), grandTotalWords: amountToWordsAz(inv.grandTotal, ...(CUR_WORDS[inv.currency] ?? ['manat', 'qəpik'])) },
     lineItems: inv.lineItems.map((l) => ({ description: l.description, quantity: l.quantity, unit: l.unit ?? '', unitPrice: money(l.unitPrice, inv.currency), discountPercent: l.discountPercent || 0, vatRate: l.vatRate || 0, lineTotal: money(l.lineTotal, inv.currency) })),
   };
 }
 
+/**
+ * Şablonu render edib tam HTML sənədinə çevirir (çap/önizləmə üçün).
+ * `autoPrint` true olduqda yükləndikdən sonra window.print() çağırılır.
+ */
+export function renderTemplateDocument(html: string, ctx: Ctx, opts: { autoPrint?: boolean } = {}): string {
+  const rendered = renderTemplate(html, ctx);
+  const printScript = opts.autoPrint ? '<script>window.onload=function(){window.print()}</script>' : '';
+  if (rendered.includes('<html')) {
+    return opts.autoPrint && !rendered.includes('window.print')
+      ? rendered.replace('</body>', `${printScript}</body>`)
+      : rendered;
+  }
+  return `<!doctype html><html lang="az"><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');body{font-family:Montserrat,Arial,sans-serif;padding:32px;color:#0f1129}table{width:100%;border-collapse:collapse}td,th{border:1px solid #e7e9f2;padding:6px 8px;text-align:left}</style></head><body>${rendered}${printScript}</body></html>`;
+}
+
 /** Şablonu render edib yeni pəncərədə çap edir */
 export function printWithTemplate(html: string, ctx: Ctx): void {
-  const rendered = renderTemplate(html, ctx);
+  const doc = renderTemplateDocument(html, ctx, { autoPrint: true });
   const w = window.open('', '_blank');
   if (!w) return;
-  w.document.write(rendered.includes('<html') ? rendered : `<!doctype html><html lang="az"><head><meta charset="utf-8"><style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap');body{font-family:Montserrat,Arial,sans-serif;padding:32px;color:#0f1129}table{width:100%;border-collapse:collapse}td,th{border:1px solid #e7e9f2;padding:6px 8px;text-align:left}</style></head><body>${rendered}<script>window.onload=function(){window.print()}</script></body></html>`);
+  w.document.write(doc);
   w.document.close();
 }
 
@@ -76,11 +94,13 @@ export const DEFAULT_INVOICE_TEMPLATE = `<div style="border-bottom:3px solid {{c
   <div style="display:flex;justify-content:space-between;padding:4px 0"><span>ƏDV:</span><span>{{invoice.vatTotal}}</span></div>
   <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:800;font-size:16px;border-top:2px solid {{company.brandColor}};color:{{company.brandColor}}"><span>YEKUN:</span><span>{{invoice.grandTotal}}</span></div>
 </div>
-<div style="margin-top:48px;display:flex;justify-content:space-between"><div style="border-top:1px solid #999;padding-top:6px;width:40%;text-align:center;font-size:11px">İmza (Satıcı)</div><div style="border-top:1px solid #999;padding-top:6px;width:40%;text-align:center;font-size:11px">İmza (Alıcı)</div></div>`;
+<p style="margin-top:12px"><strong>Yekun məbləğ yazı ilə:</strong> {{invoice.grandTotalWords}}</p>
+<p style="margin-top:4px"><strong>Baş Direktor:</strong> {{company.directorName}}</p>
+<div style="margin-top:40px;display:flex;justify-content:space-between"><div style="border-top:1px solid #999;padding-top:6px;width:40%;text-align:center;font-size:11px">İmza (Satıcı)</div><div style="border-top:1px solid #999;padding-top:6px;width:40%;text-align:center;font-size:11px">İmza (Alıcı)</div></div>`;
 
 export const INVOICE_MERGE_TAGS = [
-  'company.name', 'company.legalName', 'company.taxId', 'company.address', 'company.phone', 'company.logoUrl', 'company.brandColor',
+  'company.name', 'company.legalName', 'company.taxId', 'company.address', 'company.phone', 'company.logoUrl', 'company.brandColor', 'company.directorName',
   'customer.name', 'customer.taxId', 'customer.address',
-  'invoice.invoiceNumber', 'invoice.issueDate', 'invoice.dueDate', 'invoice.currency', 'invoice.subtotal', 'invoice.vatTotal', 'invoice.grandTotal',
+  'invoice.invoiceNumber', 'invoice.issueDate', 'invoice.dueDate', 'invoice.currency', 'invoice.subtotal', 'invoice.vatTotal', 'invoice.grandTotal', 'invoice.grandTotalWords',
   '#each lineItems → this.description, this.quantity, this.unit, this.unitPrice, this.vatRate, this.lineTotal, @index',
 ];

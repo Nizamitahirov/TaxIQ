@@ -1,14 +1,16 @@
 import type { Company, Invoice } from '@/types';
+import { amountToWordsAz } from '@/lib/utils/number-to-words-az';
 
 const fmt = (n: number, cur: string) => new Intl.NumberFormat('az-AZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' ' + cur;
 const esc = (s: string) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] ?? c));
+/** Valyutaya görə sözlə valyuta/xırda vahid adları */
+const CUR_WORDS: Record<string, [string, string]> = { AZN: ['manat', 'qəpik'], USD: ['dollar', 'sent'], EUR: ['avro', 'sent'], TRY: ['lirə', 'quruş'], RUB: ['rubl', 'qəpik'] };
 
 /**
- * Sadə WYSIWYG faktura çapı (client-side window.print).
- * Qeyd: tam GrapesJS Sənəd Dizayneri + Puppeteer PDF (06 §6) Cloud Function tələb edir
- * və gələcək faza kimi qeyd olunub; bu, funksional çap alternatividir.
+ * Faktura üçün tam HTML sənədi qurur (çap/önizləmə üçün).
+ * `autoPrint` true olduqda yükləndikdən sonra avtomatik window.print() çağırır.
  */
-export function printInvoice(inv: Invoice, company: Company) {
+export function buildInvoiceHtml(inv: Invoice, company: Company, opts: { autoPrint?: boolean } = {}): string {
   const brand = company.brandColor || '#5B5BF5';
   const rows = inv.lineItems.map((l, i) => `
     <tr>
@@ -32,7 +34,9 @@ export function printInvoice(inv: Invoice, company: Company) {
     table{width:100%;border-collapse:collapse;margin-top:16px} th{background:${brand};color:#fff;padding:8px;text-align:left;font-size:11px}
     td{padding:8px;border-bottom:1px solid #e7e9f2} .tot{margin-top:16px;margin-left:auto;width:280px}
     .tot div{display:flex;justify-content:space-between;padding:4px 0} .grand{font-weight:800;font-size:16px;border-top:2px solid ${brand};padding-top:8px;color:${brand}}
-    .sign{margin-top:60px;display:flex;justify-content:space-between} .sign div{width:40%;border-top:1px solid #999;padding-top:6px;text-align:center;font-size:11px}
+    .words{margin-top:14px;font-size:13px} .words strong{color:${brand}}
+    .director{margin-top:6px;font-size:13px}
+    .sign{margin-top:48px;display:flex;justify-content:space-between} .sign div{width:40%;border-top:1px solid #999;padding-top:6px;text-align:center;font-size:11px}
   </style></head><body>
     <div class="hdr">
       <div>
@@ -58,10 +62,22 @@ export function printInvoice(inv: Invoice, company: Company) {
       <div><span>ƏDV:</span><span>${fmt(inv.vatTotal, inv.currency)}</span></div>
       <div class="grand"><span>YEKUN:</span><span>${fmt(inv.grandTotal, inv.currency)}</span></div>
     </div>
+    <div class="words"><strong>Yekun məbləğ yazı ilə:</strong> ${esc(amountToWordsAz(inv.grandTotal, ...(CUR_WORDS[inv.currency] ?? ['manat', 'qəpik'])))}</div>
+    ${company.directorName ? `<div class="director"><strong>Baş Direktor:</strong> ${esc(company.directorName)}</div>` : ''}
     <div class="sign"><div>İmza (Satıcı)</div><div>İmza (Alıcı)</div></div>
-    <script>window.onload=function(){window.print()}</script>
+    ${opts.autoPrint ? '<script>window.onload=function(){window.print()}</script>' : ''}
   </body></html>`;
 
+  return html;
+}
+
+/**
+ * Sadə WYSIWYG faktura çapı (client-side window.print).
+ * Qeyd: tam GrapesJS Sənəd Dizayneri + Puppeteer PDF (06 §6) Cloud Function tələb edir
+ * və gələcək faza kimi qeyd olunub; bu, funksional çap alternatividir.
+ */
+export function printInvoice(inv: Invoice, company: Company) {
+  const html = buildInvoiceHtml(inv, company, { autoPrint: true });
   const w = window.open('', '_blank');
   if (!w) return;
   w.document.write(html);

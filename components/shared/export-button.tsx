@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useTT } from '@/lib/i18n/tt';
 
 interface Props<T> {
   filename: string;
@@ -16,13 +17,14 @@ interface Props<T> {
 }
 
 /** Cədvəl üçün Excel/CSV ixrac düyməsi (dropdown) */
-export function ExportButton<T>({ filename, columns, rows, label = 'İxrac', disabled }: Props<T>) {
+export function ExportButton<T>({ filename, columns, rows, label, disabled }: Props<T>) {
+  const tt = useTT();
   const empty = rows.length === 0;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" disabled={disabled || empty}>
-          <Download className="h-4 w-4" /> {label}
+          <Download className="h-4 w-4" /> {label ?? tt('İxrac', 'Export')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

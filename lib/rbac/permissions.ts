@@ -28,6 +28,7 @@ export type ModuleKey =
   | 'clients'
   | 'warehouse'
   | 'sales'
+  | 'crm'
   | 'cashbank'
   | 'accounting'
   | 'ifrs'
@@ -53,6 +54,7 @@ export const MODULES: ModuleDef[] = [
   { key: 'clients', label: { az: 'Müştəri qeydiyyatı', en: 'Client onboarding' } },
   { key: 'warehouse', label: { az: 'Anbar', en: 'Warehouse' } },
   { key: 'sales', label: { az: 'Satış və Faktura', en: 'Sales & Invoicing' } },
+  { key: 'crm', label: { az: 'CRM (Müştəri münasibətləri)', en: 'CRM' } },
   { key: 'cashbank', label: { az: 'Kassa və Bank', en: 'Cash & Bank' } },
   { key: 'accounting', label: { az: 'Mühasibat', en: 'Accounting' } },
   { key: 'ifrs', label: { az: 'IFRS Hesabatlar', en: 'IFRS Reports' } },
@@ -87,6 +89,14 @@ export const PERMISSIONS: PermissionDef[] = [
   ...crud('sales.invoice', 'sales', L('Faktura', 'Invoice'), ['approve', 'print']),
   ...crud('sales.customer', 'sales', L('Müştəri', 'Customer')),
   ...crud('sales.order', 'sales', L('Satış sifarişi', 'Sales order')),
+
+  // CRM (Müştəri Münasibətləri) — Modul 13
+  ...crud('crm.lead', 'crm', L('Lead (potensial müştəri)', 'Lead')),
+  ...crud('crm.opportunity', 'crm', L('Satış imkanı', 'Opportunity')),
+  ...crud('crm.contact', 'crm', L('Kontakt', 'Contact')),
+  ...crud('crm.campaign', 'crm', L('Kampaniya', 'Campaign')),
+  { id: 'crm.activity.manage', module: 'crm', label: L('Aktivlik/qeyd idarəsi', 'Manage activities') },
+  { id: 'crm.convert', module: 'crm', label: L('Lead/imkanı çevir (müştəri/təklif)', 'Convert lead/opportunity') },
 
   // Kassa & Bank (Fayl 7)
   ...crud('cashbank.transaction', 'cashbank', L('Kassa/Bank əməliyyatı', 'Cash/Bank transaction'), ['approve']),
@@ -175,7 +185,7 @@ export const SYSTEM_ROLES: SystemRoleDef[] = [
     permissions: [
       'platform.users.manage', 'platform.roles.manage', 'platform.company.settings.edit',
       'platform.audit.view', 'platform.export_templates.manage', 'dashboard.customize',
-      ...ids('clients.'), ...ids('warehouse.'), ...ids('sales.'), ...ids('cashbank.'),
+      ...ids('clients.'), ...ids('warehouse.'), ...ids('sales.'), ...ids('crm.'), 'crm.convert', ...ids('cashbank.'),
       ...ids('accounting.'), ...ids('hr.'), ...ids('payroll.'), ...ids('workflow.'), ...ids('reports.'),
       ...ids('hse.'),
     ],
@@ -212,7 +222,7 @@ export const SYSTEM_ROLES: SystemRoleDef[] = [
     code: 'sales_manager',
     name: L('Satış Meneceri', 'Sales Manager'),
     description: L('Satış, faktura, müştəri tam giriş', 'Full sales/invoice/customer access'),
-    permissions: ['dashboard.customize', 'reports.view', ...ids('sales.'), ...ids('warehouse.goods')],
+    permissions: ['dashboard.customize', 'reports.view', ...ids('sales.'), ...ids('crm.'), 'crm.convert', ...ids('warehouse.goods')],
   },
   {
     code: 'warehouse_operator',
@@ -226,7 +236,34 @@ export const SYSTEM_ROLES: SystemRoleDef[] = [
     description: L('Bütün icazəli modullarda yalnız oxuma', 'Read-only across permitted modules'),
     permissions: ALL_PERMISSION_IDS.filter((id) => id.endsWith('.view')),
   },
+  {
+    // Xarici müştəri istifadəçisi — yalnız öz şirkətinin maliyyə göstəricilərinə oxuma
+    // girişi; heç bir idarəetmə (istifadəçi/rol/audit), HR/əmək haqqı və ya həssas
+    // icazə YOXDUR (01 §0.2 Client User + §6.2). Şirkət izolyasiyası homeCompanyId ilə.
+    code: 'client_viewer',
+    name: L('Müştəri — Baxış', 'Client — Viewer'),
+    description: L('Xarici müştəri: yalnız öz şirkətinin hesabat, faktura və kassa qalığına oxuma', 'External client: read-only access to their own company\'s reports, invoices and cash balances'),
+    permissions: [
+      'reports.view',
+      'accounting.reports.ifrs.view', 'accounting.reports.ifrs.export',
+      'sales.invoice.view', 'sales.invoice.print', 'sales.invoice.export',
+      'sales.customer.view', 'sales.order.view',
+      'cashbank.transaction.view',
+      'accounting.journal.view', 'accounting.coa.view',
+      'warehouse.stock.view',
+    ],
+  },
 ];
+
+/** İstifadəçi tipinə görə təyin oluna bilən sistem rolları (01 §4.2). */
+export function assignableSystemRoles(userType: 'staff' | 'client_user'): SystemRoleDef[] {
+  if (userType === 'client_user') {
+    // Xarici müştəriyə yalnız client-uyğun rollar təklif olunur
+    return SYSTEM_ROLES.filter((r) => r.code === 'client_viewer');
+  }
+  // Daxili staff-a super admin və client rolları istisna olmaqla hamısı
+  return SYSTEM_ROLES.filter((r) => r.code !== 'platform_super_admin' && r.code !== 'client_viewer');
+}
 
 export const SYSTEM_ROLE_MAP: Record<string, SystemRoleDef> = Object.fromEntries(
   SYSTEM_ROLES.map((r) => [r.code, r]),

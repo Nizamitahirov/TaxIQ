@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Building2, Check, ChevronsUpDown, Search } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { cn } from '@/lib/utils/cn';
+import { useTT } from '@/lib/i18n/tt';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -15,6 +16,7 @@ import {
  */
 export function CompanySwitcher() {
   const { memberships, active, switchCompany, profile } = useAuth();
+  const tt = useTT();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
 
@@ -52,7 +54,7 @@ export function CompanySwitcher() {
       <DropdownMenuTrigger asChild>
         <button className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-sm transition-colors hover:bg-secondary">
           <Building2 className="h-4 w-4 text-primary" />
-          <span className="max-w-[160px] truncate font-semibold">{active?.company.name ?? 'Şirkət seç'}</span>
+          <span className="max-w-[160px] truncate font-semibold">{active?.company.name ?? tt('Şirkət seç', 'Select company')}</span>
           <kbd className="ml-1 hidden items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline-flex">⌘K</kbd>
           <ChevronsUpDown className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
@@ -64,13 +66,13 @@ export function CompanySwitcher() {
             autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Şirkət axtar..."
+            placeholder={tt('Şirkət axtar...', 'Search company...')}
             className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
         </div>
         <div className="max-h-80 overflow-y-auto py-1">
           {filtered.length === 0 && (
-            <p className="px-3 py-6 text-center text-sm text-muted-foreground">Nəticə yoxdur</p>
+            <p className="px-3 py-6 text-center text-sm text-muted-foreground">{tt('Nəticə yoxdur', 'No results')}</p>
           )}
           {filtered.map((m) => {
             const isActive = m.companyId === active?.companyId;
@@ -88,7 +90,7 @@ export function CompanySwitcher() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{m.company.name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{m.roleName}{m.company.isInternal ? ' · Daxili' : ''}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{m.roleName}{m.company.isInternal ? tt(' · Daxili', ' · Internal') : ''}</span>
                 </span>
                 {isActive && <Check className="h-4 w-4 shrink-0 text-primary" />}
               </button>

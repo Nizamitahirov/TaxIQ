@@ -47,7 +47,7 @@ export async function resolveMemberships(user: AppUser): Promise<ActiveMembershi
     if (!company) return [];
     // Client user-in rolu da userCompanyAccess-də saxlanılır
     const access = (await listAccessForUser(user.uid)).find((a) => a.companyId === company.id);
-    const roleId = access?.roleId ?? 'viewer';
+    const roleId = access?.roleId ?? 'client_viewer';
     const { name, perms } = await roleToPermissions(roleId);
     return [{
       companyId: company.id,

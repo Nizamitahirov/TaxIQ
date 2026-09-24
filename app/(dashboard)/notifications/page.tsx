@@ -9,9 +9,11 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils/cn';
+import { useTT } from '@/lib/i18n/tt';
 
 export default function NotificationsPage() {
   const { profile } = useAuth();
+  const tt = useTT();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['notifications', profile?.uid],
@@ -26,11 +28,11 @@ export default function NotificationsPage() {
 
   return (
     <div>
-      <PageHeader title="Bildirişlər" subtitle="Sistem və workflow bildirişləri (01 §9)" />
+      <PageHeader title={tt('Bildirişlər', 'Notifications')} subtitle={tt('Sistem və workflow bildirişləri (01 §9)', 'System and workflow notifications (01 §9)')} />
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : !data || data.length === 0 ? (
-        <EmptyState title="Bildiriş yoxdur" />
+        <EmptyState title={tt('Bildiriş yoxdur', 'No notifications')} />
       ) : (
         <div className="space-y-2">
           {data.map((n) => (
@@ -40,7 +42,7 @@ export default function NotificationsPage() {
                   <p className="font-medium">{n.title}</p>
                   <p className="text-sm text-muted-foreground">{n.body}</p>
                 </div>
-                {!n.isRead && <Button variant="ghost" size="sm" onClick={() => markRead(n.id)}><Check className="h-4 w-4" /> Oxundu</Button>}
+                {!n.isRead && <Button variant="ghost" size="sm" onClick={() => markRead(n.id)}><Check className="h-4 w-4" /> {tt('Oxundu', 'Read')}</Button>}
               </CardContent>
             </Card>
           ))}

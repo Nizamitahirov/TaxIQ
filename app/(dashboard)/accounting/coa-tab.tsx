@@ -18,17 +18,24 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 import { cn } from '@/lib/utils/cn';
 import type { ChartAccount } from '@/types';
 
 const TYPE_LABEL: Record<string, string> = {
   asset: 'Aktiv', liability: 'Öhdəlik', equity: 'Kapital', income: 'Gəlir', expense: 'Xərc',
 };
+const TYPE_LABEL_EN: Record<string, string> = {
+  asset: 'Asset', liability: 'Liability', equity: 'Equity', income: 'Income', expense: 'Expense',
+};
 
 export function CoaTab({ companyId, accounts, canEdit, actorUid }: {
   companyId: string; accounts: ChartAccount[]; canEdit: boolean; actorUid: string;
 }) {
   const qc = useQueryClient();
+  const tt = useTT();
+  const L = (o: { az: string; en: string }) => tt(o.az, o.en);
+  const typeLabel = (t: string) => tt(TYPE_LABEL[t] ?? t, TYPE_LABEL_EN[t] ?? t);
   const [open, setOpen] = useState(false);
 
   const byClass = useMemo(() => {
@@ -42,20 +49,20 @@ export function CoaTab({ companyId, accounts, canEdit, actorUid }: {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Sinif → Qrup → Hesab (rəsmi MMUS/IFRS struktur, 08 §1)</p>
+        <p className="text-sm text-muted-foreground">{tt('Sinif → Qrup → Hesab (rəsmi MMUS/IFRS struktur, 08 §1)', 'Class → Group → Account (official NAS/IFRS structure, 08 §1)')}</p>
         <div className="flex gap-2">
           <ExportButton
             filename="hesablar-plani"
             rows={accounts}
             columns={[
-              { header: 'Kod', value: 'accountCode' },
-              { header: 'Ad', value: (a) => a.accountName.az },
-              { header: 'Sinif', value: 'accountClass' },
-              { header: 'Tip', value: (a) => TYPE_LABEL[a.accountType] },
-              { header: 'Normal qalıq', value: 'normalBalance' },
+              { header: tt('Kod', 'Code'), value: 'accountCode' },
+              { header: tt('Ad', 'Name'), value: (a) => L(a.accountName) },
+              { header: tt('Sinif', 'Class'), value: 'accountClass' },
+              { header: tt('Tip', 'Type'), value: (a) => typeLabel(a.accountType) },
+              { header: tt('Normal qalıq', 'Normal balance'), value: 'normalBalance' },
             ]}
           />
-          {canEdit && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> Alt-hesab</Button>}
+          {canEdit && <Button size="sm" onClick={() => setOpen(true)}><Plus className="h-4 w-4" /> {tt('Alt-hesab', 'Sub-account')}</Button>}
         </div>
       </div>
 
@@ -65,15 +72,15 @@ export function CoaTab({ companyId, accounts, canEdit, actorUid }: {
             <CardContent className="p-0">
               <div className="flex items-center gap-2 border-b border-border bg-secondary/40 px-4 py-2.5">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">{cls}</span>
-                <span className="font-semibold">{CLASS_NAMES[cls]?.az ?? `Sinif ${cls}`}</span>
+                <span className="font-semibold">{CLASS_NAMES[cls] ? L(CLASS_NAMES[cls]) : `${tt('Sinif', 'Class')} ${cls}`}</span>
               </div>
               <div className="divide-y divide-border/40">
                 {rows.map((a) => (
                   <div key={a.id} className={cn('flex items-center gap-3 px-4 py-2 text-sm', !a.isPostable && 'bg-muted/30 font-semibold')}>
                     <span className={cn('w-14 shrink-0 font-mono', a.isSubAccount && 'pl-4')}>{a.accountCode}</span>
-                    <span className="min-w-0 flex-1 truncate">{a.accountName.az}</span>
-                    {a.isSubAccount && <Badge variant="secondary">fərdi</Badge>}
-                    {a.isPostable && <span className="text-xs text-muted-foreground">{TYPE_LABEL[a.accountType]} · {a.normalBalance === 'debit' ? 'Dt' : 'Kt'}</span>}
+                    <span className="min-w-0 flex-1 truncate">{L(a.accountName)}</span>
+                    {a.isSubAccount && <Badge variant="secondary">{tt('fərdi', 'custom')}</Badge>}
+                    {a.isPostable && <span className="text-xs text-muted-foreground">{typeLabel(a.accountType)} · {a.normalBalance === 'debit' ? 'Dt' : 'Kt'}</span>}
                   </div>
                 ))}
               </div>
@@ -91,6 +98,7 @@ export function CoaTab({ companyId, accounts, canEdit, actorUid }: {
 function AddSubAccount({ open, onOpenChange, companyId, parents, actorUid, onSaved }: {
   open: boolean; onOpenChange: (o: boolean) => void; companyId: string; parents: ChartAccount[]; actorUid: string; onSaved: () => void;
 }) {
+  const tt = useTT();
   const [parentId, setParentId] = useState('');
   const [code, setCode] = useState('');
   const [nameAz, setNameAz] = useState('');
@@ -99,36 +107,36 @@ function AddSubAccount({ open, onOpenChange, companyId, parents, actorUid, onSav
   const parent = parents.find((p) => p.id === parentId);
 
   async function save() {
-    if (!parent || !code.trim() || !nameAz.trim()) { toast.error('Ana hesab, kod və ad tələb olunur'); return; }
+    if (!parent || !code.trim() || !nameAz.trim()) { toast.error(tt('Ana hesab, kod və ad tələb olunur', 'Parent account, code and name are required')); return; }
     setSaving(true);
     try {
       await createSubAccount({ companyId, parent, code: code.trim(), nameAz: nameAz.trim(), nameEn: nameEn.trim(), createdBy: actorUid });
-      toast.success('Alt-hesab əlavə edildi');
+      toast.success(tt('Alt-hesab əlavə edildi', 'Sub-account added'));
       setCode(''); setNameAz(''); setNameEn(''); setParentId('');
       onSaved(); onOpenChange(false);
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Yeni alt-hesab</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tt('Yeni alt-hesab', 'New sub-account')}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Ana hesab</Label>
+            <Label>{tt('Ana hesab', 'Parent account')}</Label>
             <Select value={parentId} onValueChange={setParentId}>
-              <SelectTrigger><SelectValue placeholder="Hesab seç" /></SelectTrigger>
-              <SelectContent className="max-h-72">{parents.map((p) => <SelectItem key={p.id} value={p.id}>{p.accountCode} — {p.accountName.az}</SelectItem>)}</SelectContent>
+              <SelectTrigger><SelectValue placeholder={tt('Hesab seç', 'Select account')} /></SelectTrigger>
+              <SelectContent className="max-h-72">{parents.map((p) => <SelectItem key={p.id} value={p.id}>{p.accountCode} — {tt(p.accountName.az, p.accountName.en)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2"><Label>Kod</Label><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder={parent ? `${parent.accountCode}.1` : ''} /></div>
-            <div className="space-y-2"><Label>Ad (AZ)</Label><Input value={nameAz} onChange={(e) => setNameAz(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{tt('Kod', 'Code')}</Label><Input value={code} onChange={(e) => setCode(e.target.value)} placeholder={parent ? `${parent.accountCode}.1` : ''} /></div>
+            <div className="space-y-2"><Label>{tt('Ad (AZ)', 'Name (AZ)')}</Label><Input value={nameAz} onChange={(e) => setNameAz(e.target.value)} /></div>
           </div>
-          <div className="space-y-2"><Label>Ad (EN)</Label><Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} /></div>
+          <div className="space-y-2"><Label>{tt('Ad (EN)', 'Name (EN)')}</Label><Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} /></div>
         </div>
-        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} Əlavə et</Button></DialogFooter>
+        <DialogFooter><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4" />} {tt('Əlavə et', 'Add')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

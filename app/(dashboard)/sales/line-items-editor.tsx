@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { computeTotals } from '@/lib/firebase/sales';
 import { formatCurrency } from '@/lib/utils/format';
+import { useTT } from '@/lib/i18n/tt';
 import type { DocLineItem } from '@/types';
 
 export type DraftLine = Omit<DocLineItem, 'lineTotal'>;
@@ -13,6 +14,7 @@ export const emptyLine = (): DraftLine => ({ description: '', quantity: 1, unit:
 export function LineItemsEditor({ lines, onChange, currency }: {
   lines: DraftLine[]; onChange: (l: DraftLine[]) => void; currency: string;
 }) {
+  const tt = useTT();
   const totals = computeTotals(lines.filter((l) => l.description || l.unitPrice));
 
   function set(i: number, patch: Partial<DraftLine>) {
@@ -26,12 +28,12 @@ export function LineItemsEditor({ lines, onChange, currency }: {
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="text-xs uppercase tracking-wide text-muted-foreground">
-              <th className="px-1 py-1 text-left">Təsvir</th>
-              <th className="px-1 py-1 w-16">Say</th>
-              <th className="px-1 py-1 w-24">Qiymət</th>
-              <th className="px-1 py-1 w-16">End%</th>
-              <th className="px-1 py-1 w-16">ƏDV%</th>
-              <th className="px-1 py-1 w-24 text-right">Cəm</th>
+              <th className="px-1 py-1 text-left">{tt('Təsvir', 'Description')}</th>
+              <th className="px-1 py-1 w-16">{tt('Say', 'Qty')}</th>
+              <th className="px-1 py-1 w-24">{tt('Qiymət', 'Price')}</th>
+              <th className="px-1 py-1 w-16">{tt('End%', 'Disc%')}</th>
+              <th className="px-1 py-1 w-16">{tt('ƏDV%', 'VAT%')}</th>
+              <th className="px-1 py-1 w-24 text-right">{tt('Cəm', 'Total')}</th>
               <th className="w-8"></th>
             </tr>
           </thead>
@@ -41,7 +43,7 @@ export function LineItemsEditor({ lines, onChange, currency }: {
               const net = gross - gross * (l.discountPercent || 0) / 100;
               return (
                 <tr key={i}>
-                  <td className="px-1 py-1"><Input value={l.description} onChange={(e) => set(i, { description: e.target.value })} placeholder="Mal / xidmət" /></td>
+                  <td className="px-1 py-1"><Input value={l.description} onChange={(e) => set(i, { description: e.target.value })} placeholder={tt('Mal / xidmət', 'Good / service')} /></td>
                   <td className="px-1 py-1"><Input type="number" value={l.quantity} onChange={(e) => set(i, { quantity: num(e.target.value) })} /></td>
                   <td className="px-1 py-1"><Input type="number" value={l.unitPrice} onChange={(e) => set(i, { unitPrice: num(e.target.value) })} /></td>
                   <td className="px-1 py-1"><Input type="number" value={l.discountPercent} onChange={(e) => set(i, { discountPercent: num(e.target.value) })} /></td>
@@ -54,11 +56,11 @@ export function LineItemsEditor({ lines, onChange, currency }: {
           </tbody>
         </table>
       </div>
-      <Button variant="outline" size="sm" onClick={() => onChange([...lines, emptyLine()])}><Plus className="h-4 w-4" /> Sətir</Button>
+      <Button variant="outline" size="sm" onClick={() => onChange([...lines, emptyLine()])}><Plus className="h-4 w-4" /> {tt('Sətir', 'Line')}</Button>
       <div className="flex justify-end gap-6 rounded-card border border-border bg-secondary/30 p-3 text-sm">
-        <span className="text-muted-foreground">Ara cəm: <span className="font-medium text-foreground tnum">{formatCurrency(totals.subtotal - totals.discountTotal, currency)}</span></span>
-        <span className="text-muted-foreground">ƏDV: <span className="font-medium text-foreground tnum">{formatCurrency(totals.vatTotal, currency)}</span></span>
-        <span className="font-semibold">Yekun: <span className="tnum">{formatCurrency(totals.grandTotal, currency)}</span></span>
+        <span className="text-muted-foreground">{tt('Ara cəm', 'Subtotal')}: <span className="font-medium text-foreground tnum">{formatCurrency(totals.subtotal - totals.discountTotal, currency)}</span></span>
+        <span className="text-muted-foreground">{tt('ƏDV', 'VAT')}: <span className="font-medium text-foreground tnum">{formatCurrency(totals.vatTotal, currency)}</span></span>
+        <span className="font-semibold">{tt('Yekun', 'Total')}: <span className="tnum">{formatCurrency(totals.grandTotal, currency)}</span></span>
       </div>
     </div>
   );

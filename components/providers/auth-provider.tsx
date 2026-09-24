@@ -21,6 +21,8 @@ interface AuthContextValue {
   activeCompanyId: string | null;
   active: ActiveMembership | null;
   mustChangePassword: boolean;
+  /** Hesab deaktiv edilib (status: disabled) — giriş bloklanır */
+  accountDisabled: boolean;
   switchCompany: (companyId: string) => void;
   can: (permId: string) => boolean;
   canAccess: (module: ModuleKey) => boolean;
@@ -41,6 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(p);
     if (!p) {
       setMemberships([]);
+      return;
+    }
+    // Deaktiv edilmiş hesab modullara giriş əldə etməməlidir (01 §3.4)
+    if (p.status === 'disabled') {
+      setMemberships([]);
+      setActiveCompanyId(null);
       return;
     }
     const mems = await resolveMemberships(p);
@@ -114,6 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     activeCompanyId,
     active,
     mustChangePassword: !!profile?.mustChangePassword,
+    accountDisabled: profile?.status === 'disabled',
     switchCompany,
     can,
     canAccess,

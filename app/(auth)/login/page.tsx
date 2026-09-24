@@ -14,9 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Logo } from '@/components/layout/logo';
 import { toast } from '@/components/ui/toast';
+import { useTT } from '@/lib/i18n/tt';
 
 export default function LoginPage() {
   const t = useTranslations('auth');
+  const tt = useTT();
   const router = useRouter();
   const { firebaseUser, configured, loading: authLoading, mustChangePassword } = useAuth();
   const [identifier, setIdentifier] = useState('');
@@ -34,14 +36,14 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!configured) {
-      toast.error(t('notConfigured'), 'NEXT_PUBLIC_FIREBASE_* dəyişənlərini əlavə edin');
+      toast.error(t('notConfigured'), tt('NEXT_PUBLIC_FIREBASE_* dəyişənlərini əlavə edin', 'Add the NEXT_PUBLIC_FIREBASE_* variables'));
       return;
     }
     // Cihaz-səviyyəli kilid yoxlaması (01 §3.1)
     const lock = checkLockout(identifier);
     if (lock.locked) {
-      const msg = `Çox sayda uğursuz cəhd. ${formatRemaining(lock.remainingMs)} sonra yenidən cəhd edin.`;
-      setLockMsg(msg); toast.error('Giriş müvəqqəti bloklandı', msg);
+      const msg = tt(`Çox sayda uğursuz cəhd. ${formatRemaining(lock.remainingMs)} sonra yenidən cəhd edin.`, `Too many failed attempts. Try again in ${formatRemaining(lock.remainingMs)}.`);
+      setLockMsg(msg); toast.error(tt('Giriş müvəqqəti bloklandı', 'Login temporarily blocked'), msg);
       return;
     }
     setLoading(true);
@@ -54,11 +56,11 @@ export default function LoginPage() {
     } catch {
       const st = recordFailure(identifier);
       if (st.locked) {
-        const msg = `5 uğursuz cəhd. Giriş ${formatRemaining(st.remainingMs)} müddətinə bloklandı.`;
-        setLockMsg(msg); toast.error('Giriş bloklandı', msg);
+        const msg = tt(`5 uğursuz cəhd. Giriş ${formatRemaining(st.remainingMs)} müddətinə bloklandı.`, `5 failed attempts. Login is blocked for ${formatRemaining(st.remainingMs)}.`);
+        setLockMsg(msg); toast.error(tt('Giriş bloklandı', 'Login blocked'), msg);
       } else {
         setLockMsg('');
-        toast.error(t('invalidCredentials'), st.attemptsLeft <= 2 ? `${st.attemptsLeft} cəhd qalıb` : undefined);
+        toast.error(t('invalidCredentials'), st.attemptsLeft <= 2 ? tt(`${st.attemptsLeft} cəhd qalıb`, `${st.attemptsLeft} attempt(s) left`) : undefined);
       }
     } finally {
       setLoading(false);
@@ -81,7 +83,7 @@ export default function LoginPage() {
           <CardContent className="space-y-4">
             {!configured && (
               <div className="rounded-md bg-warning/10 p-3 text-xs text-warning-foreground">
-                ⚠️ Firebase konfiqurasiya edilməyib (.env.local). Giriş işləməyəcək.
+                {tt('⚠️ Firebase konfiqurasiya edilməyib (.env.local). Giriş işləməyəcək.', '⚠️ Firebase is not configured (.env.local). Login will not work.')}
               </div>
             )}
             {lockMsg && (
@@ -93,7 +95,7 @@ export default function LoginPage() {
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="identifier">{t('identifier')}</Label>
-                <Input id="identifier" type="text" autoComplete="username" placeholder="admin və ya email@nümunə.az" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
+                <Input id="identifier" type="text" autoComplete="username" placeholder={tt('admin və ya email@nümunə.az', 'admin or email@example.az')} value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -117,6 +119,7 @@ export default function LoginPage() {
 }
 
 function ResetDialog({ open, onOpenChange, initial, t }: { open: boolean; onOpenChange: (o: boolean) => void; initial: string; t: ReturnType<typeof useTranslations> }) {
+  const tt = useTT();
   const [email, setEmail] = useState(initial);
   const [busy, setBusy] = useState(false);
 
@@ -127,7 +130,7 @@ function ResetDialog({ open, onOpenChange, initial, t }: { open: boolean; onOpen
       await sendPasswordReset(email.trim());
       toast.success(t('resetSent'), email.trim());
       onOpenChange(false);
-    } catch (e) { toast.error('Xəta', e instanceof Error ? e.message : undefined); }
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setBusy(false); }
   }
 
@@ -141,12 +144,12 @@ function ResetDialog({ open, onOpenChange, initial, t }: { open: boolean; onOpen
             <Label>{t('resetEmailLabel')}</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@nümunə.az" className="pl-9" />
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={tt('email@nümunə.az', 'email@example.az')} className="pl-9" />
             </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Ləğv</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{tt('Ləğv', 'Cancel')}</Button>
           <Button onClick={submit} disabled={busy}>{busy ? <Loader2 className="animate-spin" /> : <Mail className="h-4 w-4" />} {t('resetSend')}</Button>
         </DialogFooter>
       </DialogContent>

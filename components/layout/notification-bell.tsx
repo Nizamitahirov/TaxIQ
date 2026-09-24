@@ -11,9 +11,11 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils/cn';
+import { useTT } from '@/lib/i18n/tt';
 
 export function NotificationBell() {
   const { profile, active, isSuperAdmin } = useAuth();
+  const tt = useTT();
   const companyId = active?.companyId;
 
   const { data: notifs } = useQuery({ queryKey: ['notifications', profile?.uid], queryFn: () => listNotifications(profile!.uid), enabled: !!profile?.uid });
@@ -26,7 +28,7 @@ export function NotificationBell() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative" aria-label="Bildirişlər">
+        <Button variant="ghost" size="icon" className="relative" aria-label={tt('Bildirişlər', 'Notifications')}>
           <Bell />
           {badge > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
@@ -37,13 +39,13 @@ export function NotificationBell() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-          <p className="text-sm font-semibold">Bildirişlər</p>
-          <Link href="/notifications" className="text-xs font-medium text-primary hover:underline">Hamısı</Link>
+          <p className="text-sm font-semibold">{tt('Bildirişlər', 'Notifications')}</p>
+          <Link href="/notifications" className="text-xs font-medium text-primary hover:underline">{tt('Hamısı', 'All')}</Link>
         </div>
 
         {pending.length > 0 && (
           <div className="border-b border-border">
-            <p className="px-4 pt-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Təsdiq gözləyir · {pending.length}</p>
+            <p className="px-4 pt-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{tt('Təsdiq gözləyir', 'Awaiting approval')} · {pending.length}</p>
             <div className="max-h-56 overflow-y-auto py-1">
               {pending.slice(0, 5).map((a) => (
                 <Link key={a.id} href="/workflow" className="flex items-start gap-2.5 px-4 py-2 transition-colors hover:bg-secondary/60">
@@ -62,7 +64,7 @@ export function NotificationBell() {
         <div className="max-h-64 overflow-y-auto py-1">
           {(notifs ?? []).length === 0 ? (
             <div className="flex flex-col items-center gap-1.5 py-8 text-center text-sm text-muted-foreground">
-              <CheckCircle2 className="h-6 w-6 text-success/70" /> Hər şey qaydasındadır
+              <CheckCircle2 className="h-6 w-6 text-success/70" /> {tt('Hər şey qaydasındadır', 'All caught up')}
             </div>
           ) : (notifs ?? []).slice(0, 8).map((n) => (
             <Link key={n.id} href="/notifications" className={cn('flex items-start gap-2.5 px-4 py-2 transition-colors hover:bg-secondary/60', !n.isRead && 'bg-primary/[0.04]')}>

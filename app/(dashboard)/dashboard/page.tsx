@@ -14,6 +14,8 @@ import {
   SlidersHorizontal, ArrowUp, ArrowDown, Eye, EyeOff, RotateCcw,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useTT } from '@/lib/i18n/tt';
+import { useLocale } from 'next-intl';
 import { useAvatarUpload } from '@/components/shared/use-avatar-upload';
 import {
   DASH_CHART_WIDGETS, DASH_SECTIONS, loadDashConfig, saveDashConfig, isHidden, orderedCharts, type DashConfig,
@@ -32,11 +34,13 @@ import { cn } from '@/lib/utils/cn';
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
+  const tt = useTT();
+  const locale = useLocale();
   const { profile, isSuperAdmin, active, can } = useAuth();
   const now = new Date();
   const greet = now.getHours() < 12 ? t('greetingMorning') : now.getHours() < 18 ? t('greetingAfternoon') : t('greetingEvening');
-  const firstName = (profile?.displayName ?? 'İstifadəçi').split(' ')[0];
-  const todayStr = now.toLocaleDateString('az-AZ', { weekday: 'long', day: 'numeric', month: 'long' });
+  const firstName = (profile?.displayName ?? tt('İstifadəçi', 'User')).split(' ')[0];
+  const todayStr = now.toLocaleDateString(locale === 'en' ? 'en-US' : 'az-AZ', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div>
@@ -45,7 +49,7 @@ export default function DashboardPage() {
         greet={greet} firstName={firstName} todayStr={todayStr} avatarUrl={profile?.avatarUrl ?? undefined}
         canViewSalary={can('hr.employee.salary.view')} showHero={!isSuperAdmin} uid={profile?.uid ?? ''} />}
       {!isSuperAdmin && !active && (
-        <Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">Hələ heç bir şirkətə təyin olunmamısınız.</CardContent></Card>
+        <Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('Hələ heç bir şirkətə təyin olunmamısınız.', 'You have not been assigned to any company yet.')}</CardContent></Card>
       )}
     </div>
   );
@@ -53,31 +57,32 @@ export default function DashboardPage() {
 
 // ═══════════ PLATFORM ═══════════
 function PlatformSection({ greet, firstName, todayStr }: { greet: string; firstName: string; todayStr: string }) {
+  const tt = useTT();
   const { data, isLoading } = useQuery({ queryKey: ['platform-metrics'], queryFn: loadPlatformMetrics });
   return (
     <div className="flex flex-col gap-6">
-      <Hero title={`${greet}, ${firstName} 👋`} sub={`${todayStr} · Platform İdarə Paneli`} label="TaxIQ · Super Admin" cta={{ href: '/companies/new', label: 'Yeni müştəri' }} />
+      <Hero title={`${greet}, ${firstName} 👋`} sub={`${todayStr} · ${tt('Platform İdarə Paneli', 'Platform dashboard')}`} label="TaxIQ · Super Admin" cta={{ href: '/companies/new', label: tt('Yeni müştəri', 'New client') }} />
       {isLoading || !data ? <KpiSkeleton /> : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <KpiCard icon={Building2} tint="bg-violet-500/12 text-violet-600" label="Şirkətlər" value={String(data.totalCompanies)} sub={`${data.activeCompanies} aktiv`} />
-            <KpiCard icon={ShieldCheck} tint="bg-emerald-500/12 text-emerald-600" label="Aktiv" value={String(data.activeCompanies)} sub={`${data.suspendedCompanies} dayandırılıb`} />
-            <KpiCard icon={Users2} tint="bg-sky-500/12 text-sky-600" label="İstifadəçilər" value={String(data.totalUsers)} sub={`${data.staffUsers} staff`} />
-            <KpiCard icon={UserCheck} tint="bg-amber-500/12 text-amber-600" label="Müştəri istifadəçiləri" value={String(data.clientUsers)} />
+            <KpiCard icon={Building2} tint="bg-violet-500/12 text-violet-600" label={tt('Şirkətlər', 'Companies')} value={String(data.totalCompanies)} sub={`${data.activeCompanies} ${tt('aktiv', 'active')}`} />
+            <KpiCard icon={ShieldCheck} tint="bg-emerald-500/12 text-emerald-600" label={tt('Aktiv', 'Active')} value={String(data.activeCompanies)} sub={`${data.suspendedCompanies} ${tt('dayandırılıb', 'suspended')}`} />
+            <KpiCard icon={Users2} tint="bg-sky-500/12 text-sky-600" label={tt('İstifadəçilər', 'Users')} value={String(data.totalUsers)} sub={`${data.staffUsers} staff`} />
+            <KpiCard icon={UserCheck} tint="bg-amber-500/12 text-amber-600" label={tt('Müştəri istifadəçiləri', 'Client users')} value={String(data.clientUsers)} />
           </div>
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <ChartCard title="Sektor üzrə bölgü" className="lg:col-span-1">
-              {data.sectorDistribution.length === 0 ? <Empty text="Şirkət yoxdur" /> : (
+            <ChartCard title={tt('Sektor üzrə bölgü', 'Distribution by sector')} className="lg:col-span-1">
+              {data.sectorDistribution.length === 0 ? <Empty text={tt('Şirkət yoxdur', 'No companies')} /> : (
                 <ResponsiveContainer width="100%" height={220}><PieChart><Pie data={data.sectorDistribution} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3}>{data.sectorDistribution.map((_, i) => <Cell key={i} stroke="transparent" fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Pie><Tooltip /><Legend /></PieChart></ResponsiveContainer>
               )}
             </ChartCard>
             <Card className="rounded-card lg:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">Şirkətlər</CardTitle><Link href="/companies" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">Hamısı <ArrowUpRight className="h-3.5 w-3.5" /></Link></CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">{tt('Şirkətlər', 'Companies')}</CardTitle><Link href="/companies" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">{tt('Hamısı', 'All')} <ArrowUpRight className="h-3.5 w-3.5" /></Link></CardHeader>
               <CardContent className="p-0"><div className="divide-y divide-border/50">
                 {data.companies.slice(0, 7).map((c) => (
                   <div key={c.id} className="flex items-center gap-3 px-5 py-2.5">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">{c.name.slice(0, 2).toUpperCase()}</span>
-                    <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{c.name} {c.isInternal && <span className="text-xs text-primary">· Daxili</span>}</p><p className="truncate text-xs text-muted-foreground">{c.taxId ? `VÖEN ${c.taxId}` : c.sector}</p></div>
+                    <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{c.name} {c.isInternal && <span className="text-xs text-primary">· {tt('Daxili', 'Internal')}</span>}</p><p className="truncate text-xs text-muted-foreground">{c.taxId ? `VÖEN ${c.taxId}` : c.sector}</p></div>
                     <Badge variant={c.status === 'active' ? 'success' : c.status === 'suspended' ? 'warning' : 'secondary'}>{c.status}</Badge>
                   </div>
                 ))}
@@ -94,6 +99,7 @@ function PlatformSection({ greet, firstName, todayStr }: { greet: string; firstN
 function CompanySection({ companyId, company, roleName, greet, firstName, todayStr, avatarUrl, canViewSalary, showHero, uid }: {
   companyId: string; company: { name: string; baseCurrency: string }; roleName: string; greet: string; firstName: string; todayStr: string; avatarUrl?: string; canViewSalary: boolean; showHero: boolean; uid: string;
 }) {
+  const tt = useTT();
   const { data: m, isLoading } = useQuery({ queryKey: ['live-kpis', companyId], queryFn: () => loadLiveCompanyKpis(companyId) });
   const cur = company.baseCurrency;
   const [cfg, setCfg] = useState<DashConfig>({ order: DASH_CHART_WIDGETS.map((w) => w.key), hidden: [] });
@@ -106,20 +112,20 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* LEFT */}
         <div className="flex min-w-0 flex-col gap-6">
-          {showHero && <Hero title={`${greet}, ${firstName} 🔥`} sub={`${todayStr} · ${company.name}`} label={`TaxIQ · ${roleName}`} cta={{ href: '/sales', label: 'Yeni faktura' }} />}
+          {showHero && <Hero title={`${greet}, ${firstName} 🔥`} sub={`${todayStr} · ${company.name}`} label={`TaxIQ · ${roleName}`} cta={{ href: '/sales', label: tt('Yeni faktura', 'New invoice') }} />}
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatMini icon={TrendingUp} tint="bg-violet-500/12 text-violet-600" value={formatCurrency(m.revenueThisMonth, cur)} label="Bu ay gəlir" />
-            <StatMini icon={Wallet} tint="bg-emerald-500/12 text-emerald-600" value={formatCurrency(m.cashTotal, cur)} label="Kassa/Bank" />
-            <StatMini icon={Receipt} tint="bg-sky-500/12 text-sky-600" value={formatCurrency(m.arTotal, cur)} label="Debitor (AR)" />
+            <StatMini icon={TrendingUp} tint="bg-violet-500/12 text-violet-600" value={formatCurrency(m.revenueThisMonth, cur)} label={tt('Bu ay gəlir', 'Revenue this month')} />
+            <StatMini icon={Wallet} tint="bg-emerald-500/12 text-emerald-600" value={formatCurrency(m.cashTotal, cur)} label={tt('Kassa/Bank', 'Cash/Bank')} />
+            <StatMini icon={Receipt} tint="bg-sky-500/12 text-sky-600" value={formatCurrency(m.arTotal, cur)} label={tt('Debitor (AR)', 'Receivables (AR)')} />
           </div>
 
           {/* Top müştərilər carousel */}
           <div className="flex flex-1 flex-col">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tight">Top müştərilər</h2>
-              <Link href="/sales" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">Hamısı <ArrowUpRight className="h-4 w-4" /></Link>
+              <h2 className="text-xl font-bold tracking-tight">{tt('Top müştərilər', 'Top customers')}</h2>
+              <Link href="/sales" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">{tt('Hamısı', 'All')} <ArrowUpRight className="h-4 w-4" /></Link>
             </div>
-            {m.topCustomers.length === 0 ? <Card className="rounded-card flex-1"><Empty text="Hələ satış datası yoxdur" /></Card> : (
+            {m.topCustomers.length === 0 ? <Card className="rounded-card flex-1"><Empty text={tt('Hələ satış datası yoxdur', 'No sales data yet')} /></Card> : (
               <div className="flex flex-1 items-stretch gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {m.topCustomers.map((c, i) => <CustomerCard key={c.name} name={c.name} revenue={c.revenue} cur={cur} max={m.topCustomers[0].revenue} idx={i} />)}
               </div>
@@ -130,21 +136,21 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
         {/* RIGHT aside */}
         <aside className="flex flex-col gap-5">
           <Card className="rounded-card">
-            <CardHeader className="pb-0"><CardTitle className="flex items-center gap-2 text-base"><Target className="h-4 w-4 text-primary" /> Aylıq gəlir hədəfi</CardTitle></CardHeader>
+            <CardHeader className="pb-0"><CardTitle className="flex items-center gap-2 text-base"><Target className="h-4 w-4 text-primary" /> {tt('Aylıq gəlir hədəfi', 'Monthly revenue target')}</CardTitle></CardHeader>
             <CardContent className="flex flex-col items-center pt-4 text-center">
               <AvatarRing name={firstName} avatarUrl={avatarUrl} percent={Math.round(m.targetPct)} editable />
               {m.monthlyTarget > 0 ? (<>
                 <p className="mt-4 text-lg font-bold">{formatCurrency(m.revenueThisMonth, cur)}</p>
-                <p className="text-xs text-muted-foreground">/ {formatCurrency(m.monthlyTarget, cur)} hədəf (5 ay ortası) · bu ay</p>
+                <p className="text-xs text-muted-foreground">/ {formatCurrency(m.monthlyTarget, cur)} {tt('hədəf (5 ay ortası) · bu ay', 'target (5-month avg) · this month')}</p>
               </>) : (<>
-                <p className="mt-4 text-sm font-medium">Tarixçə toplanır</p>
-                <p className="text-xs text-muted-foreground">Fakturalar artdıqca hədəf hesablanacaq</p>
+                <p className="mt-4 text-sm font-medium">{tt('Tarixçə toplanır', 'Collecting history')}</p>
+                <p className="text-xs text-muted-foreground">{tt('Fakturalar artdıqca hədəf hesablanacaq', 'The target is calculated as invoices grow')}</p>
               </>)}
             </CardContent>
           </Card>
 
           <Card className="rounded-card">
-            <CardHeader className="pb-0"><CardTitle className="text-base">Aylıq gəlir</CardTitle></CardHeader>
+            <CardHeader className="pb-0"><CardTitle className="text-base">{tt('Aylıq gəlir', 'Monthly revenue')}</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={m.revenueTrend} barSize={22}>
@@ -158,12 +164,12 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
           </Card>
 
           <Card className="rounded-card flex flex-1 flex-col">
-            <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">Top müştərilər</CardTitle><Link href="/sales" className="text-xs font-medium text-primary hover:underline">Hamısı</Link></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">{tt('Top müştərilər', 'Top customers')}</CardTitle><Link href="/sales" className="text-xs font-medium text-primary hover:underline">{tt('Hamısı', 'All')}</Link></CardHeader>
             <CardContent className="space-y-1">
-              {m.topCustomers.length === 0 ? <Empty text="Müştəri satışı yoxdur" /> : m.topCustomers.slice(0, 5).map((c) => (
+              {m.topCustomers.length === 0 ? <Empty text={tt('Müştəri satışı yoxdur', 'No customer sales')} /> : m.topCustomers.slice(0, 5).map((c) => (
                 <div key={c.name} className="flex items-center gap-3 border-b border-border/50 py-2 last:border-0">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5B5BF5] to-[#8b3df0] text-xs font-bold text-white">{c.name.slice(0, 2).toUpperCase()}</span>
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{c.name}</p><p className="text-xs text-muted-foreground">Müştəri</p></div>
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{c.name}</p><p className="text-xs text-muted-foreground">{tt('Müştəri', 'Customer')}</p></div>
                   <span className="shrink-0 text-sm font-bold text-primary">{formatCurrency(c.revenue, cur)}</span>
                 </div>
               ))}
@@ -175,19 +181,19 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
       {/* Alertlər */}
       {!isHidden(cfg, 'alerts') && (m.overdueCount > 0 || m.pendingApprovals > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
-          {m.overdueCount > 0 && <Link href="/sales"><Card className="rounded-card border-rose-500/30 bg-rose-500/5 transition-shadow hover:shadow-soft-lg"><CardContent className="flex items-center gap-3 p-4"><AlertTriangle className="h-5 w-5 text-rose-600" /><div className="flex-1"><p className="text-sm font-semibold text-rose-600">{m.overdueCount} vaxtı keçmiş faktura</p><p className="text-xs text-muted-foreground">{formatCurrency(m.overdueAmount, cur)} ödənilməmiş</p></div><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></CardContent></Card></Link>}
-          {m.pendingApprovals > 0 && <Link href="/workflow"><Card className="rounded-card border-primary/30 bg-primary/5 transition-shadow hover:shadow-soft-lg"><CardContent className="flex items-center gap-3 p-4"><Inbox className="h-5 w-5 text-primary" /><div className="flex-1"><p className="text-sm font-semibold text-primary">{m.pendingApprovals} təsdiq gözləyir</p><p className="text-xs text-muted-foreground">İş axını inbox-u</p></div><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></CardContent></Card></Link>}
+          {m.overdueCount > 0 && <Link href="/sales"><Card className="rounded-card border-rose-500/30 bg-rose-500/5 transition-shadow hover:shadow-soft-lg"><CardContent className="flex items-center gap-3 p-4"><AlertTriangle className="h-5 w-5 text-rose-600" /><div className="flex-1"><p className="text-sm font-semibold text-rose-600">{m.overdueCount} {tt('vaxtı keçmiş faktura', 'overdue invoices')}</p><p className="text-xs text-muted-foreground">{formatCurrency(m.overdueAmount, cur)} {tt('ödənilməmiş', 'unpaid')}</p></div><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></CardContent></Card></Link>}
+          {m.pendingApprovals > 0 && <Link href="/workflow"><Card className="rounded-card border-primary/30 bg-primary/5 transition-shadow hover:shadow-soft-lg"><CardContent className="flex items-center gap-3 p-4"><Inbox className="h-5 w-5 text-primary" /><div className="flex-1"><p className="text-sm font-semibold text-primary">{m.pendingApprovals} {tt('təsdiq gözləyir', 'awaiting approval')}</p><p className="text-xs text-muted-foreground">{tt('İş axını inbox-u', 'Workflow inbox')}</p></div><ArrowUpRight className="h-4 w-4 text-muted-foreground" /></CardContent></Card></Link>}
         </div>
       )}
 
       {/* Son fakturalar */}
       {!isHidden(cfg, 'recentInvoices') && (
       <Card className="rounded-card">
-        <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">Son fakturalar</CardTitle><Link href="/sales" className="text-sm font-medium text-primary hover:underline">Hamısı</Link></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">{tt('Son fakturalar', 'Recent invoices')}</CardTitle><Link href="/sales" className="text-sm font-medium text-primary hover:underline">{tt('Hamısı', 'All')}</Link></CardHeader>
         <CardContent className="p-0">
-          {m.recentInvoices.length === 0 ? <Empty text="Faktura yoxdur" /> : (
+          {m.recentInvoices.length === 0 ? <Empty text={tt('Faktura yoxdur', 'No invoices')} /> : (
             <div className="overflow-x-auto">
-              <div className="grid min-w-[560px] grid-cols-[2fr_1fr_1fr_1fr] gap-2 border-b border-border px-5 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><span>Müştəri</span><span>Nömrə</span><span>Məbləğ</span><span>Status</span></div>
+              <div className="grid min-w-[560px] grid-cols-[2fr_1fr_1fr_1fr] gap-2 border-b border-border px-5 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"><span>{tt('Müştəri', 'Customer')}</span><span>{tt('Nömrə', 'Number')}</span><span>{tt('Məbləğ', 'Amount')}</span><span>Status</span></div>
               {m.recentInvoices.map((s) => (
                 <div key={s.id} className="grid min-w-[560px] grid-cols-[2fr_1fr_1fr_1fr] items-center gap-2 border-b border-border/50 px-5 py-2.5 text-sm last:border-0">
                   <div className="flex items-center gap-2 truncate"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-bold text-primary">{(s.customerName ?? '?').slice(0, 2).toUpperCase()}</span><span className="truncate font-medium">{s.customerName ?? '—'}</span></div>
@@ -204,14 +210,14 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
 
       {/* Qrafiklər — fərdiləşdirilə bilən (03 §5) */}
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-bold tracking-tight text-muted-foreground">Analitika</h2>
-        <Button variant="outline" size="sm" onClick={() => setCustOpen(true)}><SlidersHorizontal className="h-4 w-4" /> Fərdiləşdir</Button>
+        <h2 className="text-base font-bold tracking-tight text-muted-foreground">{tt('Analitika', 'Analytics')}</h2>
+        <Button variant="outline" size="sm" onClick={() => setCustOpen(true)}><SlidersHorizontal className="h-4 w-4" /> {tt('Fərdiləşdir', 'Customize')}</Button>
       </div>
       {orderedCharts(cfg).length === 0 ? (
-        <Card className="rounded-card"><Empty text="Bütün widget-lər gizlədilib — «Fərdiləşdir» ilə göstərin" /></Card>
+        <Card className="rounded-card"><Empty text={tt('Bütün widget-lər gizlədilib — «Fərdiləşdir» ilə göstərin', 'All widgets are hidden — show them via “Customize”')} /></Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {orderedCharts(cfg).map((k) => <div key={k} className="contents">{renderChart(k, m, cur, canViewSalary)}</div>)}
+          {orderedCharts(cfg).map((k) => <div key={k} className="contents">{renderChart(k, m, cur, canViewSalary, tt)}</div>)}
         </div>
       )}
 
@@ -222,12 +228,12 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
 }
 
 // ── Fərdiləşdirilə bilən qrafik widget-ləri (03 §5) ──
-function renderChart(key: string, m: LiveCompanyKpis, cur: string, canViewSalary: boolean): ReactNode {
+function renderChart(key: string, m: LiveCompanyKpis, cur: string, canViewSalary: boolean, tt: (az: string, en: string) => string): ReactNode {
   switch (key) {
     case 'revenueTrend':
       return (
-        <ChartCard title="Gəlir trendi və kümulyativ (6 ay)">
-          {m.revenueTrend.every((x) => x.value === 0) ? <Empty text="Gəlir datası yoxdur" /> : (
+        <ChartCard title={tt('Gəlir trendi və kümulyativ (6 ay)', 'Revenue trend & cumulative (6 mo)')}>
+          {m.revenueTrend.every((x) => x.value === 0) ? <Empty text={tt('Gəlir datası yoxdur', 'No revenue data')} /> : (
             <ResponsiveContainer width="100%" height={200}>
               <ComposedChart data={m.revenueTrend}>
                 <defs><linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={PRIMARY} stopOpacity={0.95} /><stop offset="100%" stopColor={PRIMARY} stopOpacity={0.45} /></linearGradient></defs>
@@ -241,28 +247,28 @@ function renderChart(key: string, m: LiveCompanyKpis, cur: string, canViewSalary
         </ChartCard>
       );
     case 'collection':
-      return <GaugeCard title="Yığım faizi (collection)" percent={m.collectionRate} label="ödənilmiş / ümumi"
-        sub={[{ label: 'Faktura sayı', value: String(m.invoiceCount) }, { label: 'Orta faktura', value: formatCurrency(m.avgInvoice, cur) }]} />;
+      return <GaugeCard title={tt('Yığım faizi (collection)', 'Collection rate')} percent={m.collectionRate} label={tt('ödənilmiş / ümumi', 'paid / total')}
+        sub={[{ label: tt('Faktura sayı', 'Invoice count'), value: String(m.invoiceCount) }, { label: tt('Orta faktura', 'Avg invoice'), value: formatCurrency(m.avgInvoice, cur) }]} />;
     case 'statusDist':
       return (
-        <ChartCard title="Faktura statusu (məbləğ)">
-          {m.statusDist.length === 0 ? <Empty text="Faktura yoxdur" /> : (
+        <ChartCard title={tt('Faktura statusu (məbləğ)', 'Invoice status (amount)')}>
+          {m.statusDist.length === 0 ? <Empty text={tt('Faktura yoxdur', 'No invoices')} /> : (
             <ResponsiveContainer width="100%" height={200}><PieChart><Pie data={m.statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={78} paddingAngle={3}>{m.statusDist.map((_, i) => <Cell key={i} stroke="transparent" fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Pie><Tooltip formatter={(v: number) => formatCurrency(v, cur)} /><Legend /></PieChart></ResponsiveContainer>
           )}
         </ChartCard>
       );
     case 'aging':
       return (
-        <ChartCard title="Debitor yaş analizi">
-          {m.agingBuckets.length === 0 ? <Empty text="Açıq debitor yoxdur" /> : (
+        <ChartCard title={tt('Debitor yaş analizi', 'AR aging analysis')}>
+          {m.agingBuckets.length === 0 ? <Empty text={tt('Açıq debitor yoxdur', 'No open receivables')} /> : (
             <ResponsiveContainer width="100%" height={200}><BarChart data={m.agingBuckets}><CartesianGrid strokeDasharray="3 3" className="stroke-muted" /><XAxis dataKey="name" fontSize={11} /><YAxis fontSize={11} width={36} /><Tooltip formatter={(v: number) => formatCurrency(v, cur)} /><Bar dataKey="value" radius={[6, 6, 0, 0]}>{m.agingBuckets.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar></BarChart></ResponsiveContainer>
           )}
         </ChartCard>
       );
     case 'topCustomers':
       return (
-        <ChartCard title="Top müştərilər (gəlir)">
-          {m.topCustomers.length === 0 ? <Empty text="Satış datası yoxdur" /> : (
+        <ChartCard title={tt('Top müştərilər (gəlir)', 'Top customers (revenue)')}>
+          {m.topCustomers.length === 0 ? <Empty text={tt('Satış datası yoxdur', 'No sales data')} /> : (
             <ResponsiveContainer width="100%" height={200}><BarChart data={m.topCustomers.map((c) => ({ name: c.name.slice(0, 10), value: c.revenue }))} layout="vertical"><XAxis type="number" fontSize={10} hide /><YAxis type="category" dataKey="name" fontSize={10} width={80} /><Tooltip formatter={(v: number) => formatCurrency(v, cur)} /><Bar dataKey="value" radius={[0, 6, 6, 0]}>{m.topCustomers.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}</Bar></BarChart></ResponsiveContainer>
           )}
         </ChartCard>
@@ -270,13 +276,13 @@ function renderChart(key: string, m: LiveCompanyKpis, cur: string, canViewSalary
     case 'summary':
       return (
         <Card className="rounded-card">
-          <CardHeader><CardTitle className="text-base">İcmal</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{tt('İcmal', 'Summary')}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <MiniRow icon={Receipt} label="Debitor (AR)" value={formatCurrency(m.arTotal, cur)} />
-            <MiniRow icon={FileWarning} label="Kreditor (AP)" value={formatCurrency(m.apTotal, cur)} />
-            <MiniRow icon={Building2} label="Anbar dəyəri" value={formatCurrency(m.inventoryValue, cur)} />
-            <MiniRow icon={Users2} label="Aktiv işçi" value={formatNumber(m.activeEmployees, 0)} />
-            <MiniRow icon={TrendingUp} label="Gəlir (YTD)" value={canViewSalary ? formatCurrency(m.revenueYtd, cur) : formatCurrency(m.revenueYtd, cur)} />
+            <MiniRow icon={Receipt} label={tt('Debitor (AR)', 'Receivables (AR)')} value={formatCurrency(m.arTotal, cur)} />
+            <MiniRow icon={FileWarning} label={tt('Kreditor (AP)', 'Payables (AP)')} value={formatCurrency(m.apTotal, cur)} />
+            <MiniRow icon={Building2} label={tt('Anbar dəyəri', 'Inventory value')} value={formatCurrency(m.inventoryValue, cur)} />
+            <MiniRow icon={Users2} label={tt('Aktiv işçi', 'Active employees')} value={formatNumber(m.activeEmployees, 0)} />
+            <MiniRow icon={TrendingUp} label={tt('Gəlir (YTD)', 'Revenue (YTD)')} value={canViewSalary ? formatCurrency(m.revenueYtd, cur) : formatCurrency(m.revenueYtd, cur)} />
           </CardContent>
         </Card>
       );
@@ -286,19 +292,20 @@ function renderChart(key: string, m: LiveCompanyKpis, cur: string, canViewSalary
 }
 
 function CustomizeDialog({ open, onOpenChange, cfg, onApply }: { open: boolean; onOpenChange: (o: boolean) => void; cfg: DashConfig; onApply: (c: DashConfig) => void }) {
+  const tt = useTT();
   const [draft, setDraft] = useState<DashConfig>(cfg);
   useEffect(() => { if (open) setDraft(cfg); }, [open, cfg]);
   const toggle = (key: string) => setDraft((d) => ({ ...d, hidden: d.hidden.includes(key) ? d.hidden.filter((k) => k !== key) : [...d.hidden, key] }));
   const move = (i: number, dir: -1 | 1) => setDraft((d) => { const n = [...d.order]; const j = i + dir; if (j < 0 || j >= n.length) return d; [n[i], n[j]] = [n[j], n[i]]; return { ...d, order: n }; });
-  const chartLabel = (k: string) => DASH_CHART_WIDGETS.find((w) => w.key === k)?.label ?? k;
+  const chartLabel = (k: string) => { const w = DASH_CHART_WIDGETS.find((x) => x.key === k); return w ? tt(w.label, w.labelEn) : k; };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Paneli fərdiləşdir</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{tt('Paneli fərdiləşdir', 'Customize dashboard')}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Qrafiklər — sıra və görünüş</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tt('Qrafiklər — sıra və görünüş', 'Charts — order & visibility')}</p>
             <div className="space-y-1.5">
               {draft.order.map((k, i) => {
                 const hidden = draft.hidden.includes(k);
@@ -309,20 +316,20 @@ function CustomizeDialog({ open, onOpenChange, cfg, onApply }: { open: boolean; 
                       <button onClick={() => move(i, 1)} disabled={i === draft.order.length - 1} className="text-muted-foreground disabled:opacity-30"><ArrowDown className="h-3 w-3" /></button>
                     </div>
                     <span className={cn('flex-1 text-sm', hidden && 'text-muted-foreground line-through')}>{chartLabel(k)}</span>
-                    <button onClick={() => toggle(k)} title={hidden ? 'Göstər' : 'Gizlət'} className="text-muted-foreground hover:text-foreground">{hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-primary" />}</button>
+                    <button onClick={() => toggle(k)} title={hidden ? tt('Göstər', 'Show') : tt('Gizlət', 'Hide')} className="text-muted-foreground hover:text-foreground">{hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-primary" />}</button>
                   </div>
                 );
               })}
             </div>
           </div>
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bölmələr</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tt('Bölmələr', 'Sections')}</p>
             <div className="space-y-1.5">
               {DASH_SECTIONS.map((s) => {
                 const hidden = draft.hidden.includes(s.key);
                 return (
                   <label key={s.key} className="flex items-center justify-between rounded-lg border border-border/60 p-2 text-sm">
-                    <span className={cn(hidden && 'text-muted-foreground line-through')}>{s.label}</span>
+                    <span className={cn(hidden && 'text-muted-foreground line-through')}>{tt(s.label, s.labelEn)}</span>
                     <input type="checkbox" checked={!hidden} onChange={() => toggle(s.key)} />
                   </label>
                 );
@@ -331,8 +338,8 @@ function CustomizeDialog({ open, onOpenChange, cfg, onApply }: { open: boolean; 
           </div>
         </div>
         <DialogFooter className="flex-row justify-between">
-          <Button variant="ghost" onClick={() => setDraft({ order: DASH_CHART_WIDGETS.map((w) => w.key), hidden: [] })}><RotateCcw className="h-4 w-4" /> Sıfırla</Button>
-          <Button onClick={() => { onApply(draft); onOpenChange(false); }}>Yadda saxla</Button>
+          <Button variant="ghost" onClick={() => setDraft({ order: DASH_CHART_WIDGETS.map((w) => w.key), hidden: [] })}><RotateCcw className="h-4 w-4" /> {tt('Sıfırla', 'Reset')}</Button>
+          <Button onClick={() => { onApply(draft); onOpenChange(false); }}>{tt('Yadda saxla', 'Save')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -371,6 +378,7 @@ function StatMini({ icon: Icon, tint, value, label }: { icon: typeof Wallet; tin
 }
 const FEAT_GRAD = ['from-[#5B5BF5] to-[#9333ea]', 'from-[#06b6d4] to-[#3b82f6]', 'from-[#ec4899] to-[#8b5cf6]', 'from-[#14b8a6] to-[#5B5BF5]', 'from-[#f59e0b] to-[#ec4899]', 'from-[#5B5BF5] to-[#06b6d4]'];
 function CustomerCard({ name, revenue, cur, max, idx }: { name: string; revenue: number; cur: string; max: number; idx: number }) {
+  const tt = useTT();
   const pct = max > 0 ? Math.round((revenue / max) * 100) : 0;
   return (
     <div className="flex w-[230px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card p-3 shadow-soft transition-all hover:-translate-y-1 hover:shadow-soft-lg">
@@ -379,11 +387,12 @@ function CustomerCard({ name, revenue, cur, max, idx }: { name: string; revenue:
       </div>
       <p className="mt-2.5 line-clamp-1 text-sm font-semibold">{name}</p>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gradient-to-r from-[#5B5BF5] to-[#8b3df0]" style={{ width: `${Math.max(6, pct)}%` }} /></div>
-      <div className="mt-2 flex items-center justify-between text-xs"><span className="font-bold text-primary">{formatCurrency(revenue, cur)}</span><span className="text-muted-foreground">gəlir</span></div>
+      <div className="mt-2 flex items-center justify-between text-xs"><span className="font-bold text-primary">{formatCurrency(revenue, cur)}</span><span className="text-muted-foreground">{tt('gəlir', 'revenue')}</span></div>
     </div>
   );
 }
 function AvatarRing({ name, avatarUrl, percent, editable }: { name: string; avatarUrl?: string; percent: number; editable?: boolean }) {
+  const tt = useTT();
   const p = Math.min(100, Math.max(0, percent));
   const { inputRef, uploading, openPicker, onFile } = useAvatarUpload();
   const inner = (
@@ -399,14 +408,14 @@ function AvatarRing({ name, avatarUrl, percent, editable }: { name: string; avat
   return (
     <>
       <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
-      <button type="button" onClick={openPicker} disabled={uploading} title="Şəkli dəyişdir"
+      <button type="button" onClick={openPicker} disabled={uploading} title={tt('Şəkli dəyişdir', 'Change photo')}
         className="group relative h-28 w-28 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card">
         {inner}
         <span className="absolute bottom-[7px] right-[7px] z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-[#5B5BF5] text-white shadow-lg transition-transform group-hover:scale-110">
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
         </span>
         <span className="pointer-events-none absolute inset-[7px] flex items-center justify-center rounded-full bg-black/45 text-[11px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
-          {avatarUrl ? 'Dəyişdir' : 'Şəkil əlavə et'}
+          {avatarUrl ? tt('Dəyişdir', 'Change') : tt('Şəkil əlavə et', 'Add photo')}
         </span>
       </button>
     </>

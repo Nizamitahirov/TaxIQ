@@ -1,12 +1,44 @@
 rules_version = '2';
 
-// TaxIQ Cloud Storage — loqolar, sənəd şablonları, ixrac faylları, işçi sənədləri.
-// Autentifikasiya tələb olunur; detallı şirkət-əsaslı yol izolyasiyası Modul 2+ ilə
-// genişləndiriləcək (companies/{companyId}/... yol strukturu).
+// ════════════════════════════════════════════════════════════════════
+//  TaxIQ Cloud Storage — çoxmüştərili (multi-tenant) izolyasiya.
+//  Fayllar `companies/{companyId}/...` altında saxlanılır; giriş həmin
+//  şirkətə çıxışı olan istifadəçilərlə məhdudlaşır (Firestore ilə eyni model).
+//  Storage qaydaları Firestore sənədlərini `firestore.get/exists` ilə oxuyur.
+// ════════════════════════════════════════════════════════════════════
 service firebase.storage {
   match /b/{bucket}/o {
+
+    function isSignedIn() { return request.auth != null; }
+
+    function userDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && userDoc().userType == 'platform_super_admin';
+    }
+
+    function hasCompanyAccess(companyId) {
+      return isSignedIn() && (
+        isSuperAdmin() ||
+        (userDoc().accessibleCompanyIds != null && companyId in userDoc().accessibleCompanyIds) ||
+        userDoc().homeCompanyId == companyId ||
+        firestore.exists(/databases/(default)/documents/userCompanyAccess/$(request.auth.uid + '__' + companyId))
+      );
+    }
+
+    // Şirkət faylları — logo, sənəd şablonları, ixrac, işçi sənədləri.
+    // Oxu/yaz yalnız həmin şirkətə girişi olanlar üçün; yükləmə ≤ 25 MB.
+    match /companies/{companyId}/{allPaths=**} {
+      allow read: if hasCompanyAccess(companyId);
+      allow write: if hasCompanyAccess(companyId) && request.resource.size < 25 * 1024 * 1024;
+      allow delete: if hasCompanyAccess(companyId);
+    }
+
+    // Digər bütün yollar — defolt qadağa (heç bir şey ora yazmır).
     match /{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSuperAdmin();
     }
   }
 }
