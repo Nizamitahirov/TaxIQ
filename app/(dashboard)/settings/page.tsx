@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Save, Building2, Coins, Receipt, User, LayoutGrid, ImageUp, Trash2 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { ImportTab } from './import-tab';
 import { loadCardStyle, saveCardStyle, type CardStyle } from '@/lib/dashboard/card-style';
 import { listDocs } from '@/lib/firebase/firestore';
 import { getActiveTaxConfig, saveTaxConfig } from '@/lib/firebase/hr';
@@ -35,11 +36,13 @@ export default function SettingsPage() {
           <TabsTrigger value="currencies">{tt('Valyutalar', 'Currencies')}</TabsTrigger>
           <TabsTrigger value="tax">{tt('Əmək haqqı vergisi', 'Payroll tax')}</TabsTrigger>
           <TabsTrigger value="prefs">{tt('Tərcihlər', 'Preferences')}</TabsTrigger>
+          <TabsTrigger value="import">{tt('Excel idxal', 'Excel import')}</TabsTrigger>
         </TabsList>
         <TabsContent value="company"><CompanyTab /></TabsContent>
         <TabsContent value="currencies"><CurrenciesTab /></TabsContent>
         <TabsContent value="tax"><TaxTab canManage={canManageTax} /></TabsContent>
         <TabsContent value="prefs"><PrefsTab /></TabsContent>
+        <TabsContent value="import"><ImportTab /></TabsContent>
       </Tabs>
     </div>
   );

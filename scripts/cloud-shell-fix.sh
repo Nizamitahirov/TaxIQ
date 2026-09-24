@@ -220,6 +220,60 @@ call(f"https://firebaserules.googleapis.com/v1/projects/{project}/releases", "PO
 print("  ✓ release aktivləşdirildi: cloud.firestore")
 PY
 
+# ── 1b) Storage qaydaları (şirkət-əsaslı izolyasiya) ─────────────────────────
+cat > storage.rules <<'SRULES_EOF'
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() { return request.auth != null; }
+    function userDoc() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+    function isSuperAdmin() {
+      return isSignedIn() && userDoc().userType == 'platform_super_admin';
+    }
+    function hasCompanyAccess(companyId) {
+      return isSignedIn() && (
+        isSuperAdmin() ||
+        (userDoc().accessibleCompanyIds != null && companyId in userDoc().accessibleCompanyIds) ||
+        userDoc().homeCompanyId == companyId ||
+        firestore.exists(/databases/(default)/documents/userCompanyAccess/$(request.auth.uid + '__' + companyId))
+      );
+    }
+    match /companies/{companyId}/{allPaths=**} {
+      allow read: if hasCompanyAccess(companyId);
+      allow write: if hasCompanyAccess(companyId) && request.resource.size < 25 * 1024 * 1024;
+      allow delete: if hasCompanyAccess(companyId);
+    }
+    match /{allPaths=**} {
+      allow read, write: if isSuperAdmin();
+    }
+  }
+}
+SRULES_EOF
+
+echo "▶ Storage qaydaları deploy edilir…"
+PROJECT="$PROJECT" TOKEN="$TOKEN" BUCKET="taxiq-f2d9d.firebasestorage.app" python3 - <<'PY'
+import json, os, urllib.request, urllib.error
+project = os.environ['PROJECT']; token = os.environ['TOKEN']; bucket = os.environ['BUCKET']
+hdr = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+def call(url, method, body=None, ignore=()):
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, headers=hdr, method=method)
+    try:
+        return urllib.request.urlopen(req)
+    except urllib.error.HTTPError as e:
+        if e.code in ignore: return None
+        print(f"  ✗ HTTP {e.code} {method} {url}\n    {e.read().decode('utf-8','replace')}"); raise
+src = open('storage.rules').read()
+name = json.load(call(f"https://firebaserules.googleapis.com/v1/projects/{project}/rulesets", "POST", {"source": {"files": [{"name": "storage.rules", "content": src}]}}))["name"]
+print("  ✓ storage ruleset:", name)
+rel = f"projects/{project}/releases/firebase.storage/{bucket}"
+call(f"https://firebaserules.googleapis.com/v1/{rel}", "DELETE", ignore=(404,))
+call(f"https://firebaserules.googleapis.com/v1/projects/{project}/releases", "POST", {"name": rel, "rulesetName": name})
+print("  ✓ storage release aktivləşdirildi")
+PY
+
 # ── 2) Data bərpası (Admin SDK, gcloud token ilə — ADC problemi yoxdur) ──────
 echo "▶ İstifadəçi giriş massivləri bərpa edilir…"
 npm init -y >/dev/null 2>&1
