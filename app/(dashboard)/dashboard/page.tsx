@@ -119,18 +119,28 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
             <StatMini icon={Receipt} tint="bg-sky-500/12 text-sky-600" value={formatCurrency(m.arTotal, cur)} label={tt('Debitor (AR)', 'Receivables (AR)')} />
           </div>
 
-          {/* Top müştərilər carousel */}
-          <div className="flex flex-1 flex-col">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold tracking-tight">{tt('Top müştərilər', 'Top customers')}</h2>
-              <Link href="/sales" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">{tt('Hamısı', 'All')} <ArrowUpRight className="h-4 w-4" /></Link>
-            </div>
-            {m.topCustomers.length === 0 ? <Card className="rounded-card flex-1"><Empty text={tt('Hələ satış datası yoxdur', 'No sales data yet')} /></Card> : (
-              <div className="flex flex-1 items-stretch gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {m.topCustomers.map((c, i) => <CustomerCard key={c.name} name={c.name} revenue={c.revenue} cur={cur} max={m.topCustomers[0].revenue} idx={i} />)}
-              </div>
+          {/* Top müştərilər — gəlirə görə üfüqi bar chart */}
+          <ChartCard
+            title={tt('Top müştərilər (gəlir)', 'Top customers (revenue)')}
+            className="flex flex-1 flex-col"
+            action={<Link href="/sales" className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">{tt('Hamısı', 'All')} <ArrowUpRight className="h-3.5 w-3.5" /></Link>}
+          >
+            {m.topCustomers.length === 0 ? (
+              <Empty text={tt('Hələ satış datası yoxdur', 'No sales data yet')} />
+            ) : (
+              <ResponsiveContainer width="100%" height={Math.max(200, Math.min(6, m.topCustomers.length) * 46)}>
+                <BarChart data={m.topCustomers.slice(0, 6)} layout="vertical" margin={{ left: 4, right: 20, top: 4, bottom: 4 }}>
+                  <CartesianGrid horizontal={false} strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatCurrency(v, cur)} />
+                  <YAxis type="category" dataKey="name" width={130} fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v, cur)} cursor={{ fill: 'rgba(91,91,245,0.06)' }} />
+                  <Bar dataKey="revenue" radius={[0, 6, 6, 0]} barSize={18}>
+                    {m.topCustomers.slice(0, 6).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             )}
-          </div>
+          </ChartCard>
         </div>
 
         {/* RIGHT aside */}
@@ -373,21 +383,6 @@ function StatMini({ icon: Icon, tint, value, label }: { icon: typeof Wallet; tin
     <div className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-soft-lg">
       <span className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform group-hover:scale-105', tint)}><Icon className="h-5 w-5" /></span>
       <div className="min-w-0 flex-1"><p className="truncate text-lg font-bold leading-tight tnum">{value}</p><p className="truncate text-xs text-muted-foreground">{label}</p></div>
-    </div>
-  );
-}
-const FEAT_GRAD = ['from-[#5B5BF5] to-[#9333ea]', 'from-[#06b6d4] to-[#3b82f6]', 'from-[#ec4899] to-[#8b5cf6]', 'from-[#14b8a6] to-[#5B5BF5]', 'from-[#f59e0b] to-[#ec4899]', 'from-[#5B5BF5] to-[#06b6d4]'];
-function CustomerCard({ name, revenue, cur, max, idx }: { name: string; revenue: number; cur: string; max: number; idx: number }) {
-  const tt = useTT();
-  const pct = max > 0 ? Math.round((revenue / max) * 100) : 0;
-  return (
-    <div className="flex w-[230px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card p-3 shadow-soft transition-all hover:-translate-y-1 hover:shadow-soft-lg">
-      <div className={cn('flex min-h-[110px] flex-1 items-center justify-center rounded-xl bg-gradient-to-br p-3', FEAT_GRAD[idx % FEAT_GRAD.length])}>
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</span>
-      </div>
-      <p className="mt-2.5 line-clamp-1 text-sm font-semibold">{name}</p>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gradient-to-r from-[#5B5BF5] to-[#8b3df0]" style={{ width: `${Math.max(6, pct)}%` }} /></div>
-      <div className="mt-2 flex items-center justify-between text-xs"><span className="font-bold text-primary">{formatCurrency(revenue, cur)}</span><span className="text-muted-foreground">{tt('gəlir', 'revenue')}</span></div>
     </div>
   );
 }

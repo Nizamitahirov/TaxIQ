@@ -3,16 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Loader2, LogIn, Lock, Mail } from 'lucide-react';
+import { Loader2, LogIn, Lock, Mail, User, Eye, EyeOff, ShieldCheck, BarChart3, FileSpreadsheet } from 'lucide-react';
 import { loginWithEmail, sendPasswordReset } from '@/lib/firebase/auth';
 import { checkLockout, recordFailure, clearAttempts, formatRemaining } from '@/lib/auth/lockout';
 import { useAuth } from '@/components/providers/auth-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Logo } from '@/components/layout/logo';
+import { Logo, LogoMark } from '@/components/layout/logo';
 import { toast } from '@/components/ui/toast';
 import { useTT } from '@/lib/i18n/tt';
 
@@ -23,6 +22,7 @@ export default function LoginPage() {
   const { firebaseUser, configured, loading: authLoading, mustChangePassword } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lockMsg, setLockMsg] = useState('');
   const [resetOpen, setResetOpen] = useState(false);
@@ -68,49 +68,89 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <Logo />
-          <p className="mt-1 text-sm text-muted-foreground">{t('tagline')}</p>
+    <div className="grid min-h-screen lg:grid-cols-2">
+      {/* Brend paneli (desktop) */}
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#5B5BF5] to-[#8B3DF0] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-2xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/10 blur-3xl" />
+        <div className="relative flex items-center gap-3">
+          <LogoMark className="h-11 w-11 rounded-2xl shadow-lg" />
+          <span className="text-2xl font-extrabold tracking-tight">TaxIQ</span>
         </div>
+        <div className="relative space-y-6">
+          <h1 className="max-w-md text-3xl font-bold leading-tight">{tt('Azərbaycan biznesi üçün ağıllı ERP platforması', 'The smart ERP platform for Azerbaijani business')}</h1>
+          <p className="max-w-sm text-white/80">{t('tagline')}</p>
+          <ul className="space-y-3 text-sm text-white/90">
+            {[
+              [ShieldCheck, tt('Mühasibat, HR və vergi — bir yerdə', 'Accounting, HR and tax — in one place')],
+              [FileSpreadsheet, tt('Rəsmi DSMF hesabatları avtomatik', 'Official DSMF reports, automated')],
+              [BarChart3, tt('Real vaxt maliyyə analitikası', 'Real-time financial analytics')],
+            ].map(([Icon, label], i) => (
+              <li key={i} className="flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15"><Icon className="h-4 w-4" /></span>
+                {label as string}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="relative text-xs text-white/60">© {new Date().getFullYear()} TaxIQ Consulting MMC</p>
+      </div>
 
-        <Card className="rounded-card">
-          <CardHeader>
-            <CardTitle>{t('loginTitle')}</CardTitle>
-            <CardDescription>{t('loginSubtitle')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!configured && (
-              <div className="rounded-md bg-warning/10 p-3 text-xs text-warning-foreground">
-                {tt('⚠️ Firebase konfiqurasiya edilməyib (.env.local). Giriş işləməyəcək.', '⚠️ Firebase is not configured (.env.local). Login will not work.')}
-              </div>
-            )}
-            {lockMsg && (
-              <div className="flex items-start gap-2 rounded-md bg-danger/10 p-3 text-xs text-danger">
-                <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {lockMsg}
-              </div>
-            )}
+      {/* Form paneli */}
+      <div className="flex items-center justify-center bg-background px-4 py-10">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex flex-col items-center gap-2 text-center lg:hidden">
+            <Logo />
+          </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="identifier">{t('identifier')}</Label>
-                <Input id="identifier" type="text" autoComplete="username" placeholder={tt('admin və ya email@nümunə.az', 'admin or email@example.az')} value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold tracking-tight">{t('loginTitle')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t('loginSubtitle')}</p>
+          </div>
+
+          {!configured && (
+            <div className="mb-4 rounded-lg bg-warning/10 p-3 text-xs text-warning-foreground">
+              {tt('⚠️ Firebase konfiqurasiya edilməyib (.env.local). Giriş işləməyəcək.', '⚠️ Firebase is not configured (.env.local). Login will not work.')}
+            </div>
+          )}
+          {lockMsg && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg bg-danger/10 p-3 text-xs text-danger">
+              <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {lockMsg}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="identifier">{t('identifier')}</Label>
+              <div className="relative">
+                <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input id="identifier" type="text" autoComplete="username" className="pl-9" placeholder={tt('admin və ya email@nümunə.az', 'admin or email@example.az')} value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">{t('password')}</Label>
-                  <button type="button" onClick={() => setResetOpen(true)} className="text-xs font-medium text-primary hover:underline">{t('forgotPassword')}</button>
-                </div>
-                <Input id="password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">{t('password')}</Label>
+                <button type="button" onClick={() => setResetOpen(true)} className="text-xs font-medium text-primary hover:underline">{t('forgotPassword')}</button>
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="animate-spin" /> : <LogIn />} {t('login')}
-              </Button>
-            </form>
-            <p className="text-center text-xs text-muted-foreground">{t('bootstrapHint')}</p>
-          </CardContent>
-        </Card>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input id="password" type={showPw ? 'text' : 'password'} autoComplete="current-password" className="px-9" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? tt('Parolu gizlət', 'Hide password') : tt('Parolu göstər', 'Show password')}
+                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                >
+                  {showPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" /> : <LogIn />} {t('login')}
+            </Button>
+          </form>
+          <p className="mt-4 text-center text-xs text-muted-foreground">{t('bootstrapHint')}</p>
+        </div>
       </div>
 
       <ResetDialog open={resetOpen} onOpenChange={setResetOpen} initial={identifier} t={t} />
