@@ -16,7 +16,7 @@ import type {
 const MONTHS_AZ = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
 export const monthNameAz = (m: number) => MONTHS_AZ[m - 1] ?? '';
 
-export interface PreviewTable { title: string; note?: string; columns: string[]; rows: (string | number)[][] }
+export interface PreviewTable { title: string; note?: string; columns: string[]; rows: (string | number)[][]; html?: string }
 export interface GeneratedReport { blob: Blob; filename: string; preview: PreviewTable }
 
 export interface ReportContext {
@@ -138,6 +138,82 @@ async function toBlob(wb: ExcelJSNS.Workbook): Promise<Blob> {
   return new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
+// ── Doldurulmuş vərəqi HTML kimi göstərir (preview şablonun eynisi görünsün) ──
+function colToNum(letters: string): number {
+  let n = 0;
+  for (const ch of letters) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+function splitAddr(addr: string): { col: number; row: number } {
+  const m = /^([A-Z]+)(\d+)$/.exec(addr);
+  return m ? { col: colToNum(m[1]), row: Number(m[2]) } : { col: 1, row: 1 };
+}
+function argbToCss(c?: { argb?: string }): string | null {
+  const a = c?.argb;
+  if (!a || a.length < 6) return null;
+  return `#${a.length === 8 ? a.slice(2) : a}`;
+}
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch] as string));
+}
+function cellCss(cell: ExcelJSNS.Cell): string {
+  const s: string[] = ['border:1px solid #cbd0d8', 'padding:1px 4px', 'overflow:hidden', 'white-space:pre-wrap', 'word-break:break-word'];
+  const f = cell.font;
+  s.push(`font-size:${Math.max(9, f?.size ?? 10)}px`);
+  if (f?.bold) s.push('font-weight:700');
+  if (f?.italic) s.push('font-style:italic');
+  const fc = argbToCss(f?.color as { argb?: string } | undefined);
+  if (fc && fc.toLowerCase() !== '#000000') s.push(`color:${fc}`);
+  const al = cell.alignment;
+  s.push(`text-align:${al?.horizontal ?? 'left'}`);
+  s.push(`vertical-align:${al?.vertical === 'middle' ? 'middle' : al?.vertical === 'bottom' ? 'bottom' : 'top'}`);
+  const fill = cell.fill as { type?: string; pattern?: string; fgColor?: { argb?: string } } | undefined;
+  if (fill?.type === 'pattern' && fill.pattern === 'solid') { const bg = argbToCss(fill.fgColor); if (bg) s.push(`background:${bg}`); }
+  return s.join(';');
+}
+/** exceljs vərəqini birləşmələr + üslublarla HTML cədvələ çevirir */
+export function worksheetToHtml(ws: ExcelJSNS.Worksheet): string {
+  const merges = (ws.model as unknown as { merges?: string[] }).merges ?? [];
+  const spanMap = new Map<string, { colspan: number; rowspan: number }>();
+  const covered = new Set<string>();
+  for (const rng of merges) {
+    const [a, b] = rng.split(':');
+    if (!a || !b) continue;
+    const s = splitAddr(a); const e = splitAddr(b);
+    spanMap.set(`${s.row}:${s.col}`, { colspan: e.col - s.col + 1, rowspan: e.row - s.row + 1 });
+    for (let r = s.row; r <= e.row; r++) for (let c = s.col; c <= e.col; c++) { if (r === s.row && c === s.col) continue; covered.add(`${r}:${c}`); }
+  }
+  // Son mənalı sətri tap — şablonun boş formatlaşdırılmış sətirlərini göstərmə
+  const scanMax = Math.min(ws.rowCount || 1, 300);
+  let lastRow = 1;
+  for (let r = 1; r <= scanMax; r++) {
+    let has = false;
+    ws.getRow(r).eachCell({ includeEmpty: false }, (cell) => { if (cell.text != null && String(cell.text).trim() !== '') has = true; });
+    if (has) lastRow = r;
+  }
+  for (const rng of merges) { const parts = rng.split(':'); if (parts[1]) { const e = splitAddr(parts[1]); if (e.row <= scanMax) lastRow = Math.max(lastRow, e.row); } }
+  const rowCount = lastRow;
+  const colCount = Math.min(ws.actualColumnCount || ws.columnCount || 1, 60);
+  let colgroup = '';
+  for (let c = 1; c <= colCount; c++) { const w = ws.getColumn(c).width; colgroup += `<col style="width:${w ? Math.round(w * 7) : 60}px">`; }
+  let html = `<table style="border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,sans-serif;color:#111;background:#fff"><colgroup>${colgroup}</colgroup><tbody>`;
+  for (let r = 1; r <= rowCount; r++) {
+    const row = ws.getRow(r);
+    html += `<tr${row.height ? ` style="height:${Math.round(row.height * 1.33)}px"` : ''}>`;
+    for (let c = 1; c <= colCount; c++) {
+      if (covered.has(`${r}:${c}`)) continue;
+      const cell = row.getCell(c);
+      const span = spanMap.get(`${r}:${c}`);
+      const text = cell.text != null && cell.text !== '' ? String(cell.text) : (cell.value != null ? String(cell.value) : '');
+      const cs = span && span.colspan > 1 ? ` colspan="${span.colspan}"` : '';
+      const rs = span && span.rowspan > 1 ? ` rowspan="${span.rowspan}"` : '';
+      html += `<td${cs}${rs} style="${cellCss(cell)}">${escapeHtml(text)}</td>`;
+    }
+    html += '</tr>';
+  }
+  return html + '</tbody></table>';
+}
+
 /** Sətrin üslubunu şablon nümunə sətrindən köçürür (sərhədlər uzansın) */
 function copyRowStyle(ws: ExcelJSNS.Worksheet, fromRow: number, toRow: number, cols: string[]) {
   for (const c of cols) {
@@ -221,6 +297,7 @@ export async function genSalaryTable(ctx: ReportContext): Promise<GeneratedRepor
   const setJ = (base: number, v: number) => { ws.getCell(`J${jrow(base)}`).value = round2(v); };
   setJ(17, T.L); setJ(19, T.M); setJ(20, T.N); setJ(21, T.O); setJ(22, T.P); setJ(23, T.Q); setJ(24, T.R); setJ(25, T.S);
 
+  preview.html = worksheetToHtml(ws);
   const blob = await toBlob(wb);
   return { blob, filename: `Emekhaqqi-Cedveli-${ctx.year}-${String(ctx.month).padStart(2, '0')}.xlsx`, preview };
 }
@@ -243,6 +320,7 @@ async function genList(ctx: ReportContext, def: ListDef): Promise<GeneratedRepor
     if (def.seqCol) ws.getCell(`${def.seqCol}${r}`).value = i + 1;
     for (const [c, v] of Object.entries(row)) ws.getCell(`${c}${r}`).value = v;
   });
+  preview.html = worksheetToHtml(ws);
   const blob = await toBlob(wb);
   return { blob, filename, preview };
 }
@@ -462,6 +540,7 @@ export async function genTimeTabel(ctx: ReportContext): Promise<GeneratedReport>
   ws.getCell(legRow + 2, 2).value = `Baş Direktor: ${ctx.company.directorName ?? '________________'}`;
 
   void lastColLetter;
+  preview.html = worksheetToHtml(ws);
   const out = await wb.xlsx.writeBuffer();
   const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   return { blob, filename: `Is-vaxti-tabeli-${ctx.year}-${String(ctx.month).padStart(2, '0')}.xlsx`, preview };

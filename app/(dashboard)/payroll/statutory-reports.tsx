@@ -114,17 +114,22 @@ function PreviewDialog({ result, onClose }: { result: GeneratedReport | null; on
   const p = result.preview;
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="flex h-[86vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex h-[90vh] w-[96vw] max-w-[1400px] flex-col gap-0 overflow-hidden p-0">
         <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
           <div className="min-w-0"><p className="truncate text-sm font-semibold">{p.title}</p><p className="truncate text-xs text-muted-foreground">{tt('Önizləmə — yükləmədən əvvəl', 'Preview — before download')}</p></div>
           <Button size="sm" onClick={() => downloadBlob(result.blob, result.filename)}><Download className="h-4 w-4" /> {tt('Yüklə (.xlsx)', 'Download (.xlsx)')}</Button>
         </div>
-        <div className="flex-1 overflow-auto p-4">
+        <div className="flex-1 overflow-auto bg-secondary/30 p-4">
           {p.note && <p className="mb-3 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning-foreground">{p.note}</p>}
-          {p.rows.length === 0 ? (
+          {p.html ? (
+            // Şablonun eynisi — doldurulmuş xlsx vərəqi HTML kimi (birləşmələr, üslub, başlıqlar)
+            <div className="inline-block min-w-full overflow-x-auto rounded-lg border border-border bg-white p-4 shadow-sm">
+              <div className="statutory-sheet" dangerouslySetInnerHTML={{ __html: p.html }} />
+            </div>
+          ) : p.rows.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">{tt('Bu dövr üçün məlumat yoxdur — boş şablon yüklənəcək.', 'No data for this period — an empty template will be downloaded.')}</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-border">
+            <div className="overflow-x-auto rounded-lg border border-border bg-white">
               <table className="w-full text-sm">
                 <thead><tr className="bg-secondary/60">{p.columns.map((c, i) => <th key={i} className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold text-muted-foreground">{c}</th>)}</tr></thead>
                 <tbody>
@@ -137,7 +142,7 @@ function PreviewDialog({ result, onClose }: { result: GeneratedReport | null; on
               </table>
             </div>
           )}
-          <p className="mt-3 text-xs text-muted-foreground">{tt('Qeyd: yüklənən .xlsx faylı rəsmi şablonun strukturunu (başlıqlar, birləşmələr, kodlar) olduğu kimi saxlayır; yalnız data xanaları doldurulur.', 'Note: the downloaded .xlsx preserves the official template structure (headers, merges, codes); only data cells are filled.')}</p>
+          <p className="mt-3 text-xs text-muted-foreground">{tt('Qeyd: bu önizləmə rəsmi şablonun strukturunu (başlıqlar, birləşmələr, kodlar) olduğu kimi göstərir; yüklənən .xlsx faylı da eynidir — yalnız data xanaları doldurulur.', 'Note: this preview shows the official template structure (headers, merges, codes) as-is; the downloaded .xlsx is identical — only data cells are filled.')}</p>
         </div>
         <DialogFooter className="border-t border-border px-5 py-3">
           <Button variant="outline" onClick={onClose}>{tt('Bağla', 'Close')}</Button>
