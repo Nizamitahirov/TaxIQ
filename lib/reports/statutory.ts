@@ -249,12 +249,16 @@ export async function genSalaryTable(ctx: ReportContext): Promise<GeneratedRepor
   const FIRST = 10, TEMPLATE_ROWS = 5, TOTALS_TEMPLATE = 15;
   const dataCols = ['B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U'];
   const n = active.length;
-  const extra = Math.max(0, n - TEMPLATE_ROWS);
-  if (extra > 0) {
-    ws.spliceRows(TOTALS_TEMPLATE, 0, ...Array.from({ length: extra }, () => []));
-    for (let i = 0; i < extra; i++) copyRowStyle(ws, FIRST + TEMPLATE_ROWS - 1, FIRST + TEMPLATE_ROWS + i, dataCols);
+  // Şablonda 5 nümunə sətir var. İşçi sayına görə sətir əlavə et (>5) və ya
+  // ARTIQ nümunə sətirlərini SİL (<5) — əks halda nümunə adları hesabatda qalır.
+  const delta = n - TEMPLATE_ROWS;
+  if (delta > 0) {
+    ws.spliceRows(TOTALS_TEMPLATE, 0, ...Array.from({ length: delta }, () => []));
+    for (let i = 0; i < delta; i++) copyRowStyle(ws, FIRST + TEMPLATE_ROWS - 1, FIRST + TEMPLATE_ROWS + i, dataCols);
+  } else if (delta < 0) {
+    ws.spliceRows(FIRST + n, -delta); // istifadə olunmayan nümunə sətirlərini sil
   }
-  const totalsRow = FIRST + n; // cəmi sətri (n>=... boş buraxılmır)
+  const totalsRow = FIRST + n; // cəmi sətri (data-dan dərhal sonra)
 
   const lines = active.map((e) => {
     const line = calcPayrollLine({ employeeId: e.id, employeeName: empName(e), baseSalary: e.baseSalary, overtimePay: 0, bonuses: 0, otherDeductions: 0 }, ctx.cfg);
@@ -292,8 +296,8 @@ export async function genSalaryTable(ctx: ReportContext): Promise<GeneratedRepor
   ws.getCell(`B${totalsRow}`).value = 'Cəmi';
   st('F', T.F); st('G', T.G); st('H', T.H); st('I', T.I); st('L', T.L); st('M', T.M); st('N', T.N); st('O', T.O); st('P', T.P); st('Q', T.Q); st('R', T.R); st('S', T.S); st('T', T.TT); st('U', T.U);
 
-  // Fond xülasəsi (J17..J25 → şablonda formul; literal ilə əvəz olunur, mövqe extra qədər sürüşür)
-  const jrow = (base: number) => base + extra;
+  // Fond xülasəsi (J17..J25 → şablonda formul; literal ilə əvəz olunur, mövqe delta qədər sürüşür)
+  const jrow = (base: number) => base + delta;
   const setJ = (base: number, v: number) => { ws.getCell(`J${jrow(base)}`).value = round2(v); };
   setJ(17, T.L); setJ(19, T.M); setJ(20, T.N); setJ(21, T.O); setJ(22, T.P); setJ(23, T.Q); setJ(24, T.R); setJ(25, T.S);
 
@@ -333,11 +337,12 @@ export async function genEmpGeneral(ctx: ReportContext): Promise<GeneratedReport
     cols: ['B', 'C', 'D', 'E', 'F', 'O', 'P', 'Q', 'Z', 'AA', 'AB'],
     fill: (c) => {
       const active = c.employees.filter((e) => e.status !== 'terminated');
+      const primary = (e: Employee) => (e.isPrimaryWorkplace === false ? 'Xeyr' : 'Bəli');
       const rows = active.map((e) => ({
         B: empName(e), C: e.personalId ?? '',
-        D: 'Bəli', E: actualWorkdays(c, e.id, m1), F: grossFor(c, e.id, m1),
-        O: 'Bəli', P: actualWorkdays(c, e.id, m2), Q: grossFor(c, e.id, m2),
-        Z: 'Bəli', AA: actualWorkdays(c, e.id, m3), AB: grossFor(c, e.id, m3),
+        D: primary(e), E: actualWorkdays(c, e.id, m1), F: grossFor(c, e.id, m1),
+        O: primary(e), P: actualWorkdays(c, e.id, m2), Q: grossFor(c, e.id, m2),
+        Z: primary(e), AA: actualWorkdays(c, e.id, m3), AB: grossFor(c, e.id, m3),
       }));
       return {
         rows,
@@ -350,6 +355,22 @@ export async function genEmpGeneral(ctx: ReportContext): Promise<GeneratedReport
       };
     },
   });
+}
+
+/** DSMF Əlavə1 Hissə3 rəsmi «işləmədiyi günlərin səbəbi» kodları (1–12).
+ *  Sistemdəki məzuniyyət növü / timesheet səbəbi ən uyğun rəsmi koda map olunur. */
+const DSMF_REASONS: { label: string; match: RegExp }[] = [
+  { label: '5-İşçinin xəstələnməsi', match: /xəstə|sick|əmək qabiliyyət/i },
+  { label: '3-İşçinin ödənişsiz məzuniyyətlərindən istifadə etməsi', match: /ödənişsiz|müavinətsiz|unpaid/i },
+  { label: '4-İşçinin təhsil məzuniyyətlərindən istifadə etməsi', match: /təhsil|tədris|education/i },
+  { label: '2-İşçinin sosial məzuniyyətlərindən istifadə etməsi', match: /sosial|analıq|doğuş|hamilə|uşaq|social/i },
+  { label: '6-Əmək müqaviləsinə xitam verilməsi', match: /xitam|işdən çıx|azad|termination/i },
+  { label: '1-İşçinin ödənişli əsas məzuniyyətdən istifadə etməsi', match: /məzuniyyət|əsas|ödənişli|leave|annual/i },
+];
+function dsmfReasonCode(reasons: string[]): string {
+  if (!reasons.length) return '';
+  for (const d of DSMF_REASONS) if (reasons.some((r) => d.match.test(r))) return d.label;
+  return '1-İşçinin ödənişli əsas məzuniyyətdən istifadə etməsi';
 }
 
 // 3) İşçinin işləmədiyi iş günləri (Əlavə1 Hissə3) — rüblük
@@ -365,7 +386,7 @@ export async function genDaysNotWorked(ctx: ReportContext): Promise<GeneratedRep
       }).filter((x) => x.total > 0);
       const rows = enriched.map(({ e, a, b, d }) => ({
         B: empName(e), C: e.personalId ?? '', D: a.days, E: b.days, F: d.days,
-        G: [...new Set([...a.reasons, ...b.reasons, ...d.reasons])].join(', '),
+        G: dsmfReasonCode([...new Set([...a.reasons, ...b.reasons, ...d.reasons])]),
       }));
       return {
         rows,
@@ -374,7 +395,7 @@ export async function genDaysNotWorked(ctx: ReportContext): Promise<GeneratedRep
           title: `İşçinin işləmədiyi iş günləri — ${c.year} R${c.quarter}`,
           note: enriched.length === 0 ? 'Bu rübdə təsdiqlənmiş məzuniyyət/qeyri-iş günü yoxdur.' : undefined,
           columns: ['№', 'A.S.A', 'FİN', monthNameAz(m1), monthNameAz(m2), monthNameAz(m3), 'Səbəb'],
-          rows: enriched.map(({ e, a, b, d }, i) => [i + 1, empName(e), e.personalId ?? '', a.days, b.days, d.days, [...new Set([...a.reasons, ...b.reasons, ...d.reasons])].join(', ')]),
+          rows: enriched.map(({ e, a, b, d }, i) => [i + 1, empName(e), e.personalId ?? '', a.days, b.days, d.days, dsmfReasonCode([...new Set([...a.reasons, ...b.reasons, ...d.reasons])])]),
         },
       };
     },

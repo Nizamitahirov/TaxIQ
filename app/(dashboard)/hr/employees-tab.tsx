@@ -166,7 +166,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
     code: '', first: '', last: '', father: '', fin: '', birthDate: '', gender: 'male', phone: '', email: '', address: '',
     position: '', departmentId: '', employmentType: 'full_time', hireDate: new Date().toISOString().slice(0, 10),
     contractNumber: '', contractType: 'indefinite', contractEndDate: '', salary: '', iban: '',
-    notified: false, eGovRef: '',
+    notified: false, eGovRef: '', primaryWorkplace: true,
     isForeigner: false, citizenshipCountry: '', passportSeries: '', passportNumber: '', residencePermitFin: '',
   };
   const tt = useTT();
@@ -185,7 +185,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
       employmentType: edit.employmentType ?? 'full_time', hireDate: edit.hireDate ?? '', contractNumber: edit.contractNumber ?? '',
       contractType: edit.contractType ?? 'indefinite', contractEndDate: edit.contractEndDate ?? '', salary: String(edit.baseSalary ?? ''),
       iban: edit.bankAccountIban ?? '', notified: !!(edit.laborContractNotified || edit.laborContractNotification?.submittedToEGov),
-      eGovRef: edit.laborContractNotification?.eGovReferenceNumber ?? '',
+      eGovRef: edit.laborContractNotification?.eGovReferenceNumber ?? '', primaryWorkplace: edit.isPrimaryWorkplace !== false,
       isForeigner: !!edit.isForeigner, citizenshipCountry: edit.citizenshipCountry ?? '', passportSeries: edit.passportSeries ?? '',
       passportNumber: edit.passportNumber ?? '', residencePermitFin: edit.residencePermitFin ?? '',
     } : empty);
@@ -204,6 +204,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
         hireDate: form.hireDate || null, contractNumber: form.contractNumber.trim(), contractType: form.contractType as Employee['contractType'],
         contractEndDate: form.contractType === 'fixed_term' ? (form.contractEndDate || null) : null,
         baseSalary: Number(form.salary) || 0, currency: baseCurrency, bankAccountIban: form.iban.trim(),
+        isPrimaryWorkplace: form.primaryWorkplace,
         isForeigner: form.isForeigner,
         citizenshipCountry: form.isForeigner ? (form.citizenshipCountry.trim() || null) : null,
         passportSeries: form.isForeigner ? (form.passportSeries.trim() || null) : null,
@@ -239,6 +240,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
               <div className="space-y-2"><Label>{tt('Telefon', 'Phone')}</Label><Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+994 ..." /></div>
               <div className="space-y-2"><Label>{tt('E-poçt', 'Email')}</Label><Input value={form.email} onChange={(e) => set({ email: e.target.value })} /></div>
               <div className="col-span-2 space-y-2"><Label>{tt('Ünvan', 'Address')}</Label><Input value={form.address} onChange={(e) => set({ address: e.target.value })} /></div>
+              <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.primaryWorkplace} onChange={(e) => set({ primaryWorkplace: e.target.checked })} /> {tt('Bu şirkət əsas iş yeridir (DSMF Hissə 1 «Əsas iş yeri»)', 'This company is the primary workplace (DSMF Part 1)')}</label>
               <label className="col-span-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={form.isForeigner} onChange={(e) => set({ isForeigner: e.target.checked })} /> {tt('Xarici əməkdaş (FİN-siz — DSMF Hissə 4)', 'Foreign employee (no FİN — DSMF Part 4)')}</label>
               {form.isForeigner && <>
                 <div className="space-y-2"><Label>{tt('Vətəndaşı olduğu ölkə', 'Citizenship country')}</Label><Input value={form.citizenshipCountry} onChange={(e) => set({ citizenshipCountry: e.target.value })} /></div>

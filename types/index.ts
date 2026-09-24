@@ -941,6 +941,8 @@ export interface Employee {
   position?: string;
   departmentId?: string | null;
   employmentType?: 'full_time' | 'part_time' | 'contract';
+  /** Bu şirkət işçinin əsas iş yeridirmi? (DSMF Əlavə1 Hissə1 «Əsas iş yeri») — default Bəli */
+  isPrimaryWorkplace?: boolean;
   hireDate?: string | null;
   contractNumber?: string;
   contractType?: 'indefinite' | 'fixed_term';
