@@ -16,7 +16,9 @@ infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olun
       Excel ixrac. ⏳ *Qalan:* e-taxes.gov.az XML formatı + birbaşa göndərmə (API).
 - [x] **1.2 Payslip + maaş bank faylı** — payslip çapı (əvvəldən) + IBAN-lı toplu
       maaş ödəniş faylı (Excel, işçi IBAN-larından; IBAN çatışmayanları xəbərdarlıq edir).
-- [ ] **1.3 Satınalma PO + mal qəbulu (GRN) + üçtərəfli uzlaşma** (PO↔qəbul↔faktura).
+- [x] **1.3 Satınalma PO (MVP)** (`/purchase-orders`): sifariş yarat (təchizatçı +
+      sətirlər) → təsdiq → mal qəbulu → fakturaya çevirmə (kreditor faktura yaranır).
+      ⏳ *Qalan:* miqdar-səviyyəli qismən qəbul və PO↔qəbul↔faktura kəmiyyət uzlaşması.
 - [ ] **1.4 ƏDV subledger** (giriş/çıxış ƏDV hesabları, 18% depozit).
 - [ ] **1.5 (infra) Cloud Functions fazası** — scheduler (təkrarlanan faktura,
       amortizasiya, overdue, FX revalvasiya), server-yoxlama, bildiriş çatdırılması.

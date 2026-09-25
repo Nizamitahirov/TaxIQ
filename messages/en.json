@@ -67,6 +67,7 @@
     "warehouse": "Warehouse",
     "sales": "Sales & Invoicing",
     "crm": "CRM",
+    "purchaseOrders": "Purchase orders",
     "cashbank": "Cash & Bank",
     "accounting": "Accounting",
     "taxReturns": "Tax returns",

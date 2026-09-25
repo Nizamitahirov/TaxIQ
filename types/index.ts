@@ -754,6 +754,30 @@ export interface Vendor {
   updatedAt?: TS;
 }
 
+// ── Satınalma Sifarişi (PO) — procure-to-pay (07) ──
+export type PurchaseOrderStatus = 'draft' | 'confirmed' | 'received' | 'billed' | 'cancelled';
+export interface PurchaseOrder {
+  id: string;
+  companyId: string;
+  poNumber: string;
+  vendorId: string;
+  vendorName?: string;
+  orderDate: string;
+  expectedDate?: string | null;
+  lineItems: DocLineItem[];
+  subtotal: number;
+  vatTotal: number;
+  grandTotal: number;
+  currency: string;
+  status: PurchaseOrderStatus;
+  receivedAt?: string | null;
+  billId?: string | null;         // fakturaya çevriləndə
+  notes?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
 export type BillStatus = 'draft' | 'approved' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
 export interface PurchaseBill {
   id: string;
