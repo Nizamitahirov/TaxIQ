@@ -53,7 +53,10 @@ export interface AppUser {
 export type CompanyStatus = 'draft' | 'active' | 'suspended' | 'archived';
 export type Sector =
   | 'manufacturing' | 'retail' | 'hospitality' | 'services'
-  | 'wholesale_distribution' | 'trade' | 'construction' | 'other';
+  | 'wholesale_distribution' | 'trade' | 'construction'
+  | 'catering' | 'agriculture' | 'transport' | 'education'
+  | 'rental_leasing' | 'tourism' | 'public_sector' | 'medical'
+  | 'other';
 
 /** Modul açarları (modulesEnabled üçün) — 02 §2.2 */
 export type CompanyModule =

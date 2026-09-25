@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
   Factory, Store, Hotel, Briefcase, PackageSearch, HardHat, Shapes,
+  UtensilsCrossed, Sprout, Truck, GraduationCap, KeyRound, Plane, Landmark, Stethoscope,
   Check, ChevronLeft, ChevronRight, Loader2, Building2, type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
@@ -26,7 +27,10 @@ import { cn } from '@/lib/utils/cn';
 import { useTT } from '@/lib/i18n/tt';
 import type { CompanyModule, Sector } from '@/types';
 
-const ICONS: Record<string, LucideIcon> = { Factory, Store, Hotel, Briefcase, PackageSearch, HardHat, Shapes };
+const ICONS: Record<string, LucideIcon> = {
+  Factory, Store, Hotel, Briefcase, PackageSearch, HardHat, Shapes,
+  UtensilsCrossed, Sprout, Truck, GraduationCap, KeyRound, Plane, Landmark, Stethoscope,
+};
 const STEPS = ['Əsas məlumat', 'Sektor', 'Modullar', 'Tənzimləmələr', 'İlkin admin', 'Təsdiq'];
 const STEPS_EN = ['Basic info', 'Sector', 'Modules', 'Settings', 'Initial admin', 'Confirm'];
 
