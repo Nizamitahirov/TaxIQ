@@ -885,6 +885,28 @@ export interface CreditNote {
   createdBy?: string;
 }
 
+// ── Sənəd Kitabxanası (DMS) ──
+export type DocLibraryCategory = 'contract' | 'invoice' | 'receipt' | 'certificate' | 'legal' | 'hr' | 'tax' | 'bank' | 'other';
+export interface LibraryDocument {
+  id: string;
+  companyId: string;
+  title: string;
+  category: DocLibraryCategory;
+  fileName: string;
+  fileUrl: string;
+  storagePath: string;
+  size: number;
+  mimeType: string;
+  /** əlaqələndirilmiş obyekt (opsional) — məs. 'contract' / contractId */
+  linkedEntityType?: string | null;
+  linkedEntityId?: string | null;
+  tags?: string[];
+  notes?: string | null;
+  uploadedBy: string;
+  createdAt?: TS;
+  updatedAt?: TS;
+}
+
 // ── Müqavilə (mərkəzi reyestr) — sənəd №10 ──
 export type ContractType = 'sales' | 'purchase' | 'service' | 'lease' | 'employment' | 'nda' | 'other';
 export type ContractStatus = 'draft' | 'active' | 'expired' | 'terminated' | 'renewed';
