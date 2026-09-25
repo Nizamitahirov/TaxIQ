@@ -30,16 +30,24 @@ infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olun
 - [x] **Satış qaytarması / kredit-not** (`/credit-notes`): rəsmiləşmiş fakturanı
       tam geri qaytarır — əks-yazı (Dt 601+521 / Kt 211) mühasibata düşür, faktura
       bağlanır. ⏳ *Qalan:* qismən kredit-not, çatdırılma sənədi (qaimə).
-- [ ] Çox-anbar / partiya-seriya / son istifadə tarixi (FEFO)
-- [ ] Bank feed (open banking) — indi yalnız fayl idxal/ixrac
-- [ ] Sənəd idarəetməsi (DMS) + ASAN İmza
+- [x] **Çox-anbar** (mövcud) **+ partiya/lot + son istifadə tarixi (FEFO)** (`/warehouse` → Lot/Son istifadə tabı): lot qəbulu, FEFO sərf, bitmə xəbərdarlığı.
+- [ ] Bank feed (open banking) — indi yalnız fayl idxal/ixrac *(infra: API)*
+- [x] **Sənəd idarəetməsi (DMS)** (`/files`): Storage-ə yükləmə, kateqoriya, axtarış, yüklə/sil. ⏳ *Qalan:* ASAN İmza (e-imza) — infra.
 
 ## Faza 3 — Yetkinlik
-- [ ] CRM e-poçt/SMS göndərişi
-- [ ] İşə qəbul / performans / org-struktur
+- [ ] CRM e-poçt/SMS göndərişi *(infra: e-poçt/SMS API)*
+- [x] **İşə qəbul** (`/recruitment`): vakansiyalar + namizəd axını (mərhələlər, reytinq).
+- [x] **Performans** (`/performance`): çəkili meyarlar üzrə qiymətləndirmə (1–5).
 - [x] **Pul vəsaiti proqnozu** (`/cashflow`): 6 aylıq AR daxilolma / AP ödəniş proqnozu, açılış qalığı, kumulyativ qalıq + qrafik
-- [ ] Konsolidə (qrup) hesabatlıq
+- [x] **Konsolidə (qrup) hesabatlıq** (`/consolidated`): çoxşirkətli IFRS P&L/Balans birləşdirmə + Excel. ⏳ *Qalan:* intercompany eliminasiya.
 - [ ] Avtomatlaşdırılmış testlər + xəta izləmə (Sentry) + backup
+
+## Qalan çatışmayanlar (yalnız infrastruktur tələb edir — bu mühitdə deploy olunmur)
+- **Cloud Functions scheduler** (təkrarlanan faktura, aylıq amortizasiya, overdue, FX revalvasiya avtomatik) — Blaze planı.
+- **e-taxes.gov.az XML birbaşa göndərmə** (bəyannamələr artıq hesablanır, ixrac olunur; API göndərmə qalır).
+- **Bank open-banking feed** (hazırda fayl idxal/ixrac var).
+- **CRM e-poçt/SMS göndərişi** və **ASAN İmza e-imza** — xarici API açarları.
+- **CI/backup/Sentry** — pipeline müştəri mühitində qurulur.
 
 ## Qeyd (infrastruktur asılılığı)
 Faza 1.5 və bank/e-taxes/e-poçt inteqrasiyaları **Firebase Blaze planı +
