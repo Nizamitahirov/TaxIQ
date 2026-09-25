@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { LogOut, Menu, Settings, User, Search, Keyboard, Compass } from 'lucide-react';
+import { LogOut, Menu, Settings, User, Search, Keyboard, Compass, HelpCircle } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { logout } from '@/lib/firebase/auth';
 import { useShell } from '@/components/shell/shell-provider';
@@ -67,6 +67,9 @@ export function Topbar({ onMenuClick, showMenuButton = true }: { onMenuClick: ()
           <SelectContent>{[0, 1, 2, 3].map((i) => <SelectItem key={i} value={String(nowYear - i)}>{nowYear - i}</SelectItem>)}</SelectContent>
         </Select>
         <CreateMenu />
+        <Button asChild variant="ghost" size="icon" aria-label={tt('İstifadəçi təlimatı', 'User guide')} title={tt('İstifadəçi təlimatı', 'User guide')}>
+          <Link href="/guide"><HelpCircle className="h-5 w-5" /></Link>
+        </Button>
         <ThemeToggle />
         <LocaleSwitcher />
         <NotificationBell />

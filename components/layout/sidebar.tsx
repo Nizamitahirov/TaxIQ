@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useTT } from '@/lib/i18n/tt';
-import { LayoutGrid, LayoutDashboard } from 'lucide-react';
+import { LayoutGrid, LayoutDashboard, BookOpen } from 'lucide-react';
 import { NAV_GROUPS, type NavGroup } from '@/lib/nav';
 import { areaForPath, areaDef, itemsForArea } from '@/lib/areas';
 import { usePermittedNavItems } from './use-nav';
@@ -88,6 +88,10 @@ export function Sidebar({ onNavigate, hideHeader = false }: Props) {
           </div>
         ))}
       </nav>
+
+      <div className="shrink-0 border-t border-sidebar-border px-3 py-3">
+        <ul><FixedLink href="/guide" label={tt('İstifadəçi təlimatı', 'User guide')} Icon={BookOpen} pathname={pathname} onNavigate={onNavigate} /></ul>
+      </div>
     </div>
   );
 }
