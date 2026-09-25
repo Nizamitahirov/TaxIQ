@@ -11,6 +11,7 @@ import { MovementsTab } from './movements-tab';
 import { TransfersTab } from './transfers-tab';
 import { StocktakeTab } from './stocktake-tab';
 import { PriceListsTab } from './pricelists-tab';
+import { LotsTab } from './lots-tab';
 
 export default function WarehousePage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
@@ -34,6 +35,7 @@ export default function WarehousePage() {
           <TabsTrigger value="catalog">{tt('Kataloq', 'Catalog')}</TabsTrigger>
           <TabsTrigger value="movements">{tt('Hərəkətlər', 'Movements')}</TabsTrigger>
           <TabsTrigger value="transfers">{tt('Transferlər', 'Transfers')}</TabsTrigger>
+          <TabsTrigger value="lots">{tt('Lot / Son istifadə', 'Lots / Expiry')}</TabsTrigger>
           <TabsTrigger value="stocktake">{tt('İnventarizasiya', 'Stocktake')}</TabsTrigger>
           <TabsTrigger value="pricelists">{tt('Qiymət siyahıları', 'Price lists')}</TabsTrigger>
         </TabsList>
@@ -41,6 +43,7 @@ export default function WarehousePage() {
         <TabsContent value="catalog"><CatalogTab {...props} /></TabsContent>
         <TabsContent value="movements"><MovementsTab {...props} /></TabsContent>
         <TabsContent value="transfers"><TransfersTab {...props} /></TabsContent>
+        <TabsContent value="lots"><LotsTab {...props} /></TabsContent>
         <TabsContent value="stocktake"><StocktakeTab {...props} /></TabsContent>
         <TabsContent value="pricelists"><PriceListsTab {...props} /></TabsContent>
       </Tabs>

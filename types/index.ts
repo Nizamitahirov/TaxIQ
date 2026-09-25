@@ -1086,6 +1086,8 @@ export interface Good {
   /** Alternativ vahidlər — factor = 1 alt vahiddə neçə baseUnit (05 §2, vahid çevrilməsi) */
   unitConversions?: { code: string; factor: number }[];
   trackInventory: boolean;
+  /** partiya/lot və son istifadə tarixi ilə izlənir (FEFO) — aptek/iaşə/k-t üçün */
+  isLotTracked?: boolean;
   valuationMethodOverride?: 'fifo' | 'weighted_average' | null;
   defaultPurchasePrice?: number | null;
   defaultSalePrice?: number | null;
@@ -1093,6 +1095,29 @@ export interface Good {
   reorderPoint?: number | null;
   reorderQuantity?: number | null;
   isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+// ── Partiya/Lot uçotu + son istifadə tarixi (FEFO) ──
+export type InventoryLotStatus = 'active' | 'depleted' | 'expired';
+export interface InventoryLot {
+  id: string;
+  companyId: string;
+  goodId: string;
+  goodName?: string;
+  warehouseId: string;
+  warehouseName?: string;
+  lotNumber: string;
+  batchNumber?: string | null;
+  expiryDate?: string | null;    // YYYY-MM-DD
+  receivedDate: string;          // YYYY-MM-DD
+  quantityReceived: number;
+  quantityRemaining: number;
+  unitCost?: number | null;
+  status: InventoryLotStatus;
+  note?: string | null;
   createdAt?: TS;
   updatedAt?: TS;
   createdBy?: string;
