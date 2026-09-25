@@ -89,6 +89,8 @@ export interface Company {
   // ── 02 §1.2 əlavə profil sahələri ──
   legalForm?: string;            // MMC, ASC, Fərdi Sahibkar, ...
   directorName?: string;
+  activityCode?: string | null;  // rəsmi 7 rəqəmli fəaliyyət kodu
+  activityName?: string | null;  // fəaliyyət növünün adı
   brandColor?: string;           // hex — PDF başlıq zolağı üçün
   totalRooms?: number | null;    // otelçilik KPI (RevPAR/ADR) üçün
   customFieldValues?: Record<string, string | number | boolean>;

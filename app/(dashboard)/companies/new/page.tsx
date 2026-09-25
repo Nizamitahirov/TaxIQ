@@ -15,6 +15,7 @@ import { createCompanyFromOnboarding, saveDraft, type OnboardingData } from '@/l
 import { SECTOR_TEMPLATES, SECTOR_MAP, TOGGLEABLE_MODULES, LEGAL_FORMS } from '@/lib/sectors';
 import { SYSTEM_ROLES } from '@/lib/rbac/permissions';
 import { PageHeader } from '@/components/shared/page-header';
+import { ActivityCodePicker } from '@/components/shared/activity-code-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -141,6 +142,9 @@ export default function NewCompanyWizard() {
               <Field label={tt('Telefon', 'Phone')}><Input value={d.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
               <Field label={tt('E-poçt', 'Email')}><Input type="email" value={d.email} onChange={(e) => set({ email: e.target.value })} /></Field>
               <Field label={tt('Rəhbərin adı', 'Director name')}><Input value={d.directorName} onChange={(e) => set({ directorName: e.target.value })} /></Field>
+              <Field full label={tt('Fəaliyyət kodu (rəsmi 7 rəqəmli)', 'Activity code (official 7-digit)')}>
+                <ActivityCodePicker code={d.activityCode} name={d.activityName} onSelect={(code, name) => set({ activityCode: code, activityName: name })} />
+              </Field>
             </div>
           )}
 
@@ -270,8 +274,8 @@ export default function NewCompanyWizard() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
+function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
+  return <div className={cn('space-y-2', full && 'sm:col-span-2')}><Label>{label}</Label>{children}</div>;
 }
 function Summary({ label, value }: { label: string; value: string }) {
   return <div className="rounded-lg border border-border/60 p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-0.5 text-sm font-medium">{value}</p></div>;

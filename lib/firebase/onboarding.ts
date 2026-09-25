@@ -17,6 +17,10 @@ export interface OnboardingData {
   phone: string;
   email: string;
   directorName: string;
+  /** Rəsmi 7 rəqəmli fəaliyyət kodu (opsional) */
+  activityCode?: string | null;
+  /** Fəaliyyət kodunun adı (opsional) */
+  activityName?: string | null;
   // Addım 2–3
   sector: Sector;
   modulesEnabled: CompanyModule[];
@@ -61,6 +65,8 @@ export async function createCompanyFromOnboarding(
     phone: data.phone,
     email: data.email,
     directorName: data.directorName,
+    activityCode: data.activityCode ?? null,
+    activityName: data.activityName ?? null,
     brandColor: data.brandColor || null,
     totalRooms: data.totalRooms ?? null,
     settings,

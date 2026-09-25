@@ -12,6 +12,7 @@ import { exportWorkbook } from '@/lib/utils/export';
 import { logAudit } from '@/lib/firebase/audit';
 import { TOGGLEABLE_MODULES, SECTOR_MAP } from '@/lib/sectors';
 import { PageHeader } from '@/components/shared/page-header';
+import { ActivityCodePicker } from '@/components/shared/activity-code-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -69,6 +70,8 @@ function GeneralTab({ company, actorUid }: { company: Company; actorUid: string 
     name: company.name, legalName: company.legalName ?? '', address: company.address ?? '',
     phone: company.phone ?? '', email: company.email ?? '', directorName: company.directorName ?? '',
     brandColor: company.brandColor ?? '',
+    activityCode: company.activityCode ?? null as string | null,
+    activityName: company.activityName ?? null as string | null,
   });
   // Sektora xas sahələr (yalnız 'company' entity) — 02 §7
   const companyFields = (SECTOR_MAP[company.sector]?.customFieldDefinitions ?? []).filter((f) => f.appliesToEntity === 'company');
@@ -104,6 +107,9 @@ function GeneralTab({ company, actorUid }: { company: Company; actorUid: string 
         <F label={tt('E-poçt', 'Email')}><Input value={form.email} onChange={(e) => set({ email: e.target.value })} /></F>
         <F label={tt('Rəhbər', 'Director')}><Input value={form.directorName} onChange={(e) => set({ directorName: e.target.value })} /></F>
         <F label={tt('Brend rəngi', 'Brand color')}><Input value={form.brandColor} onChange={(e) => set({ brandColor: e.target.value })} placeholder="#5B5BF5" /></F>
+        <F full label={tt('Fəaliyyət kodu (rəsmi 7 rəqəmli)', 'Activity code (official 7-digit)')}>
+          <ActivityCodePicker code={form.activityCode} name={form.activityName} onSelect={(code, name) => set({ activityCode: code, activityName: name })} />
+        </F>
       </div>
 
       {companyFields.length > 0 && (
@@ -295,6 +301,6 @@ function LifecycleTab({ company, actorUid }: { company: Company; actorUid: strin
   );
 }
 
-function F({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div className="space-y-2"><Label>{label}</Label>{children}</div>;
+function F({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
+  return <div className={cn('space-y-2', full && 'sm:col-span-2')}><Label>{label}</Label>{children}</div>;
 }
