@@ -49,3 +49,22 @@ amma deploy müştəri mühitində aparılmalıdır.
 ## Faza 1 — əlavə edilən
 - [x] **Amortizasiya cədvəli** (`/depreciation`): əsas vəsaitlər üzrə aylıq köhnəlmə,
       yığılmış/NBV, qalan ay, icra % + 12 aylıq NBV proqnoz qrafiki + Excel.
+
+## Platforma qeydlərinə (Excel) əsasən əlavə edilən
+- [x] **8 yeni sektor şablonu**: İctimai İaşə, Kənd təsərrüfatı, Nəqliyyat/Logistika,
+      Təhsil, İcarə/Lizinq, Turizm, İctimai Sektor/QHT, Tibb/Klinika — sektora uyğun
+      defolt modullar, şöbələr, KPI-lar və fərdi sahələrlə.
+- [x] **Rəsmi fəaliyyət kodları** (2775 ədəd, 7 rəqəmli): şirkət qeydiyyatında
+      axtarışlı seçim (`ActivityCodePicker`) — sihirbaz + şirkət redaktəsi.
+- [x] **Müqavilələr** (`/contracts`): mərkəzi reyestr (növ/tərəf/müddət/dəyər/status,
+      bitmə xəbərdarlığı).
+- [x] **Debit-notlar** (`/debit-notes`): alış qaytarması — kreditor fakturanın tam
+      əks-yazısı (Dt 531 / Kt 205 +226).
+- [x] **Sənədlər hub** (`/documents`): Malların təhvil-verilmə qaiməsi (fakturadan),
+      CMR (yerli+beynəlxalq), Remittance advice — hamısı A4 çap şablonu ilə.
+- [x] **İstehsal** (`/production`): reseptlər (BOM) + istehsal sifarişləri,
+      tamamlananda maya dəyəri kapitallaşdırılır (Dt 204 / Kt 201 +533 +731).
+- [x] **Qeyri-maddi aktivlər** (`/intangibles`): IAS 38 amortizasiya (Dt 721 / Kt 101),
+      qeyri-müəyyən müddətli qudvil, aylıq konsolidasiya.
+- ⏳ *Qeyd:* GRN (malların təhvil-alınması) PO qəbul axını ilə örtülür;
+      Vergi bəyannamələri artıq `/tax` modulundadır (qeydlərdə bu vərəq boş idi).
