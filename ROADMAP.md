@@ -27,7 +27,9 @@ infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olun
 - [x] **Büdcə (plan-fakt)** (`/budget`): P&L kateqoriyaları üzrə illik plan;
       fakt IFRS-dən avtomatik; fərq/icra faizi + Excel. ⏳ *Qalan:* xərc mərkəzləri
       (departament) üzrə bölgü, aylıq plan.
-- [ ] Satış qaytarması / kredit-not + çatdırılma sənədi (order-to-cash zənciri)
+- [x] **Satış qaytarması / kredit-not** (`/credit-notes`): rəsmiləşmiş fakturanı
+      tam geri qaytarır — əks-yazı (Dt 601+521 / Kt 211) mühasibata düşür, faktura
+      bağlanır. ⏳ *Qalan:* qismən kredit-not, çatdırılma sənədi (qaimə).
 - [ ] Çox-anbar / partiya-seriya / son istifadə tarixi (FEFO)
 - [ ] Bank feed (open banking) — indi yalnız fayl idxal/ixrac
 - [ ] Sənəd idarəetməsi (DMS) + ASAN İmza

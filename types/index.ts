@@ -224,7 +224,7 @@ export interface JournalLine {
 }
 
 export type JournalSourceType =
-  | 'manual' | 'sales_invoice' | 'purchase_bill' | 'payment' | 'cash_transaction'
+  | 'manual' | 'sales_invoice' | 'sales_credit_note' | 'purchase_bill' | 'payment' | 'cash_transaction'
   | 'stock_movement' | 'payroll' | 'depreciation' | 'fx_revaluation';
 
 /** journalEntries/{entryId} — 08 §2.1 */
@@ -785,6 +785,25 @@ export interface PurchaseOrder {
   notes?: string | null;
   createdAt?: TS;
   updatedAt?: TS;
+  createdBy?: string;
+}
+
+// ── Kredit-not (satış qaytarması) — order-to-cash (06) ──
+export interface CreditNote {
+  id: string;
+  companyId: string;
+  creditNoteNumber: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  customerId: string;
+  customerName?: string;
+  issueDate: string;
+  subtotal: number;
+  vatTotal: number;
+  grandTotal: number;
+  reason?: string | null;
+  journalEntryId?: string | null;
+  createdAt?: TS;
   createdBy?: string;
 }
 
