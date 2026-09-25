@@ -72,6 +72,8 @@
     "debitNotes": "Debit notes",
     "documents": "Documents",
     "contracts": "Contracts",
+    "production": "Production",
+    "intangibles": "Intangible assets",
     "cashbank": "Cash & Bank",
     "accounting": "Accounting",
     "depreciation": "Depreciation schedule",

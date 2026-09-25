@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Building2, UserCog, ShieldCheck, ScrollText,
   Warehouse, Store, Wallet, BookOpen, BarChart3, Users2, Workflow,
   FileSpreadsheet, Settings, Layers, HardHat, ListChecks, Target, Landmark, ClipboardList, Undo2,
-  FileSignature, FileText, FileMinus, type LucideIcon,
+  FileSignature, FileText, FileMinus, Factory, Sparkles, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
@@ -47,6 +47,7 @@ export const NAV_GROUPS: NavGroup[] = [
     labelKey: 'operations',
     items: [
       { href: '/warehouse', labelKey: 'warehouse', icon: Warehouse, module: 'warehouse', area: 'tax' },
+      { href: '/production', labelKey: 'production', icon: Factory, module: 'warehouse', area: 'tax' },
       { href: '/crm', labelKey: 'crm', icon: Target, module: 'crm', area: 'tax' },
       { href: '/sales', labelKey: 'sales', icon: Store, module: 'sales', area: 'tax' },
       { href: '/credit-notes', labelKey: 'creditNotes', icon: Undo2, module: 'sales', area: 'tax' },
@@ -62,6 +63,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/accounting', labelKey: 'accounting', icon: BookOpen, module: 'accounting', area: 'accounting' },
       { href: '/depreciation', labelKey: 'depreciation', icon: FileSpreadsheet, module: 'accounting', area: 'accounting' },
+      { href: '/intangibles', labelKey: 'intangibles', icon: Sparkles, module: 'accounting', area: 'accounting' },
       { href: '/tax', labelKey: 'taxReturns', icon: Landmark, module: 'accounting', area: 'tax' },
       { href: '/ifrs', labelKey: 'ifrs', icon: BarChart3, module: 'ifrs', area: 'reports' },
       { href: '/budget', labelKey: 'budget', icon: Target, module: 'reports', area: 'reports' },

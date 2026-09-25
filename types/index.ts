@@ -437,6 +437,77 @@ export interface FixedAsset {
   updatedAt?: TS;
 }
 
+// ── Qeyri-maddi aktivlər (IAS 38) — əməliyyat №9 ──
+export type IntangibleType = 'software' | 'license' | 'patent' | 'trademark' | 'goodwill' | 'development' | 'other';
+export interface IntangibleAsset {
+  id: string;
+  companyId: string;
+  assetName: string;
+  assetType: IntangibleType;
+  acquisitionDate: string;          // "YYYY-MM-DD"
+  acquisitionCost: number;
+  /** qeyri-müəyyən faydalı müddət (goodwill kimi) — amortizasiya olunmur, illik dəyərsizləşmə testi */
+  indefiniteLife?: boolean;
+  usefulLifeMonths: number;
+  accumulatedAmortization: number;
+  netBookValue: number;
+  departmentId?: string | null;
+  status: 'active' | 'fully_amortized' | 'disposed';
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+// ── İstehsal / Resept (BOM) — əməliyyat №6 ──
+export interface BomComponent {
+  goodId?: string | null;
+  description: string;
+  quantity: number;
+  unit?: string | null;
+  unitCost?: number | null;
+}
+export interface BillOfMaterials {
+  id: string;
+  companyId: string;
+  productGoodId?: string | null;
+  productName: string;
+  outputQuantity: number;
+  unit?: string | null;
+  components: BomComponent[];
+  laborCost?: number | null;
+  overheadCost?: number | null;
+  notes?: string | null;
+  isActive: boolean;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+export type ProductionOrderStatus = 'planned' | 'in_progress' | 'completed' | 'cancelled';
+export interface ProductionOrder {
+  id: string;
+  companyId: string;
+  orderNumber: string;
+  bomId?: string | null;
+  productGoodId?: string | null;
+  productName: string;
+  quantity: number;
+  startDate: string;                // "YYYY-MM-DD"
+  completedDate?: string | null;
+  status: ProductionOrderStatus;
+  components: BomComponent[];        // sərf ediləcək/edilmiş materiallar (order miqdarına uyğun)
+  materialCost: number;
+  laborCost: number;
+  overheadCost: number;
+  totalCost: number;
+  unitCost: number;
+  journalEntryId?: string | null;
+  notes?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
 // ─────────────────────────────────────────────────────────────
 //  Satış, Faktura — Modul 6
 // ─────────────────────────────────────────────────────────────
