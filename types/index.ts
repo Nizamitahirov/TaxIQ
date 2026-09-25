@@ -229,8 +229,9 @@ export interface JournalLine {
 }
 
 export type JournalSourceType =
-  | 'manual' | 'sales_invoice' | 'sales_credit_note' | 'purchase_bill' | 'payment' | 'cash_transaction'
-  | 'stock_movement' | 'payroll' | 'depreciation' | 'fx_revaluation';
+  | 'manual' | 'sales_invoice' | 'sales_credit_note' | 'purchase_bill' | 'purchase_debit_note'
+  | 'payment' | 'cash_transaction'
+  | 'stock_movement' | 'payroll' | 'depreciation' | 'amortization' | 'production' | 'fx_revaluation';
 
 /** journalEntries/{entryId} — 08 §2.1 */
 export interface JournalEntry {
@@ -504,6 +505,7 @@ export interface Invoice {
   departmentId?: string | null;
   warehouseId?: string | null;
   journalEntryId?: string | null;
+  creditNoteId?: string | null;
   /** e-Qaimə (STS) — 06 §5 */
   eInvoice?: { submittedToSTS: boolean; stsReferenceNumber?: string | null; submittedAt?: string | null };
   documentTemplateId?: string | null;
@@ -812,6 +814,133 @@ export interface CreditNote {
   createdBy?: string;
 }
 
+// ── Müqavilə (mərkəzi reyestr) — sənəd №10 ──
+export type ContractType = 'sales' | 'purchase' | 'service' | 'lease' | 'employment' | 'nda' | 'other';
+export type ContractStatus = 'draft' | 'active' | 'expired' | 'terminated' | 'renewed';
+export type ContractParty = 'customer' | 'vendor' | 'employee' | 'other';
+export interface Contract {
+  id: string;
+  companyId: string;
+  contractNumber: string;
+  title: string;
+  type: ContractType;
+  partyKind: ContractParty;
+  partyId?: string | null;        // customerId/vendorId/employeeId
+  partyName: string;
+  startDate: string;              // YYYY-MM-DD
+  endDate?: string | null;
+  /** avtomatik uzadılma bildirişi (gün) */
+  renewalNoticeDays?: number | null;
+  value?: number | null;
+  currency?: string;
+  status: ContractStatus;
+  responsibleUserId?: string | null;
+  fileUrl?: string | null;        // əlavə (Storage)
+  notes?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+// ── Debit-not (alış qaytarması: alıcıdan satıcıya) — sənəd №9 ──
+export interface DebitNote {
+  id: string;
+  companyId: string;
+  debitNoteNumber: string;
+  billId: string;
+  billNumber: string;
+  vendorId: string;
+  vendorName?: string;
+  issueDate: string;
+  subtotal: number;
+  vatTotal: number;
+  grandTotal: number;
+  reason?: string | null;
+  journalEntryId?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+// ── Malların təhvil verilməsi qaiməsi (Goods Despatched Note) — sənəd №5 ──
+export type DeliveryNoteStatus = 'draft' | 'despatched' | 'delivered' | 'cancelled';
+export interface DeliveryNote {
+  id: string;
+  companyId: string;
+  deliveryNoteNumber: string;
+  customerId: string;
+  customerName?: string;
+  sourceInvoiceId?: string | null;
+  sourceOrderId?: string | null;
+  despatchDate: string;           // YYYY-MM-DD
+  deliveryAddress?: string | null;
+  lineItems: DocLineItem[];
+  status: DeliveryNoteStatus;
+  carrier?: string | null;
+  vehiclePlate?: string | null;
+  driverName?: string | null;
+  notes?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+// ── Remittance advice (ödəniş məktubu) — sənəd №11 ──
+export interface RemittanceAdvice {
+  id: string;
+  companyId: string;
+  adviceNumber: string;
+  vendorId?: string | null;
+  vendorName: string;
+  paymentDate: string;            // YYYY-MM-DD
+  paymentMethod?: string | null;  // bank/kassa
+  bankReference?: string | null;
+  currency: string;
+  /** ödənişin aid olduğu fakturalar */
+  allocations: { billId?: string | null; billNumber: string; billDate?: string | null; amount: number }[];
+  totalAmount: number;
+  notes?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+// ── CMR (əmtəə-nəqliyyat qaiməsi) — yerli + beynəlxalq — sənəd №12 ──
+export type CmrKind = 'domestic' | 'international';
+export interface CmrConsignment {
+  id: string;
+  companyId: string;
+  cmrNumber: string;
+  kind: CmrKind;
+  issueDate: string;              // YYYY-MM-DD
+  // 1 — Göndərən
+  senderName: string;
+  senderAddress?: string | null;
+  // 2 — Alan
+  consigneeName: string;
+  consigneeAddress?: string | null;
+  // 3 — Boşaltma yeri, 4 — Yükləmə yeri
+  placeOfDelivery?: string | null;
+  placeOfLoading?: string | null;
+  loadingDate?: string | null;
+  // Daşıyıcı
+  carrierName?: string | null;
+  vehiclePlate?: string | null;
+  trailerPlate?: string | null;
+  driverName?: string | null;
+  // Yük
+  goodsDescription?: string | null;
+  packages?: number | null;
+  grossWeightKg?: number | null;
+  volumeM3?: number | null;
+  // Beynəlxalq üçün
+  countryFrom?: string | null;
+  countryTo?: string | null;
+  sourceDeliveryNoteId?: string | null;
+  notes?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
 export type BillStatus = 'draft' | 'approved' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled';
 export interface PurchaseBill {
   id: string;
@@ -833,6 +962,7 @@ export interface PurchaseBill {
   status: BillStatus;
   warehouseId?: string | null;
   journalEntryId?: string | null;
+  debitNoteId?: string | null;
   createdAt?: TS;
   updatedAt?: TS;
   createdBy?: string;
