@@ -24,7 +24,9 @@ infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olun
       amortizasiya, overdue, FX revalvasiya), server-yoxlama, bildiriş çatdırılması.
 
 ## Faza 2 — Genişləndirmə
-- [ ] Büdcə & xərc mərkəzləri (plan-fakt)
+- [x] **Büdcə (plan-fakt)** (`/budget`): P&L kateqoriyaları üzrə illik plan;
+      fakt IFRS-dən avtomatik; fərq/icra faizi + Excel. ⏳ *Qalan:* xərc mərkəzləri
+      (departament) üzrə bölgü, aylıq plan.
 - [ ] Satış qaytarması / kredit-not + çatdırılma sənədi (order-to-cash zənciri)
 - [ ] Çox-anbar / partiya-seriya / son istifadə tarixi (FEFO)
 - [ ] Bank feed (open banking) — indi yalnız fayl idxal/ixrac

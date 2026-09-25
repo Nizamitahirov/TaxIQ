@@ -754,6 +754,16 @@ export interface Vendor {
   updatedAt?: TS;
 }
 
+// ── Büdcə (plan-fakt) — idarəetmə uçotu ──
+export interface Budget {
+  id?: string;
+  companyId: string;
+  year: number;
+  /** P&L kateqoriya adı → planlaşdırılmış illik məbləğ */
+  plan: Record<string, number>;
+  updatedAt?: TS;
+}
+
 // ── Satınalma Sifarişi (PO) — procure-to-pay (07) ──
 export type PurchaseOrderStatus = 'draft' | 'confirmed' | 'received' | 'billed' | 'cancelled';
 export interface PurchaseOrder {
