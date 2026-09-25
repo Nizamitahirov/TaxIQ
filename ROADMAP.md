@@ -37,7 +37,7 @@ infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olun
 ## Faza 3 — Yetkinlik
 - [ ] CRM e-poçt/SMS göndərişi
 - [ ] İşə qəbul / performans / org-struktur
-- [ ] Pul vəsaiti proqnozu (cash-flow forecast)
+- [x] **Pul vəsaiti proqnozu** (`/cashflow`): 6 aylıq AR daxilolma / AP ödəniş proqnozu, açılış qalığı, kumulyativ qalıq + qrafik
 - [ ] Konsolidə (qrup) hesabatlıq
 - [ ] Avtomatlaşdırılmış testlər + xəta izləmə (Sentry) + backup
 

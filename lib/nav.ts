@@ -60,6 +60,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/tax', labelKey: 'taxReturns', icon: Landmark, module: 'accounting', area: 'tax' },
       { href: '/ifrs', labelKey: 'ifrs', icon: BarChart3, module: 'ifrs', area: 'reports' },
       { href: '/budget', labelKey: 'budget', icon: Target, module: 'reports', area: 'reports' },
+      { href: '/cashflow', labelKey: 'cashflow', icon: BarChart3, module: 'reports', area: 'reports' },
     ],
   },
   {
