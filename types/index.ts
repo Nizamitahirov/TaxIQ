@@ -885,6 +885,68 @@ export interface CreditNote {
   createdBy?: string;
 }
 
+// ── İşə qəbul (Recruitment) ──
+export type VacancyStatus = 'open' | 'on_hold' | 'closed' | 'filled';
+export interface Vacancy {
+  id: string;
+  companyId: string;
+  title: string;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  headcount: number;
+  employmentType?: string | null;   // tam ştat / part-time / müqavilə
+  location?: string | null;
+  salaryRange?: string | null;
+  description?: string | null;
+  status: VacancyStatus;
+  openedDate: string;                // YYYY-MM-DD
+  closedDate?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+export type CandidateStage = 'applied' | 'screening' | 'interview' | 'offer' | 'hired' | 'rejected';
+export interface Candidate {
+  id: string;
+  companyId: string;
+  vacancyId?: string | null;
+  vacancyTitle?: string | null;
+  fullName: string;
+  email?: string | null;
+  phone?: string | null;
+  source?: string | null;            // müraciət mənbəyi
+  stage: CandidateStage;
+  rating?: number | null;            // 1–5
+  appliedDate: string;
+  resumeUrl?: string | null;
+  notes?: string | null;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
+// ── Performans qiymətləndirmə ──
+export type PerformanceStatus = 'draft' | 'submitted' | 'acknowledged';
+export interface PerformanceCriterion { title: string; weight: number; score: number } // score 1–5
+export interface PerformanceReview {
+  id: string;
+  companyId: string;
+  employeeId: string;
+  employeeName: string;
+  period: string;                    // məs. "2026-H1" və ya "2026"
+  reviewDate: string;                // YYYY-MM-DD
+  reviewerId?: string | null;
+  reviewerName?: string | null;
+  criteria: PerformanceCriterion[];
+  overallScore: number;              // çəkili orta (1–5)
+  strengths?: string | null;
+  improvements?: string | null;
+  status: PerformanceStatus;
+  createdAt?: TS;
+  updatedAt?: TS;
+  createdBy?: string;
+}
+
 // ── Sənəd Kitabxanası (DMS) ──
 export type DocLibraryCategory = 'contract' | 'invoice' | 'receipt' | 'certificate' | 'legal' | 'hr' | 'tax' | 'bank' | 'other';
 export interface LibraryDocument {
