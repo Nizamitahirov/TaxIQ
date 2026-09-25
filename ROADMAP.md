@@ -14,8 +14,8 @@ infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olun
 - [x] **1.1 Vergi bəyannamələri** (`/tax`): ƏDV (çıxış−giriş), ödəmə mənbəyində
       gəlir vergisi, mənfəət vergisi (20%) — real fakturalar/alışlar/payroll/P&L-dən,
       Excel ixrac. ⏳ *Qalan:* e-taxes.gov.az XML formatı + birbaşa göndərmə (API).
-- [ ] **1.2 Payslip PDF + maaş bank faylı** — işçiyə əmək haqqı vərəqəsi (çap/PDF)
-      + banka toplu maaş ödəniş faylı.
+- [x] **1.2 Payslip + maaş bank faylı** — payslip çapı (əvvəldən) + IBAN-lı toplu
+      maaş ödəniş faylı (Excel, işçi IBAN-larından; IBAN çatışmayanları xəbərdarlıq edir).
 - [ ] **1.3 Satınalma PO + mal qəbulu (GRN) + üçtərəfli uzlaşma** (PO↔qəbul↔faktura).
 - [ ] **1.4 ƏDV subledger** (giriş/çıxış ƏDV hesabları, 18% depozit).
 - [ ] **1.5 (infra) Cloud Functions fazası** — scheduler (təkrarlanan faktura,

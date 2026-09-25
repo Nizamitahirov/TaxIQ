@@ -51,6 +51,7 @@ export default function PayrollPage() {
 
   const { data, isLoading } = useQuery({ queryKey: ['payrollRuns', companyId], queryFn: () => listPayrollRuns(companyId!), enabled: !!companyId && canView });
   const { data: taxCfg } = useQuery({ queryKey: ['taxcfg'], queryFn: getActiveTaxConfig, enabled: canView });
+  const { data: employees } = useQuery({ queryKey: ['employees', companyId], queryFn: () => listEmployees(companyId!), enabled: !!companyId && canView });
 
   if (!companyId) return <div><PageHeader title={tt('Əmək haqqı', 'Payroll')} /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('Aktiv şirkət seçin.', 'Select an active company.')}</CardContent></Card></div>;
   if (!canView) return <div><PageHeader title={tt('Əmək haqqı', 'Payroll')} /><Card className="rounded-card"><CardContent className="py-16 text-center text-sm text-muted-foreground">{tt('İcazə yoxdur.', 'No permission.')}</CardContent></Card></div>;
@@ -81,6 +82,25 @@ export default function PayrollPage() {
       invalidate();
     } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setBusy(false); }
+  }
+  function salaryBankFile(r: PayrollRun) {
+    const ibanBy = new Map((employees ?? []).map((e) => [e.id, e.bankAccountIban ?? '']));
+    const period = `${month(r.periodMonth - 1)} ${r.periodYear}`;
+    const rows = r.lines.map((l, i) => ({
+      no: i + 1,
+      employee: l.employeeName,
+      iban: ibanBy.get(l.employeeId) || '',
+      amount: round2(l.netSalary),
+      purpose: tt(`${period} əmək haqqı`, `${period} salary`),
+    }));
+    const missing = rows.filter((x) => !x.iban).length;
+    exportToExcel(`maas-bank-fayli-${r.periodYear}-${String(r.periodMonth).padStart(2, '0')}`, [
+      { header: '№', value: 'no' }, { header: tt('A.S.A', 'Name'), value: 'employee' },
+      { header: 'IBAN', value: 'iban' }, { header: tt('Məbləğ (net)', 'Amount (net)'), value: 'amount' },
+      { header: tt('Təyinat', 'Purpose'), value: 'purpose' },
+    ], rows, tt('Maaş ödənişi', 'Salary payment'));
+    toast.success(tt('Maaş bank faylı yükləndi', 'Salary bank file downloaded'),
+      missing > 0 ? tt(`${missing} işçidə IBAN yoxdur — HR-də əlavə edin`, `${missing} employees have no IBAN — add it in HR`) : tt('Bank portalına yükləyin', 'Upload to your bank portal'));
   }
   function taxDeclaration(r: PayrollRun) {
     // Dövlət Vergi Xidməti / DSMF bəyannaməsi strukturu (10 §8)
@@ -129,6 +149,7 @@ export default function PayrollPage() {
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Detallar', 'Details')} onClick={() => setDetail(r)}><FileText className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Payslip çap', 'Print payslip')} onClick={() => printPayslips(r, active!.company, base)}><Printer className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Maaş bank faylı (IBAN)', 'Salary bank file (IBAN)')} onClick={() => salaryBankFile(r)}><Banknote className="h-4 w-4" /></Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8" title={tt('Vergi/DSMF bəyannaməsi', 'Tax/SSPF declaration')} onClick={() => taxDeclaration(r)}><FileSpreadsheet className="h-4 w-4" /></Button>
                       {canApprove && r.status === 'calculated' && <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title={tt('Təsdiqlə', 'Approve')} disabled={busy} onClick={() => approve(r)}><Check className="h-4 w-4" /></Button>}
                       {canApprove && r.status === 'approved' && <Button variant="ghost" size="icon" className="h-8 w-8 text-success" title={tt('Ödə (bank faylı)', 'Pay (bank file)')} disabled={busy} onClick={() => pay(r)}><Banknote className="h-4 w-4" /></Button>}
