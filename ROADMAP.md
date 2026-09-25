@@ -1,33 +1,41 @@
-# TaxIQ — Yol Xəritəsi (çatışmayanlar)
+# TaxIQ — Yol Xəritəsi (A-Z tam funksionallıq planı)
 
-Bu sənəd sistem analizindən çıxan boşluqları və status­larını izləyir.
+Bu sənəd bir şirkəti sıfırdan sona qədər idarə etmək üçün qalan işləri
+fazalarla izləyir. Client-side qurula bilənlər bir-bir əlavə olunur;
+infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olunur.
 
-## ✅ Bu iterasiyada həll olundu
-- **Storage təhlükəsizliyi** — `storage.rules` artıq şirkət-əsaslıdır (əvvəl istənilən
-  giriş etmiş istifadəçi bütün faylları oxuya bilirdi). Deploy: `cloud-shell-fix.sh`.
-- **Excel idxal** — Tənzimləmələr → «Excel idxal»: əməkdaş, müştəri, təchizatçı,
-  mal/xidmət Excel-dən yüklənir (şablon + preview + doğrulama + təkrar yoxlaması).
-- **RBAC drift** — determinik `userCompanyAccess` id + qayda `exists()` yoxlaması +
-  super-admin resync aləti.
+## ✅ Artıq mövcuddur (bu sessiyada tamamlanan seçmələr)
+- Storage təhlükəsizliyi (şirkət-əsaslı), RBAC access-repair, Firestore index-siz sorğular
+- Excel idxal (əməkdaş/müştəri/təchizatçı/mal)
+- Rəsmi hesabatlar: DSMF formaları + maaş cədvəli + iş vaxtı tabeli (şablon görünüşlü preview)
+- İstifadəçi təlimatı səhifəsi (/guide), login yenidizayn, dashboard chart, tab wrap düzəlişi
 
-## 🔴 İnfrastruktur tələb edir (Firebase Blaze planı + Functions)
-Bunlar client-side həll oluna bilməz; server (Cloud Functions/Scheduler) lazımdır:
-- **Planlaşdırılmış işlər** — təkrarlanan fakturalar, overdue statusu, aylıq
-  amortizasiya, FX yenidənqiymətləndirmə, planlaşdırılmış workflow-lar (`cron`).
-- **Server-side yoxlama** — ikili-yazı balansı, SoD, posting-rules, dövr kilidi,
-  login lockout məntiqinin serverdə məcburiləşdirilməsi.
-- **Bildiriş çatdırılması** — e-poçt/push/SMS (hazırda yalnız tətbiqdaxili).
-- **Audit imza zənciri** — dəyişməzliyin server-tərəfi təsdiqi.
+## Faza 1 — Kritik (bir şirkəti tam A-Z aparmaq)
+- [x] **1.1 Vergi bəyannamələri** (`/tax`): ƏDV (çıxış−giriş), ödəmə mənbəyində
+      gəlir vergisi, mənfəət vergisi (20%) — real fakturalar/alışlar/payroll/P&L-dən,
+      Excel ixrac. ⏳ *Qalan:* e-taxes.gov.az XML formatı + birbaşa göndərmə (API).
+- [ ] **1.2 Payslip PDF + maaş bank faylı** — işçiyə əmək haqqı vərəqəsi (çap/PDF)
+      + banka toplu maaş ödəniş faylı.
+- [ ] **1.3 Satınalma PO + mal qəbulu (GRN) + üçtərəfli uzlaşma** (PO↔qəbul↔faktura).
+- [ ] **1.4 ƏDV subledger** (giriş/çıxış ƏDV hesabları, 18% depozit).
+- [ ] **1.5 (infra) Cloud Functions fazası** — scheduler (təkrarlanan faktura,
+      amortizasiya, overdue, FX revalvasiya), server-yoxlama, bildiriş çatdırılması.
 
-## 🟡 Funksional (planlaşdırıla bilər)
-- **Vergi bəyannamələri** — ƏDV / mənfəət / muzdlu iş vergisi e-taxes formatında
-  generasiya; dövlət portallarına (e-taxes, DSMF, ASAN) göndərmə/inteqrasiya.
-- **Satınalma (PO)** — Satınalma Sifarişi, mal qəbulu, üçtərəfli uzlaşma.
-- **Payroll** — bank toplu ödəniş faylı + işçi payslip PDF.
-- **Büdcə & xərc mərkəzləri** — plan-fakt hesabatı.
-- **CRM göndəriş** — kampaniya e-poçt/SMS inteqrasiyası.
+## Faza 2 — Genişləndirmə
+- [ ] Büdcə & xərc mərkəzləri (plan-fakt)
+- [ ] Satış qaytarması / kredit-not + çatdırılma sənədi (order-to-cash zənciri)
+- [ ] Çox-anbar / partiya-seriya / son istifadə tarixi (FEFO)
+- [ ] Bank feed (open banking) — indi yalnız fayl idxal/ixrac
+- [ ] Sənəd idarəetməsi (DMS) + ASAN İmza
 
-## ⚙️ Keyfiyyət / DevOps
-- **Testlər** — vergi/payroll, ikili-yazı, FIFO üçün unit testlər (jest/vitest yoxdur).
-- **Xəta izləmə** — Sentry və ya oxşar.
-- **Avtomatik backup** — planlaşdırılmış Firestore ixracı.
+## Faza 3 — Yetkinlik
+- [ ] CRM e-poçt/SMS göndərişi
+- [ ] İşə qəbul / performans / org-struktur
+- [ ] Pul vəsaiti proqnozu (cash-flow forecast)
+- [ ] Konsolidə (qrup) hesabatlıq
+- [ ] Avtomatlaşdırılmış testlər + xəta izləmə (Sentry) + backup
+
+## Qeyd (infrastruktur asılılığı)
+Faza 1.5 və bank/e-taxes/e-poçt inteqrasiyaları **Firebase Blaze planı +
+Cloud Functions** və müvafiq API açarları tələb edir — kod hazırlana bilər,
+amma deploy müştəri mühitində aparılmalıdır.
