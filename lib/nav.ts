@@ -57,6 +57,7 @@ export const NAV_GROUPS: NavGroup[] = [
     labelKey: 'finance',
     items: [
       { href: '/accounting', labelKey: 'accounting', icon: BookOpen, module: 'accounting', area: 'accounting' },
+      { href: '/depreciation', labelKey: 'depreciation', icon: FileSpreadsheet, module: 'accounting', area: 'accounting' },
       { href: '/tax', labelKey: 'taxReturns', icon: Landmark, module: 'accounting', area: 'tax' },
       { href: '/ifrs', labelKey: 'ifrs', icon: BarChart3, module: 'ifrs', area: 'reports' },
       { href: '/budget', labelKey: 'budget', icon: Target, module: 'reports', area: 'reports' },

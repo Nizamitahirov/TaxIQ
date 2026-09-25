@@ -45,3 +45,7 @@ infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olun
 Faza 1.5 və bank/e-taxes/e-poçt inteqrasiyaları **Firebase Blaze planı +
 Cloud Functions** və müvafiq API açarları tələb edir — kod hazırlana bilər,
 amma deploy müştəri mühitində aparılmalıdır.
+
+## Faza 1 — əlavə edilən
+- [x] **Amortizasiya cədvəli** (`/depreciation`): əsas vəsaitlər üzrə aylıq köhnəlmə,
+      yığılmış/NBV, qalan ay, icra % + 12 aylıq NBV proqnoz qrafiki + Excel.
