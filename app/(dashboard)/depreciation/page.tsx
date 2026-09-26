@@ -1,14 +1,16 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { Download } from 'lucide-react';
+import { Download, Plus, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTT } from '@/lib/i18n/tt';
 import { listFixedAssets, monthlyDepreciation } from '@/lib/firebase/accounting';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
+import { FixedAssetDialog } from '@/components/shared/fixed-asset-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { exportToExcel } from '@/lib/utils/export';
@@ -38,10 +40,13 @@ function projectNbv(a: FixedAsset, months: number): number[] {
 
 export default function DepreciationPage() {
   const tt = useTT();
-  const { active, isSuperAdmin, can } = useAuth();
+  const qc = useQueryClient();
+  const { active, isSuperAdmin, can, profile } = useAuth();
   const companyId = active?.companyId;
   const cur = active?.company.baseCurrency ?? 'AZN';
   const canView = isSuperAdmin || can('accounting.coa.view') || can('reports.view');
+  const canManage = isSuperAdmin || can('accounting.journal.create');
+  const [assetOpen, setAssetOpen] = useState(false);
 
   const { data: assets } = useQuery({ queryKey: ['fixedAssets', companyId], queryFn: () => listFixedAssets(companyId!), enabled: canView && !!companyId });
 
@@ -77,11 +82,14 @@ export default function DepreciationPage() {
       <PageHeader
         title={tt('Amortizasiya cədvəli', 'Depreciation schedule')}
         subtitle={tt('Əsas vəsaitlərin köhnəlməsi və xalis qalıq dəyəri proqnozu', 'Fixed-asset depreciation and net book value projection')}
-        action={<Button variant="outline" onClick={() => exportToExcel('amortizasiya-cedveli', [
-          { header: tt('Aktiv', 'Asset'), value: (r: typeof rows[number]) => r.a.assetName }, { header: tt('Metod', 'Method'), value: (r: typeof rows[number]) => r.a.depreciationMethod },
-          { header: tt('Dəyər', 'Cost'), value: (r: typeof rows[number]) => r.a.acquisitionCost }, { header: tt('Aylıq', 'Monthly'), value: 'monthly' },
-          { header: tt('Yığılmış', 'Accumulated'), value: (r: typeof rows[number]) => r.a.accumulatedDepreciation }, { header: 'NBV', value: (r: typeof rows[number]) => r.a.netBookValue },
-        ], rows)}><Download className="h-4 w-4" /> Excel</Button>}
+        action={<div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => exportToExcel('amortizasiya-cedveli', [
+            { header: tt('Aktiv', 'Asset'), value: (r: typeof rows[number]) => r.a.assetName }, { header: tt('Metod', 'Method'), value: (r: typeof rows[number]) => r.a.depreciationMethod },
+            { header: tt('Dəyər', 'Cost'), value: (r: typeof rows[number]) => r.a.acquisitionCost }, { header: tt('Aylıq', 'Monthly'), value: 'monthly' },
+            { header: tt('Yığılmış', 'Accumulated'), value: (r: typeof rows[number]) => r.a.accumulatedDepreciation }, { header: 'NBV', value: (r: typeof rows[number]) => r.a.netBookValue },
+          ], rows)}><Download className="h-4 w-4" /> Excel</Button>
+          {canManage && <Button onClick={() => setAssetOpen(true)}><Plus className="h-4 w-4" /> {tt('Yeni əsas vəsait', 'New fixed asset')}</Button>}
+        </div>}
       />
 
       <div className="mb-4 grid gap-4 sm:grid-cols-4">
@@ -91,7 +99,18 @@ export default function DepreciationPage() {
         <Mini label={tt('Aylıq köhnəlmə', 'Monthly depreciation')} value={formatCurrency(totals.monthly, cur)} />
       </div>
 
-      {rows.length === 0 ? <EmptyState title={tt('Əsas vəsait yoxdur', 'No fixed assets')} description={tt('Mühasibat → Əsas vəsaitlər bölməsində əlavə edin', 'Add them under Accounting → Fixed assets')} /> : (
+      {rows.length === 0 ? (
+        <EmptyState
+          title={tt('Əsas vəsait yoxdur', 'No fixed assets')}
+          description={tt('Əsas vəsait əlavə etdikcə amortizasiya cədvəli avtomatik dolacaq. Vergi Məcəlləsi m.114 kateqoriyaları və normaları hazırdır.', 'The schedule fills automatically as you add fixed assets. Tax Code Art.114 categories and rates are built in.')}
+          action={canManage
+            ? <div className="flex flex-wrap justify-center gap-2">
+                <Button onClick={() => setAssetOpen(true)}><Plus className="h-4 w-4" /> {tt('Yeni əsas vəsait', 'New fixed asset')}</Button>
+                <Link href="/accounting"><Button variant="outline"><ExternalLink className="h-4 w-4" /> {tt('Mühasibat → Əsas Vəsaitlər', 'Accounting → Fixed Assets')}</Button></Link>
+              </div>
+            : undefined}
+        />
+      ) : (
         <>
           <Card className="mb-4 rounded-card"><CardContent className="p-5">
             <p className="mb-3 text-sm font-medium text-muted-foreground">{tt('Xalis qalıq dəyəri proqnozu (12 ay)', 'Net book value projection (12 months)')}</p>
@@ -142,6 +161,9 @@ export default function DepreciationPage() {
           </div></CardContent></Card>
         </>
       )}
+
+      {canManage && companyId && <FixedAssetDialog open={assetOpen} onOpenChange={setAssetOpen} companyId={companyId} actorUid={profile?.uid ?? ''}
+        onSaved={() => qc.invalidateQueries({ queryKey: ['fixedAssets', companyId] })} />}
     </div>
   );
 }

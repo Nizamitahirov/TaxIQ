@@ -1,30 +1,43 @@
 import { cn } from '@/lib/utils/cn';
 
-/** TaxIQ brand mark — gradient tile with an upward trend/check + IQ spark */
+/** Brend rəngləri — loqo özü-özünə uyğun olsun deyə mövzu (theme) primary-dən asılı deyil. */
+const BRAND_BLUE = '#1F5AEB';
+const BRAND_GREEN = '#22C55E';
+
+/** TaxIQ brand mark — mavi plitə + yüksələn trend oxu + yaşıl nöqtə + baza xətti */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 512 512" className={cn('shrink-0', className)} role="img" aria-label="TaxIQ">
-      <defs>
-        <linearGradient id="taxiq-mark" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#5B5BF5" />
-          <stop offset="1" stopColor="#8B3DF0" />
-        </linearGradient>
-      </defs>
-      <rect width="512" height="512" rx="120" fill="url(#taxiq-mark)" />
-      <path d="M150 292 L233 366 L372 178" fill="none" stroke="#ffffff" strokeWidth="48" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="392" cy="150" r="27" fill="#ffffff" />
+    <svg viewBox="0 0 512 512" className={cn('shrink-0', className)} role="img" aria-label="TAX iQ">
+      <rect width="512" height="512" rx="128" fill={BRAND_BLUE} />
+      {/* baza xətti (faded) */}
+      <rect x="150" y="374" width="212" height="24" rx="12" fill="#ffffff" opacity="0.82" />
+      {/* yüksələn trend xətti */}
+      <path d="M150 322 L214 352 L288 276 L360 200" fill="none" stroke="#ffffff" strokeWidth="42" strokeLinecap="round" strokeLinejoin="round" />
+      {/* ox ucu (yuxarı-sağa) */}
+      <path d="M300 200 L360 200 L360 260" fill="none" stroke="#ffffff" strokeWidth="42" strokeLinecap="round" strokeLinejoin="round" />
+      {/* yaşıl nöqtə */}
+      <circle cx="372" cy="150" r="34" fill={BRAND_GREEN} />
     </svg>
   );
 }
 
-/** TaxIQ logo — brand mark + wordmark */
-export function Logo({ compact = false }: { compact?: boolean }) {
+/**
+ * TAX iQ loqo — brend nişanı + söz-marka.
+ * `i` hərfi ingilis (Latın, nöqtəli) hərfidir.
+ * `subtitle` verildikdə «SMART TAX SOLUTIONS» alt yazısı göstərilir.
+ */
+export function Logo({ compact = false, subtitle = false }: { compact?: boolean; subtitle?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
-      <LogoMark className="h-9 w-9 rounded-xl shadow-[0_6px_18px_-6px_rgba(91,91,245,0.7)]" />
+      <LogoMark className="h-9 w-9 rounded-xl shadow-[0_6px_18px_-6px_rgba(31,90,235,0.6)]" />
       {!compact && (
-        <span className={cn('text-lg font-extrabold tracking-tight')}>
-          Tax<span className="text-primary">IQ</span>
+        <span className="flex flex-col leading-none">
+          <span className="text-lg font-extrabold tracking-tight">
+            TAX&nbsp;<span>i</span><span style={{ color: BRAND_BLUE }}>Q</span>
+          </span>
+          {subtitle && (
+            <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Smart Tax Solutions</span>
+          )}
         </span>
       )}
     </span>

@@ -70,12 +70,15 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Brend paneli (desktop) */}
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#5B5BF5] to-[#8B3DF0] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#1F5AEB] to-[#153E9E] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/10 blur-3xl" />
         <div className="relative flex items-center gap-3">
           <LogoMark className="h-11 w-11 rounded-2xl shadow-lg" />
-          <span className="text-2xl font-extrabold tracking-tight">TaxIQ</span>
+          <span className="flex flex-col leading-none">
+            <span className="text-2xl font-extrabold tracking-tight">TAX&nbsp;iQ</span>
+            <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">Smart Tax Solutions</span>
+          </span>
         </div>
         <div className="relative space-y-6">
           <h1 className="max-w-md text-3xl font-bold leading-tight">{tt('Azərbaycan biznesi üçün ağıllı ERP platforması', 'The smart ERP platform for Azerbaijani business')}</h1>
@@ -100,7 +103,7 @@ export default function LoginPage() {
       <div className="flex items-center justify-center bg-background px-4 py-10">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex flex-col items-center gap-2 text-center lg:hidden">
-            <Logo />
+            <Logo subtitle />
           </div>
 
           <div className="mb-6">

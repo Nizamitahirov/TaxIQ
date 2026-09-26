@@ -426,6 +426,8 @@ export interface FixedAsset {
   acquisitionDate: string;          // "YYYY-MM-DD"
   acquisitionCost: number;
   depreciationMethod: 'straight_line' | 'reducing_balance';
+  /** Vergi Məcəlləsi m.114 kateqoriyası (default norma bu kateqoriyadan gəlir) */
+  categoryKey?: string | null;
   usefulLifeMonths: number;
   residualValue: number;
   reducingBalanceRate?: number | null;
