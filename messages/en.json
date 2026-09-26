@@ -55,7 +55,11 @@
     "finance": "Finance",
     "people": "Human Resources",
     "tools": "Tools",
-    "hse": "HSE"
+    "hse": "HSE",
+    "documents": "Documents",
+    "accounting": "Accounting",
+    "tax": "Tax",
+    "reports": "Reports"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -93,7 +97,8 @@
     "settings": "Settings",
     "sectorTemplates": "Sector Templates",
     "hse": "HSE",
-    "tasks": "Tasks"
+    "tasks": "Tasks",
+    "activityCodes": "Activity codes"
   },
   "dashboard": {
     "greetingMorning": "Good morning",

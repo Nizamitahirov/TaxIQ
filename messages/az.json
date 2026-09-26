@@ -55,7 +55,11 @@
     "finance": "Maliyyə",
     "people": "İnsan Resursları",
     "tools": "Alətlər",
-    "hse": "SƏTƏM"
+    "hse": "SƏTƏM",
+    "documents": "Sənədlər",
+    "accounting": "Mühasibat uçotu",
+    "tax": "Vergi uçotu",
+    "reports": "Hesabatlar"
   },
   "nav": {
     "dashboard": "İdarə paneli",
@@ -93,7 +97,8 @@
     "settings": "Tənzimləmələr",
     "sectorTemplates": "Sektor Şablonları",
     "hse": "SƏTƏM uçotu",
-    "tasks": "Tapşırıqlar"
+    "tasks": "Tapşırıqlar",
+    "activityCodes": "Fəaliyyət kodları"
   },
   "dashboard": {
     "greetingMorning": "Sabahınız xeyir",

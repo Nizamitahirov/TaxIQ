@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Building2, UserCog, ShieldCheck, ScrollText,
   Warehouse, Store, Wallet, BookOpen, BarChart3, Users2, Workflow,
   FileSpreadsheet, Settings, Layers, HardHat, ListChecks, Target, Landmark, ClipboardList, Undo2,
-  FileSignature, FileText, FileMinus, Factory, Sparkles, FolderArchive, GitMerge, UserPlus, Gauge, Network, type LucideIcon,
+  FileSignature, FileText, FileMinus, Factory, Sparkles, FolderArchive, GitMerge, UserPlus, Gauge, Network, Hash, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
@@ -44,31 +44,48 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    labelKey: 'operations',
+    // Excel: "Sənədlər" vərəqi — Quotation, PO, Sales Order, GRN, Despatch,
+    // Invoice, Credit/Debit Note, Müqavilələr, Remittance, CMR
+    labelKey: 'documents',
     items: [
-      { href: '/warehouse', labelKey: 'warehouse', icon: Warehouse, module: 'warehouse', area: 'tax' },
-      { href: '/production', labelKey: 'production', icon: Factory, module: 'warehouse', area: 'tax' },
       { href: '/crm', labelKey: 'crm', icon: Target, module: 'crm', area: 'tax' },
       { href: '/sales', labelKey: 'sales', icon: Store, module: 'sales', area: 'tax' },
-      { href: '/credit-notes', labelKey: 'creditNotes', icon: Undo2, module: 'sales', area: 'tax' },
       { href: '/purchase-orders', labelKey: 'purchaseOrders', icon: ClipboardList, module: 'cashbank', area: 'tax' },
-      { href: '/debit-notes', labelKey: 'debitNotes', icon: FileMinus, module: 'cashbank', area: 'tax' },
       { href: '/documents', labelKey: 'documents', icon: FileText, module: 'sales', area: 'tax' },
+      { href: '/credit-notes', labelKey: 'creditNotes', icon: Undo2, module: 'sales', area: 'tax' },
+      { href: '/debit-notes', labelKey: 'debitNotes', icon: FileMinus, module: 'cashbank', area: 'tax' },
       { href: '/contracts', labelKey: 'contracts', icon: FileSignature, module: 'sales', area: 'tax' },
-      { href: '/cashbank', labelKey: 'cashbank', icon: Wallet, module: 'cashbank', area: 'tax' },
     ],
   },
   {
-    labelKey: 'finance',
+    // Excel: "Mühasibat uçotu — Əməliyyatlar" — Bank, Kassa, Anbar, İstehsal,
+    // Əsas vəsaitlər, Qeyri-Maddi aktivlər (+ baş kitab)
+    labelKey: 'accounting',
     items: [
       { href: '/accounting', labelKey: 'accounting', icon: BookOpen, module: 'accounting', area: 'accounting' },
+      { href: '/cashbank', labelKey: 'cashbank', icon: Wallet, module: 'cashbank', area: 'tax' },
+      { href: '/warehouse', labelKey: 'warehouse', icon: Warehouse, module: 'warehouse', area: 'tax' },
+      { href: '/production', labelKey: 'production', icon: Factory, module: 'warehouse', area: 'tax' },
       { href: '/depreciation', labelKey: 'depreciation', icon: FileSpreadsheet, module: 'accounting', area: 'accounting' },
       { href: '/intangibles', labelKey: 'intangibles', icon: Sparkles, module: 'accounting', area: 'accounting' },
+    ],
+  },
+  {
+    // Excel: "Vergi uçotu" — Bəyannamələr, Fəaliyyət kodları (+ vahid standartlar / vergi təqvimi bağlantıları səhifə içindədir)
+    labelKey: 'tax',
+    items: [
       { href: '/tax', labelKey: 'taxReturns', icon: Landmark, module: 'accounting', area: 'tax' },
+      { href: '/activity-codes', labelKey: 'activityCodes', icon: Hash, module: 'accounting', area: 'tax' },
+    ],
+  },
+  {
+    labelKey: 'reports',
+    items: [
       { href: '/ifrs', labelKey: 'ifrs', icon: BarChart3, module: 'ifrs', area: 'reports' },
       { href: '/consolidated', labelKey: 'consolidated', icon: GitMerge, module: 'ifrs', area: 'reports' },
       { href: '/budget', labelKey: 'budget', icon: Target, module: 'reports', area: 'reports' },
       { href: '/cashflow', labelKey: 'cashflow', icon: BarChart3, module: 'reports', area: 'reports' },
+      { href: '/reports', labelKey: 'reports', icon: FileSpreadsheet, module: 'reports', area: 'reports' },
     ],
   },
   {
@@ -93,7 +110,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/files', labelKey: 'files', icon: FolderArchive, module: 'dashboard', area: 'settings' },
       { href: '/tasks', labelKey: 'tasks', icon: ListChecks, module: 'dashboard', area: 'settings' },
       { href: '/workflow', labelKey: 'workflow', icon: Workflow, module: 'workflow', area: 'settings' },
-      { href: '/reports', labelKey: 'reports', icon: FileSpreadsheet, module: 'reports', area: 'reports' },
       { href: '/settings', labelKey: 'settings', icon: Settings, module: 'settings', area: 'settings' },
     ],
   },
