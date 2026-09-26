@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/utils/format';
+import type { CreditNote } from '@/types';
 
 export default function CreditNotesPage() {
   const tt = useTT();
@@ -67,26 +68,39 @@ export default function CreditNotesPage() {
           </div></CardContent></Card>
         )}
 
-      {open && <CreateDialog companyId={companyId} cur={cur} baseCurrency={cur} actorUid={profile?.uid ?? ''} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); qc.invalidateQueries({ queryKey: ['creditNotes', companyId] }); qc.invalidateQueries({ queryKey: ['invoices', companyId] }); }} />}
+      {open && <CreateDialog companyId={companyId} cur={cur} baseCurrency={cur} actorUid={profile?.uid ?? ''} existing={data ?? []} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); qc.invalidateQueries({ queryKey: ['creditNotes', companyId] }); qc.invalidateQueries({ queryKey: ['invoices', companyId] }); }} />}
     </div>
   );
 }
 
-function CreateDialog({ companyId, cur, baseCurrency, actorUid, onClose, onSaved }: { companyId: string; cur: string; baseCurrency: string; actorUid: string; onClose: () => void; onSaved: () => void }) {
+function CreateDialog({ companyId, cur, baseCurrency, actorUid, existing, onClose, onSaved }: { companyId: string; cur: string; baseCurrency: string; actorUid: string; existing: CreditNote[]; onClose: () => void; onSaved: () => void }) {
   const tt = useTT();
+  const round2 = (n: number) => Math.round(n * 100) / 100;
   const { data: invoices } = useQuery({ queryKey: ['invoices', companyId], queryFn: () => listInvoices(companyId) });
-  const creditable = useMemo(() => (invoices ?? []).filter((i) => ['sent', 'partially_paid', 'overdue'].includes(i.status)), [invoices]);
+  const creditedByInvoice = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of existing) m.set(c.invoiceId, round2((m.get(c.invoiceId) ?? 0) + (c.grandTotal || 0)));
+    return m;
+  }, [existing]);
+  const creditable = useMemo(() => (invoices ?? []).filter((i) =>
+    ['sent', 'partially_paid', 'overdue'].includes(i.status) && round2(i.grandTotal - (creditedByInvoice.get(i.id) ?? 0)) > 0.0001
+  ), [invoices, creditedByInvoice]);
   const [invoiceId, setInvoiceId] = useState('');
   const [reason, setReason] = useState('');
+  const [partial, setPartial] = useState(false);
+  const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
   const inv = creditable.find((i) => i.id === invoiceId);
+  const remaining = inv ? round2(inv.grandTotal - (creditedByInvoice.get(inv.id) ?? 0)) : 0;
 
   async function save() {
     if (!inv) { toast.error(tt('Faktura seçin', 'Select an invoice')); return; }
+    const amt = partial ? Number(amount) : null;
+    if (partial && (!(amt! > 0) || amt! > remaining + 0.0001)) { toast.error(tt('Məbləğ 0 ilə qalıq arasında olmalıdır', 'Amount must be between 0 and the remaining')); return; }
     setSaving(true);
     try {
-      await createCreditNote({ invoice: inv, reason: reason.trim() || null, baseCurrency, actorUid });
-      toast.success(tt('Kredit-not yaradıldı', 'Credit note created'), tt('Əks-yazı mühasibata düşdü, faktura bağlandı', 'Reversing entry posted, invoice closed'));
+      await createCreditNote({ invoice: inv, amount: amt, reason: reason.trim() || null, baseCurrency, actorUid });
+      toast.success(tt('Kredit-not yaradıldı', 'Credit note created'), partial ? tt('Qismən qaytarma mühasibata düşdü', 'Partial reversal posted') : tt('Əks-yazı mühasibata düşdü, faktura bağlandı', 'Reversing entry posted, invoice closed'));
       onSaved();
     } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
@@ -99,7 +113,7 @@ function CreateDialog({ companyId, cur, baseCurrency, actorUid, onClose, onSaved
         <div className="space-y-4">
           <div className="space-y-1">
             <Label>{tt('Faktura', 'Invoice')}</Label>
-            <Select value={invoiceId} onValueChange={setInvoiceId}>
+            <Select value={invoiceId} onValueChange={(v) => { setInvoiceId(v); const i = creditable.find((x) => x.id === v); setAmount(i ? String(round2(i.grandTotal - (creditedByInvoice.get(i.id) ?? 0))) : ''); }}>
               <SelectTrigger><SelectValue placeholder={tt('Rəsmiləşmiş faktura seçin', 'Select a posted invoice')} /></SelectTrigger>
               <SelectContent>{creditable.map((i) => <SelectItem key={i.id} value={i.id}>{i.invoiceNumber} · {i.customerName} · {formatCurrency(i.grandTotal, i.currency || cur)}</SelectItem>)}</SelectContent>
             </Select>
@@ -107,9 +121,11 @@ function CreateDialog({ companyId, cur, baseCurrency, actorUid, onClose, onSaved
           </div>
           {inv && (
             <div className="rounded-lg bg-secondary/40 p-3 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">{tt('Qaytarılacaq məbləğ', 'Amount to reverse')}</span><span className="font-bold text-rose-600">−{formatCurrency(inv.grandTotal, cur)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{tt('Qaytarıla bilən qalıq', 'Remaining creditable')}</span><span className="font-bold text-rose-600">{formatCurrency(remaining, cur)}</span></div>
             </div>
           )}
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} /> {tt('Qismən qaytarma', 'Partial return')}</label>
+          {partial && <div className="space-y-1"><Label>{tt('Qaytarılacaq məbləğ', 'Amount to return')}</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} max={remaining} /></div>}
           <div className="space-y-1"><Label>{tt('Səbəb', 'Reason')}</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={tt('Qaytarma səbəbi', 'Return reason')} /></div>
         </div>
         <DialogFooter>

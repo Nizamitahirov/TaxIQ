@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
 import { formatCurrency } from '@/lib/utils/format';
+import type { DebitNote } from '@/types';
 
 export default function DebitNotesPage() {
   const tt = useTT();
@@ -67,26 +68,39 @@ export default function DebitNotesPage() {
           </div></CardContent></Card>
         )}
 
-      {open && <CreateDialog companyId={companyId} cur={cur} baseCurrency={cur} actorUid={profile?.uid ?? ''} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); qc.invalidateQueries({ queryKey: ['debitNotes', companyId] }); qc.invalidateQueries({ queryKey: ['purchaseBills', companyId] }); }} />}
+      {open && <CreateDialog companyId={companyId} cur={cur} baseCurrency={cur} actorUid={profile?.uid ?? ''} existing={data ?? []} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); qc.invalidateQueries({ queryKey: ['debitNotes', companyId] }); qc.invalidateQueries({ queryKey: ['purchaseBills', companyId] }); }} />}
     </div>
   );
 }
 
-function CreateDialog({ companyId, cur, baseCurrency, actorUid, onClose, onSaved }: { companyId: string; cur: string; baseCurrency: string; actorUid: string; onClose: () => void; onSaved: () => void }) {
+function CreateDialog({ companyId, cur, baseCurrency, actorUid, existing, onClose, onSaved }: { companyId: string; cur: string; baseCurrency: string; actorUid: string; existing: DebitNote[]; onClose: () => void; onSaved: () => void }) {
   const tt = useTT();
+  const round2 = (n: number) => Math.round(n * 100) / 100;
   const { data: bills } = useQuery({ queryKey: ['purchaseBills', companyId], queryFn: () => listPurchaseBills(companyId) });
-  const debitable = useMemo(() => (bills ?? []).filter((b) => ['approved', 'partially_paid', 'overdue'].includes(b.status)), [bills]);
+  const debitedByBill = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const d of existing) m.set(d.billId, round2((m.get(d.billId) ?? 0) + (d.grandTotal || 0)));
+    return m;
+  }, [existing]);
+  const debitable = useMemo(() => (bills ?? []).filter((b) =>
+    ['approved', 'partially_paid', 'overdue'].includes(b.status) && round2(b.grandTotal - (debitedByBill.get(b.id) ?? 0)) > 0.0001
+  ), [bills, debitedByBill]);
   const [billId, setBillId] = useState('');
   const [reason, setReason] = useState('');
+  const [partial, setPartial] = useState(false);
+  const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
   const bill = debitable.find((b) => b.id === billId);
+  const remaining = bill ? round2(bill.grandTotal - (debitedByBill.get(bill.id) ?? 0)) : 0;
 
   async function save() {
     if (!bill) { toast.error(tt('Kreditor faktura seçin', 'Select a bill')); return; }
+    const amt = partial ? Number(amount) : null;
+    if (partial && (!(amt! > 0) || amt! > remaining + 0.0001)) { toast.error(tt('Məbləğ 0 ilə qalıq arasında olmalıdır', 'Amount must be between 0 and the remaining')); return; }
     setSaving(true);
     try {
-      await createDebitNote({ bill, reason: reason.trim() || null, baseCurrency, actorUid });
-      toast.success(tt('Debit-not yaradıldı', 'Debit note created'), tt('Əks-yazı mühasibata düşdü, faktura bağlandı', 'Reversing entry posted, bill closed'));
+      await createDebitNote({ bill, amount: amt, reason: reason.trim() || null, baseCurrency, actorUid });
+      toast.success(tt('Debit-not yaradıldı', 'Debit note created'), partial ? tt('Qismən qaytarma mühasibata düşdü', 'Partial reversal posted') : tt('Əks-yazı mühasibata düşdü, faktura bağlandı', 'Reversing entry posted, bill closed'));
       onSaved();
     } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setSaving(false); }
@@ -99,7 +113,7 @@ function CreateDialog({ companyId, cur, baseCurrency, actorUid, onClose, onSaved
         <div className="space-y-4">
           <div className="space-y-1">
             <Label>{tt('Kreditor faktura', 'Purchase bill')}</Label>
-            <Select value={billId} onValueChange={setBillId}>
+            <Select value={billId} onValueChange={(v) => { setBillId(v); const b = debitable.find((x) => x.id === v); setAmount(b ? String(round2(b.grandTotal - (debitedByBill.get(b.id) ?? 0))) : ''); }}>
               <SelectTrigger><SelectValue placeholder={tt('Təsdiqlənmiş faktura seçin', 'Select an approved bill')} /></SelectTrigger>
               <SelectContent>{debitable.map((b) => <SelectItem key={b.id} value={b.id}>{b.billNumber} · {b.vendorName} · {formatCurrency(b.grandTotal, b.currency || cur)}</SelectItem>)}</SelectContent>
             </Select>
@@ -107,9 +121,11 @@ function CreateDialog({ companyId, cur, baseCurrency, actorUid, onClose, onSaved
           </div>
           {bill && (
             <div className="rounded-lg bg-secondary/40 p-3 text-sm">
-              <div className="flex justify-between"><span className="text-muted-foreground">{tt('Qaytarılacaq məbləğ', 'Amount to reverse')}</span><span className="font-bold text-rose-600">−{formatCurrency(bill.grandTotal, cur)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">{tt('Qaytarıla bilən qalıq', 'Remaining')}</span><span className="font-bold text-rose-600">{formatCurrency(remaining, cur)}</span></div>
             </div>
           )}
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={partial} onChange={(e) => setPartial(e.target.checked)} /> {tt('Qismən qaytarma', 'Partial return')}</label>
+          {partial && <div className="space-y-1"><Label>{tt('Qaytarılacaq məbləğ', 'Amount to return')}</Label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} max={remaining} /></div>}
           <div className="space-y-1"><Label>{tt('Səbəb', 'Reason')}</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={tt('Qaytarma səbəbi', 'Return reason')} /></div>
         </div>
         <DialogFooter>
