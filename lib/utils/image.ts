@@ -69,6 +69,45 @@ export async function resizeCoverToDataUrl(
   return out;
 }
 
+/**
+ * Loqonu nisbətini qoruyaraq maks. çərçivəyə sığdırıb data URL-ə çevirir.
+ * Firebase Storage tələb etmir (data URL Firestore sənədində saxlanır) — beləcə
+ * Storage/CORS/App Check konfiqurasiyasından asılı olmadan işləyir.
+ * Şəffaflığı qorumaq üçün PNG; çox böyükdürsə JPEG-ə keçir.
+ */
+export async function resizeLogoToDataUrl(
+  file: File,
+  maxW = 400,
+  maxH = 160,
+): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('Yalnız şəkil faylı seçin');
+  const dataUrl = await readAsDataUrl(file);
+  const img = await loadImage(dataUrl);
+
+  const scale = Math.min(1, maxW / img.width, maxH / img.height);
+  const w = Math.max(1, Math.round(img.width * scale));
+  const h = Math.max(1, Math.round(img.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Şəkil emalı mümkün olmadı');
+  ctx.drawImage(img, 0, 0, w, h);
+
+  // Əvvəlcə PNG (şəffaflıq); böyükdürsə JPEG (ağ fon)
+  let out = canvas.toDataURL('image/png');
+  if (out.length > 500_000) {
+    const jpg = document.createElement('canvas');
+    jpg.width = w; jpg.height = h;
+    const jctx = jpg.getContext('2d');
+    if (jctx) { jctx.fillStyle = '#ffffff'; jctx.fillRect(0, 0, w, h); jctx.drawImage(img, 0, 0, w, h); out = jpg.toDataURL('image/jpeg', 0.85); }
+  }
+  if (out.length > 900_000) out = canvas.toDataURL('image/jpeg', 0.6);
+  if (out.length > 900_000) throw new Error('Şəkil çox böyükdür, daha kiçik şəkil seçin');
+  return out;
+}
+
 function readAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

@@ -10,7 +10,7 @@ import { loadCardStyle, saveCardStyle, type CardStyle } from '@/lib/dashboard/ca
 import { listDocs } from '@/lib/firebase/firestore';
 import { getActiveTaxConfig, saveTaxConfig } from '@/lib/firebase/hr';
 import { updateCompany } from '@/lib/firebase/companies';
-import { uploadFile } from '@/lib/firebase/storage';
+import { resizeLogoToDataUrl } from '@/lib/utils/image';
 import { logAudit } from '@/lib/firebase/audit';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,9 +66,14 @@ function CompanyTab() {
   async function onLogo(file?: File) {
     if (!file || !company) return;
     if (!/^image\//.test(file.type)) { toast.error(tt('Şəkil faylı seçin', 'Select an image file')); return; }
-    if (file.size > 2 * 1024 * 1024) { toast.error(tt('Maksimum 2 MB', 'Max 2 MB')); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error(tt('Maksimum 5 MB', 'Max 5 MB')); return; }
     setUploading(true);
-    try { const up = await uploadFile(company.id, 'logo', file); setLogoUrl(up.url); toast.success(tt('Logo yükləndi — yadda saxlayın', 'Logo uploaded — save to apply')); }
+    try {
+      // Klient tərəfdə kiçildib data URL kimi saxlayırıq (Firebase Storage tələb etmir)
+      const dataUrl = await resizeLogoToDataUrl(file);
+      setLogoUrl(dataUrl);
+      toast.success(tt('Logo hazırdır — yadda saxlayın', 'Logo ready — save to apply'));
+    }
     catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
     finally { setUploading(false); }
   }
