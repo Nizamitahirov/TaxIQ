@@ -845,7 +845,7 @@ export interface Budget {
 }
 
 // ── Satınalma Sifarişi (PO) — procure-to-pay (07) ──
-export type PurchaseOrderStatus = 'draft' | 'confirmed' | 'received' | 'billed' | 'cancelled';
+export type PurchaseOrderStatus = 'draft' | 'confirmed' | 'partially_received' | 'received' | 'billed' | 'cancelled';
 export interface PurchaseOrder {
   id: string;
   companyId: string;
@@ -860,6 +860,8 @@ export interface PurchaseOrder {
   grandTotal: number;
   currency: string;
   status: PurchaseOrderStatus;
+  /** sətir-üzrə qəbul edilmiş miqdar (lineItems ilə eyni sıra) — qismən qəbul üçün */
+  receivedQty?: number[];
   receivedAt?: string | null;
   billId?: string | null;         // fakturaya çevriləndə
   notes?: string | null;

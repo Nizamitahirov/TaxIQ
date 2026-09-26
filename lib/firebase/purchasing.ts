@@ -45,9 +45,52 @@ export async function createPurchaseOrder(input: {
 
 export async function setPOStatus(po: PurchaseOrder, status: PurchaseOrderStatus, actorUid: string): Promise<void> {
   const patch: Record<string, unknown> = { status };
-  if (status === 'received') patch.receivedAt = new Date().toISOString().slice(0, 10);
+  if (status === 'received') {
+    patch.receivedAt = new Date().toISOString().slice(0, 10);
+    patch.receivedQty = po.lineItems.map((l) => l.quantity); // tam qəbul
+  }
   await updateDocById('purchaseOrders', po.id, patch);
   await logAudit({ companyId: po.companyId, userId: actorUid, action: `PO_${status.toUpperCase()}`, entityType: 'purchaseOrder', entityId: po.id });
+}
+
+/** Sətir-üzrə qəbul edilmiş cəm miqdarlar (mövcud + yeni). */
+export function mergeReceived(po: PurchaseOrder, add: number[]): number[] {
+  const cur = po.receivedQty ?? po.lineItems.map(() => 0);
+  return po.lineItems.map((_, i) => round2((cur[i] ?? 0) + (add[i] ?? 0)));
+}
+
+/** PO tam qəbul olunub? (bütün sətirlər üçün qəbul ≥ sifariş) */
+export function isFullyReceived(po: PurchaseOrder, received: number[]): boolean {
+  return po.lineItems.every((l, i) => (received[i] ?? 0) >= l.quantity - 0.0001);
+}
+
+/**
+ * Qismən (və ya tam) mal qəbulu: hər sətir üçün əlavə qəbul miqdarı verilir.
+ * Bütün sətirlər tam qəbul olunduqda status 'received', əks halda 'partially_received'.
+ */
+export async function receivePOLines(po: PurchaseOrder, addQty: number[], actorUid: string): Promise<void> {
+  const received = mergeReceived(po, addQty);
+  // sifarişdən artıq qəbula icazə vermə
+  po.lineItems.forEach((l, i) => { if (received[i] > l.quantity + 0.0001) throw new Error(`Sətir ${i + 1}: sifarişdən çox qəbul edilə bilməz (maks ${l.quantity})`); });
+  const full = isFullyReceived(po, received);
+  await updateDocById('purchaseOrders', po.id, {
+    receivedQty: received,
+    status: full ? 'received' : 'partially_received',
+    ...(full ? { receivedAt: new Date().toISOString().slice(0, 10) } : {}),
+  });
+  await logAudit({ companyId: po.companyId, userId: actorUid, action: full ? 'PO_RECEIVED' : 'PO_PARTIALLY_RECEIVED', entityType: 'purchaseOrder', entityId: po.id, after: { received } });
+}
+
+/**
+ * 3-tərəfli uzlaşma göstəricisi: sifariş vs qəbul vs faktura miqdarları.
+ * `billedQty` verilməzsə fakturaya çevrilmiş PO-lar üçün sifariş = faktura sayılır.
+ */
+export function threeWayMatch(po: PurchaseOrder): { line: number; description: string; ordered: number; received: number; matched: boolean }[] {
+  const rec = po.receivedQty ?? po.lineItems.map(() => 0);
+  return po.lineItems.map((l, i) => ({
+    line: i + 1, description: l.description, ordered: l.quantity, received: round2(rec[i] ?? 0),
+    matched: Math.abs((rec[i] ?? 0) - l.quantity) < 0.0001,
+  }));
 }
 
 /** PO-nu kreditor fakturaya çevirir (3-tərəfli uzlaşmanın son mərhələsi) */

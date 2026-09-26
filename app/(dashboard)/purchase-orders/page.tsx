@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Trash2, Check, PackageCheck, FileText, X } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTT } from '@/lib/i18n/tt';
-import { listPurchaseOrders, createPurchaseOrder, setPOStatus, convertPOToBill, poTotals } from '@/lib/firebase/purchasing';
+import { listPurchaseOrders, createPurchaseOrder, setPOStatus, convertPOToBill, poTotals, receivePOLines, threeWayMatch } from '@/lib/firebase/purchasing';
 import { listVendors } from '@/lib/firebase/treasury';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -25,7 +25,7 @@ type Line = Pick<DocLineItem, 'description' | 'quantity' | 'unitPrice' | 'vatRat
 const emptyLine = (): Line => ({ description: '', quantity: 1, unitPrice: 0, vatRate: 18 });
 
 const STATUS_TINT: Record<string, 'secondary' | 'default' | 'success' | 'destructive'> = {
-  draft: 'secondary', confirmed: 'default', received: 'default', billed: 'success', cancelled: 'destructive',
+  draft: 'secondary', confirmed: 'default', partially_received: 'default', received: 'default', billed: 'success', cancelled: 'destructive',
 };
 
 export default function PurchaseOrdersPage() {
@@ -43,9 +43,10 @@ export default function PurchaseOrdersPage() {
   const refresh = () => qc.invalidateQueries({ queryKey: ['purchaseOrders', companyId] });
 
   const statusLabel = (s: string) => ({
-    draft: tt('Layihə', 'Draft'), confirmed: tt('Təsdiqlənib', 'Confirmed'), received: tt('Qəbul edilib', 'Received'),
-    billed: tt('Fakturalanıb', 'Billed'), cancelled: tt('Ləğv', 'Cancelled'),
+    draft: tt('Layihə', 'Draft'), confirmed: tt('Təsdiqlənib', 'Confirmed'), partially_received: tt('Qismən qəbul', 'Partially received'),
+    received: tt('Qəbul edilib', 'Received'), billed: tt('Fakturalanıb', 'Billed'), cancelled: tt('Ləğv', 'Cancelled'),
   }[s] ?? s);
+  const [receivePo, setReceivePo] = useState<PurchaseOrder | null>(null);
 
   async function act(po: PurchaseOrder, fn: () => Promise<unknown>, okAz: string, okEn: string) {
     setBusy(po.id);
@@ -82,11 +83,18 @@ export default function PurchaseOrdersPage() {
                       <TableCell>{po.vendorName ?? '—'}</TableCell>
                       <TableCell className="text-muted-foreground">{po.orderDate}</TableCell>
                       <TableCell className="text-right tnum font-semibold">{formatCurrency(po.grandTotal, po.currency || cur)}</TableCell>
-                      <TableCell><Badge variant={STATUS_TINT[po.status] ?? 'secondary'}>{statusLabel(po.status)}</Badge></TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_TINT[po.status] ?? 'secondary'}>{statusLabel(po.status)}</Badge>
+                        {(po.status === 'partially_received' || po.status === 'received') && po.receivedQty && (() => {
+                          const ord = po.lineItems.reduce((s, l) => s + l.quantity, 0);
+                          const rec = po.receivedQty.reduce((s, q) => s + (q || 0), 0);
+                          return <span className="mt-1 block text-[11px] text-muted-foreground">{tt('Qəbul', 'Received')}: {Math.round(rec * 100) / 100}/{Math.round(ord * 100) / 100}</span>;
+                        })()}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           {canEdit && po.status === 'draft' && <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" title={tt('Təsdiqlə', 'Confirm')} disabled={busy === po.id} onClick={() => act(po, () => setPOStatus(po, 'confirmed', profile?.uid ?? ''), 'Təsdiqləndi', 'Confirmed')}><Check className="h-4 w-4" /></Button>}
-                          {canEdit && po.status === 'confirmed' && <Button size="icon" variant="ghost" className="h-8 w-8 text-sky-600" title={tt('Mal qəbulu', 'Receive goods')} disabled={busy === po.id} onClick={() => act(po, () => setPOStatus(po, 'received', profile?.uid ?? ''), 'Qəbul edildi', 'Received')}><PackageCheck className="h-4 w-4" /></Button>}
+                          {canEdit && (po.status === 'confirmed' || po.status === 'partially_received') && <Button size="icon" variant="ghost" className="h-8 w-8 text-sky-600" title={tt('Mal qəbulu', 'Receive goods')} disabled={busy === po.id} onClick={() => setReceivePo(po)}><PackageCheck className="h-4 w-4" /></Button>}
                           {canEdit && po.status === 'received' && <Button size="icon" variant="ghost" className="h-8 w-8 text-emerald-600" title={tt('Fakturaya çevir', 'Convert to bill')} disabled={busy === po.id} onClick={() => act(po, () => convertPOToBill(po, 30, profile?.uid ?? ''), 'Faktura yaradıldı', 'Bill created')}><FileText className="h-4 w-4" /></Button>}
                           {po.status === 'billed' && <span className="text-xs text-emerald-600">✓ {tt('uzlaşdırıldı', 'matched')}</span>}
                           {canEdit && (po.status === 'draft' || po.status === 'confirmed') && <Button size="icon" variant="ghost" className="h-8 w-8 text-danger" title={tt('Ləğv et', 'Cancel')} disabled={busy === po.id} onClick={() => act(po, () => setPOStatus(po, 'cancelled', profile?.uid ?? ''), 'Ləğv edildi', 'Cancelled')}><X className="h-4 w-4" /></Button>}
@@ -101,7 +109,54 @@ export default function PurchaseOrdersPage() {
         )}
 
       {open && <CreateDialog companyId={companyId} cur={cur} actorUid={profile?.uid ?? ''} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); refresh(); }} />}
+      {receivePo && <ReceiveDialog po={receivePo} actorUid={profile?.uid ?? ''} onClose={() => setReceivePo(null)} onSaved={() => { setReceivePo(null); refresh(); }} />}
     </div>
+  );
+}
+
+function ReceiveDialog({ po, actorUid, onClose, onSaved }: { po: PurchaseOrder; actorUid: string; onClose: () => void; onSaved: () => void }) {
+  const tt = useTT();
+  const match = threeWayMatch(po);
+  const [add, setAdd] = useState<string[]>(po.lineItems.map((l, i) => String(Math.max(0, l.quantity - (match[i]?.received ?? 0)))));
+  const [saving, setSaving] = useState(false);
+  const setQ = (i: number, v: string) => setAdd((a) => a.map((x, j) => (j === i ? v : x)));
+
+  async function save() {
+    const nums = add.map((x) => Number(x) || 0);
+    if (nums.every((n) => n <= 0)) { toast.error(tt('Qəbul miqdarı daxil edin', 'Enter received quantity')); return; }
+    setSaving(true);
+    try {
+      await receivePOLines(po, nums, actorUid);
+      toast.success(tt('Mal qəbulu qeydə alındı', 'Goods receipt recorded'));
+      onSaved();
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader><DialogTitle>{tt('Mal qəbulu', 'Goods receipt')} — {po.poNumber}</DialogTitle></DialogHeader>
+        <div className="rounded-lg border border-border">
+          <div className="grid grid-cols-[1fr_70px_80px_80px] gap-2 border-b border-border bg-secondary/40 px-3 py-2 text-[11px] font-semibold text-muted-foreground">
+            <span>{tt('Təsvir', 'Description')}</span><span className="text-right">{tt('Sifariş', 'Ordered')}</span><span className="text-right">{tt('Öncə', 'Prev.')}</span><span className="text-right">{tt('İndi qəbul', 'Receive now')}</span>
+          </div>
+          {po.lineItems.map((l, i) => (
+            <div key={i} className="grid grid-cols-[1fr_70px_80px_80px] items-center gap-2 border-b border-border/50 px-3 py-1.5 last:border-0">
+              <span className="truncate text-sm">{l.description}</span>
+              <span className="text-right tnum text-sm">{l.quantity}</span>
+              <span className="text-right tnum text-sm text-muted-foreground">{match[i]?.received ?? 0}</span>
+              <Input className="h-8 text-right" type="number" value={add[i]} onChange={(e) => setQ(i, e.target.value)} />
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">{tt('Sifarişdən çox qəbul edilə bilməz. Bütün sətirlər tam qəbul olunduqda sifariş «Qəbul edilib» statusuna keçir və fakturaya çevrilə bilər.', 'Cannot receive more than ordered. When every line is fully received the order becomes “Received” and can be converted to a bill.')}</p>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>{tt('Ləğv', 'Cancel')}</Button>
+          <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PackageCheck className="h-4 w-4" />} {tt('Qəbul et', 'Receive')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
