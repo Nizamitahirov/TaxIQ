@@ -841,6 +841,10 @@ export interface Budget {
   year: number;
   /** P&L kateqoriya adı → planlaşdırılmış illik məbləğ */
   plan: Record<string, number>;
+  /** kateqoriya → 12 aylıq plan */
+  monthlyPlan?: Record<string, number[]>;
+  /** departamentId → kateqoriya → illik plan */
+  departmentPlan?: Record<string, Record<string, number>>;
   updatedAt?: TS;
 }
 

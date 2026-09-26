@@ -23,7 +23,27 @@ export async function getBudget(companyId: string, year: number): Promise<Budget
   return getDocById<Budget>('budgets', docId(companyId, year));
 }
 
-export async function saveBudget(companyId: string, year: number, plan: Record<string, number>, actorUid: string): Promise<void> {
-  await setDocById('budgets', docId(companyId, year), { companyId, year, plan } as Record<string, unknown>);
+export interface BudgetPlanInput {
+  plan: Record<string, number>;
+  /** kateqoriya → 12 aylıq plan (aylıq görünüş) */
+  monthlyPlan?: Record<string, number[]>;
+  /** departamentId → kateqoriya → illik plan */
+  departmentPlan?: Record<string, Record<string, number>>;
+}
+
+export async function saveBudget(companyId: string, year: number, input: BudgetPlanInput, actorUid: string): Promise<void> {
+  await setDocById('budgets', docId(companyId, year), {
+    companyId, year, plan: input.plan,
+    monthlyPlan: input.monthlyPlan ?? {},
+    departmentPlan: input.departmentPlan ?? {},
+  } as Record<string, unknown>);
   await logAudit({ companyId, userId: actorUid, action: 'BUDGET_SAVED', entityType: 'budget', entityId: docId(companyId, year), after: { year } });
+}
+
+/** İllik məbləği 12 aya bərabər bölür (son ay yuvarlaqlaşma fərqini alır). */
+export function evenSplit(annual: number): number[] {
+  const per = Math.round((annual / 12) * 100) / 100;
+  const arr = Array.from({ length: 12 }, () => per);
+  arr[11] = Math.round((annual - per * 11) * 100) / 100;
+  return arr;
 }
