@@ -39,18 +39,15 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/clients', labelKey: 'clients', icon: Users2, module: 'clients', area: 'settings' },
       { href: '/users', labelKey: 'users', icon: UserCog, module: 'users', area: 'settings' },
       { href: '/roles', labelKey: 'roles', icon: ShieldCheck, module: 'roles', area: 'settings' },
-      { href: '/sector-templates', labelKey: 'sectorTemplates', icon: Layers, module: 'companies', area: 'settings', superAdminOnly: true },
       { href: '/audit', labelKey: 'audit', icon: ScrollText, module: 'audit', area: 'settings' },
     ],
   },
   {
-    // Excel: "Sənədlər" vərəqi — Quotation, PO, Sales Order, GRN, Despatch,
-    // Invoice, Credit/Debit Note, Müqavilələr, Remittance, CMR
+    // Excel: "Sənədlər" vərəqi — GRN/Despatch/Invoice/Credit-Debit Note,
+    // Müqavilələr, Remittance, CMR (Alış/Satış Əməliyyatlar-a köçürülüb)
     labelKey: 'documents',
     items: [
       { href: '/crm', labelKey: 'crm', icon: Target, module: 'crm', area: 'tax' },
-      { href: '/sales', labelKey: 'sales', icon: Store, module: 'sales', area: 'tax' },
-      { href: '/purchase-orders', labelKey: 'purchaseOrders', icon: ClipboardList, module: 'cashbank', area: 'tax' },
       { href: '/documents', labelKey: 'documents', icon: FileText, module: 'sales', area: 'tax' },
       { href: '/credit-notes', labelKey: 'creditNotes', icon: Undo2, module: 'sales', area: 'tax' },
       { href: '/debit-notes', labelKey: 'debitNotes', icon: FileMinus, module: 'cashbank', area: 'tax' },
@@ -58,12 +55,15 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    // Excel: "Mühasibat uçotu — Əməliyyatlar" — Bank, Kassa, Anbar, İstehsal,
-    // Əsas vəsaitlər, Qeyri-Maddi aktivlər (+ baş kitab)
+    // Excel: "Mühasibat uçotu" — Sahələr (sektorlar) + Əməliyyatlar
+    // (Bank, Kassa, Alış, Satış, Anbar, İstehsal, Əsas vəsaitlər, Qeyri-Maddi aktivlər)
     labelKey: 'accounting',
     items: [
       { href: '/accounting', labelKey: 'accounting', icon: BookOpen, module: 'accounting', area: 'accounting' },
+      { href: '/sector-templates', labelKey: 'sectorTemplates', icon: Layers, module: 'companies', area: 'accounting', superAdminOnly: true },
       { href: '/cashbank', labelKey: 'cashbank', icon: Wallet, module: 'cashbank', area: 'tax' },
+      { href: '/purchase-orders', labelKey: 'purchaseOrders', icon: ClipboardList, module: 'cashbank', area: 'tax' },
+      { href: '/sales', labelKey: 'sales', icon: Store, module: 'sales', area: 'tax' },
       { href: '/warehouse', labelKey: 'warehouse', icon: Warehouse, module: 'warehouse', area: 'tax' },
       { href: '/production', labelKey: 'production', icon: Factory, module: 'warehouse', area: 'tax' },
       { href: '/depreciation', labelKey: 'depreciation', icon: FileSpreadsheet, module: 'accounting', area: 'accounting' },
