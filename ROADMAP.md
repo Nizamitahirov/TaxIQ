@@ -40,7 +40,11 @@ infrastruktur (Cloud Functions / xarici API) tələb edənlər ayrıca qeyd olun
 - [x] **Performans** (`/performance`): çəkili meyarlar üzrə qiymətləndirmə (1–5).
 - [x] **Pul vəsaiti proqnozu** (`/cashflow`): 6 aylıq AR daxilolma / AP ödəniş proqnozu, açılış qalığı, kumulyativ qalıq + qrafik
 - [x] **Konsolidə (qrup) hesabatlıq** (`/consolidated`): çoxşirkətli IFRS P&L/Balans birləşdirmə + Excel. ⏳ *Qalan:* intercompany eliminasiya.
-- [ ] Avtomatlaşdırılmış testlər + xəta izləmə (Sentry) + backup
+- [x] **Avtomatlaşdırılmış testlər** (vitest, 24 test): vergi hesablamaları, m.114 kateqoriyaları, büdcə, performans, BOM, PO/3-way, lot FEFO, amortizasiya. ⏳ *Qalan:* Sentry + backup (infra).
+- [x] **Qismən kredit/debit-not**: sənədi nisbətdə (qismən) qaytarma, qalıq izlənməsi ilə.
+- [x] **PO qismən qəbul + 3-tərəfli uzlaşma**: sətir-üzrə qəbul, «qismən qəbul» statusu, sifariş↔qəbul göstəricisi.
+- [x] **Büdcə — aylıq plan + departament üzrə bölgü**: 12 aylıq plan qrid + aylıq plan-fakt qrafiki, departament üzrə mənfəət plan-fakt.
+- [x] **Təşkilati struktur** (`/org`): şöbə iyerarxiyası + işçilər.
 
 ## Qalan çatışmayanlar (yalnız infrastruktur tələb edir — bu mühitdə deploy olunmur)
 - **Cloud Functions scheduler** (təkrarlanan faktura, aylıq amortizasiya, overdue, FX revalvasiya avtomatik) — Blaze planı.
