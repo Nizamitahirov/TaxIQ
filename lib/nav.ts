@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Building2, UserCog, ShieldCheck, ScrollText,
   Warehouse, Store, Wallet, BookOpen, BarChart3, Users2, Workflow,
   FileSpreadsheet, Settings, Layers, HardHat, ListChecks, Target, Landmark, ClipboardList, Undo2,
-  FileSignature, FileText, FileMinus, Factory, Sparkles, FolderArchive, GitMerge, UserPlus, Gauge, type LucideIcon,
+  FileSignature, FileText, FileMinus, Factory, Sparkles, FolderArchive, GitMerge, UserPlus, Gauge, Network, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
@@ -78,6 +78,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/payroll', labelKey: 'payroll', icon: Wallet, module: 'payroll', area: 'hr' },
       { href: '/recruitment', labelKey: 'recruitment', icon: UserPlus, module: 'hr', area: 'hr' },
       { href: '/performance', labelKey: 'performance', icon: Gauge, module: 'hr', area: 'hr' },
+      { href: '/org', labelKey: 'orgChart', icon: Network, module: 'hr', area: 'hr' },
     ],
   },
   {
