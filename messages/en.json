@@ -98,7 +98,8 @@
     "sectorTemplates": "Sector Templates",
     "hse": "HSE",
     "tasks": "Tasks",
-    "activityCodes": "Activity codes"
+    "activityCodes": "Activity codes",
+    "automation": "Periodic operations"
   },
   "dashboard": {
     "greetingMorning": "Good morning",

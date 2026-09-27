@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Landmark, Receipt, Users2, TrendingUp, Download, Loader2 } from 'lucide-react';
+import { Landmark, Receipt, Users2, TrendingUp, Download, Loader2, FileCode } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTT } from '@/lib/i18n/tt';
 import { listInvoices } from '@/lib/firebase/sales';
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { vatDeclarationXml, withholdingXml, profitTaxXml, downloadXml, type DeclMeta } from '@/lib/tax/xml';
 import { exportToExcel } from '@/lib/utils/export';
 import { formatCurrency } from '@/lib/utils/format';
 
@@ -56,6 +57,10 @@ export default function TaxPage() {
     return line?.current ?? 0;
   }, [pnl]);
   const profitTax = useMemo(() => computeProfitTax(netProfit), [netProfit]);
+  const meta: DeclMeta = useMemo(() => ({
+    companyName: active?.company.name ?? '', taxId: active?.company.taxId ?? '',
+    periodLabel, year, month: mode === 'month' ? month : undefined, quarter: mode === 'quarter' ? quarter : undefined,
+  }), [active, periodLabel, year, mode, month, quarter]);
 
   if (!companyId) return <div><PageHeader title={tt('Vergi bəyannamələri', 'Tax returns')} /><EmptyState title={tt('Aktiv şirkət seçin', 'Select an active company')} /></div>;
   if (!canView) return <div><PageHeader title={tt('Vergi bəyannamələri', 'Tax returns')} /><EmptyState title={tt('İcazə yoxdur', 'No permission')} /></div>;
@@ -105,6 +110,7 @@ export default function TaxPage() {
 
       {/* ƏDV detalları */}
       <DeclCard title={tt(`ƏDV bəyannaməsi — ${periodLabel}`, `VAT return — ${periodLabel}`)}
+        onXml={() => downloadXml(`EDV-${meta.year}${meta.month ? '-' + meta.month : meta.quarter ? '-Q' + meta.quarter : ''}`, vatDeclarationXml(vat, meta))}
         onExport={() => exportToExcel('EDV-beyannamesi', [
           { header: tt('Növ', 'Type'), value: 'kind' }, { header: tt('Tarix', 'Date'), value: 'date' }, { header: tt('Sənəd', 'Doc'), value: 'number' },
           { header: tt('Tərəf', 'Party'), value: 'party' }, { header: tt('Baza', 'Base'), value: 'base' }, { header: tt('ƏDV', 'VAT'), value: 'vat' },
@@ -124,6 +130,7 @@ export default function TaxPage() {
 
       {/* Ödəmə mənbəyində vergi detalları */}
       <DeclCard title={tt(`Ödəmə mənbəyində vergi — ${periodLabel}`, `Withholding — ${periodLabel}`)}
+        onXml={() => downloadXml(`Odeme-menbeyi-${meta.year}${meta.month ? '-' + meta.month : meta.quarter ? '-Q' + meta.quarter : ''}`, withholdingXml(wh, meta))}
         onExport={() => exportToExcel('Odeme-menbeyinde-vergi', [
           { header: tt('İşçi', 'Employee'), value: 'employee' }, { header: 'Gross', value: 'gross' },
           { header: tt('Gəlir vergisi', 'Income tax'), value: 'incomeTax' }, { header: tt('Pensiya', 'Pension'), value: 'social' },
@@ -159,7 +166,9 @@ export default function TaxPage() {
       </DeclCard>
 
       {/* Mənfəət vergisi */}
-      <DeclCard title={tt(`Mənfəət vergisi — ${year}`, `Profit tax — ${year}`)} onExport={() => exportToExcel('Menfeet-vergisi', [
+      <DeclCard title={tt(`Mənfəət vergisi — ${year}`, `Profit tax — ${year}`)}
+        onXml={() => downloadXml(`Menfeet-vergisi-${year}`, profitTaxXml(profitTax, meta))}
+        onExport={() => exportToExcel('Menfeet-vergisi', [
         { header: tt('Göstərici', 'Item'), value: 'k' }, { header: tt('Məbləğ', 'Amount'), value: 'v' },
       ], [
         { k: tt('Vergiyə cəlb olunan mənfəət', 'Taxable profit'), v: profitTax.profit },
@@ -197,14 +206,17 @@ function SummaryCard({ icon: Icon, tint, title, value, sub, note }: { icon: type
   );
 }
 
-function DeclCard({ title, onExport, children }: { title: string; onExport: () => void; children: React.ReactNode }) {
+function DeclCard({ title, onExport, onXml, children }: { title: string; onExport: () => void; onXml?: () => void; children: React.ReactNode }) {
   const tt = useTT();
   return (
     <Card className="mb-4 rounded-card">
       <CardContent className="p-5">
         <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2"><Landmark className="h-4 w-4 text-primary" /><h3 className="font-semibold">{title}</h3></div>
-          <Button size="sm" variant="outline" onClick={onExport}><Download className="h-4 w-4" /> {tt('Excel', 'Excel')}</Button>
+          <div className="flex gap-2">
+            {onXml && <Button size="sm" variant="outline" onClick={onXml}><FileCode className="h-4 w-4" /> XML</Button>}
+            <Button size="sm" variant="outline" onClick={onExport}><Download className="h-4 w-4" /> {tt('Excel', 'Excel')}</Button>
+          </div>
         </div>
         {children}
       </CardContent>
