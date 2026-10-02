@@ -33,11 +33,16 @@ export const updateEmployee = (id: string, d: Partial<Employee>) => updateDocByI
 // ── Məzuniyyət növləri (Əmək Məcəlləsi minimumları, 10 §4.1) ──
 const L = (az: string, en: string): LocalizedText => ({ az, en });
 export const DEFAULT_LEAVE_TYPES: Omit<LeaveType, 'id' | 'companyId'>[] = [
-  { code: 'annual', name: L('Əsas məzuniyyət', 'Annual leave'), paid: true, defaultDays: 21 },
-  { code: 'additional', name: L('Əlavə məzuniyyət', 'Additional leave'), paid: true, defaultDays: 0 },
+  { code: 'annual', name: L('Əsas məzuniyyət (m.114)', 'Annual leave'), paid: true, defaultDays: 21 },
+  { code: 'additional', name: L('Əlavə məzuniyyət (m.115–119)', 'Additional leave'), paid: true, defaultDays: 0 },
   { code: 'sick', name: L('Xəstəlik vərəqəsi', 'Sick leave'), paid: true, defaultDays: 0 },
-  { code: 'maternity', name: L('Hamiləlik və doğuş', 'Maternity'), paid: true, defaultDays: 126 },
-  { code: 'unpaid', name: L('Ödənişsiz məzuniyyət', 'Unpaid leave'), paid: false, defaultDays: 0 },
+  { code: 'maternity', name: L('Hamiləlik və doğuş (m.125)', 'Maternity'), paid: true, defaultDays: 126 },
+  { code: 'paternity', name: L('Ataya doğuşla əlaqədar (m.125.4)', 'Paternity'), paid: true, defaultDays: 14 },
+  { code: 'childcare', name: L('Uşağa qulluq — 3 yaşadək (m.127)', 'Childcare up to 3 years'), paid: true, defaultDays: 0 },
+  { code: 'adoption', name: L('Övladlığa götürmə (m.126)', 'Adoption'), paid: true, defaultDays: 56 },
+  { code: 'education', name: L('Ödənişli təhsil məzuniyyəti (m.123–124)', 'Paid study leave'), paid: true, defaultDays: 30 },
+  { code: 'creative', name: L('Yaradıcılıq məzuniyyəti (m.122)', 'Creative leave'), paid: true, defaultDays: 0 },
+  { code: 'unpaid', name: L('Ödənişsiz məzuniyyət (m.128–129)', 'Unpaid leave'), paid: false, defaultDays: 0 },
   { code: 'other', name: L('Digər', 'Other'), paid: false, defaultDays: 0 },
 ];
 

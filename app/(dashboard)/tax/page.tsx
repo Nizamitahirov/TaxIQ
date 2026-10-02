@@ -24,6 +24,7 @@ import { exportToExcel } from '@/lib/utils/export';
 import { formatCurrency } from '@/lib/utils/format';
 import { TaxCalculators } from './calculators';
 import { TaxCalendar } from './tax-calendar';
+import { LiabilitySummary, type LiabilityRow } from './liability-summary';
 
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
 
@@ -59,6 +60,12 @@ export default function TaxPage() {
     return line?.current ?? 0;
   }, [pnl]);
   const profitTax = useMemo(() => computeProfitTax(netProfit), [netProfit]);
+  const liabilityRows: LiabilityRow[] = useMemo(() => [
+    { name: { az: 'ƏDV', en: 'VAT' }, base: vat.outputVat / VAT_RATE, rate: `${VAT_RATE * 100}%`, amount: vat.payable, reference: 'm.173',
+      note: vat.payable < 0 ? { az: 'əvəzləşdirmə', en: 'creditable' } : undefined },
+    { name: { az: 'Ödəmə mənbəyində gəlir vergisi', en: 'Payroll withholding' }, base: wh.gross, rate: '14/25%', amount: wh.incomeTax, reference: 'm.101' },
+    { name: { az: 'Mənfəət vergisi (illik)', en: 'Profit tax (annual)' }, base: profitTax.profit, rate: `${PROFIT_TAX_RATE * 100}%`, amount: profitTax.tax, reference: 'm.105' },
+  ], [vat, wh, profitTax]);
   const rolling12mTurnover = useMemo(() => {
     const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 12);
     const cutoffStr = cutoff.toISOString().slice(0, 10);
@@ -195,6 +202,10 @@ export default function TaxPage() {
       <p className="mt-4 text-xs text-muted-foreground">
         {tt('Bu bəyannamələr sistemdəki fakturalar, alışlar və əmək haqqı əsasında hesablanır. e-taxes.gov.az formatına ixrac və birbaşa göndərmə növbəti mərhələdədir.', 'These returns are computed from the system’s invoices, purchases and payroll. e-taxes.gov.az export and direct submission are on the roadmap.')}
       </p>
+
+      <div className="mt-8">
+        <LiabilitySummary rows={liabilityRows} cur={cur} periodLabel={periodLabel} />
+      </div>
 
       <div className="mt-8">
         <TaxCalendar defaultVatPayer={rolling12mTurnover > 200000} />

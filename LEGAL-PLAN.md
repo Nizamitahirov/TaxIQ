@@ -38,7 +38,7 @@ Status: ✅ var · ⚠️ qismən var · ❌ yoxdur (qurulacaq)
 | A13 | **e-Qaimə-faktura (STS e-qaimə)** | ⚠️ | Tam axın: e-qaimə nömrəsi, status, XML/formatı (göndəriş infra tələb edir) |
 | A14 | **Vergi təqvimi — bəyannamə/ödəniş müddətləri (maddə 149, 151 və s.)** | ✅ | `upcomingDeadlines` + Vergi səhifəsində təqvim kartı (profil əsaslı, m.149/174/201/209/221) |
 | A15 | **Cərimə və faizlər (maddə 57-59)** | ✅ | `latePaymentInterest` 0.1%/gün, 365 gün hədd (m.59.1) + kalkulyator |
-| A16 | **Vergi öhdəlikləri icmalı (vahid hesab)** | ❌ | Şirkət üzrə bütün vergilər üzrə hesablanmış/ödənilmiş icmal paneli |
+| A16 | **Vergi öhdəlikləri icmalı (vahid hesab)** | ✅ | Vergi səhifəsində «Vergi öhdəlikləri icmalı» paneli (ƏDV + ödəmə mənbəyi + mənfəət, cəmi) |
 
 ---
 
@@ -49,7 +49,7 @@ Status: ✅ var · ⚠️ qismən var · ❌ yoxdur (qurulacaq)
 | B1 | **İkili yazılış + Hesablar Planı** | ✅ | — |
 | B2 | **Maliyyə hesabatları: Balans, M-Z, Pul vəsaiti, Kapital, Qeydlər** | ✅ | — (IFRS engine) |
 | B3 | **Subyekt kateqoriyası → uçot standartı seçimi (ictimai/iri/orta/kiçik/mikro)** | ❌ | Kateqoriya təyini + müvafiq hesabat dəsti (tam IFRS / KOM-IFRS / sadələşdirilmiş) |
-| B4 | **İlkin sənədlərin məcburi rekvizitləri (maddə 9)** | ⚠️ | Rekvizit yoxlaması (ad, tarix, №, tərəflər, məbləğ, imza) bütün sənədlərdə |
+| B4 | **İlkin sənədlərin məcburi rekvizitləri (maddə 9)** | ✅ | `checkRequisites` validatoru (9 məcburi rekvizit) + `invoiceToRequisites` |
 | B5 | **İnventarizasiya (maddə)** | ✅ | — (stocktake) |
 | B6 | **Əsas vəsait + amortizasiya (m.114) + qeyri-maddi aktivlər** | ✅ | — |
 | B7 | **Maliyyə hesabatlarının təqdim müddəti (illik, dövlət orqanına)** | ⚠️ | Vergi təqvimi illik mənfəət/əmlak son tarixini əhatə edir; ayrıca FS təqdim tarixi qalır |
@@ -69,7 +69,7 @@ Status: ✅ var · ⚠️ qismən var · ❌ yoxdur (qurulacaq)
 | C3 | **Gəlir vergisi + DSMF (sosial 3%/22%, işsizlik 0.5%/0.5%, tibbi 2%/0.5%)** | ✅ | — (konfiqurasiya) |
 | C4 | **Əsas məzuniyyət — 21 gün (bəzi hallarda 30)** | ✅ | — |
 | C5 | **Əlavə məzuniyyət — iş stajına görə (5/10/15 il → +2/4/6 gün, maddə 116)** | ✅ | `seniorityLeaveDays` + Hesablamalar tab (staj avtomatik) |
-| C6 | **Sosial məzuniyyətlər — analıq (126 g), uşağa qulluq (3 yaş), tədris** | ⚠️ | Analıq + uşaqlı valideyn (m.117) var; uşağa qulluq (3 yaş) + tədris növləri qalır |
+| C6 | **Sosial məzuniyyətlər — analıq (126 g), uşağa qulluq (3 yaş), tədris** | ✅ | Tam dəst: analıq, atalıq (14g), uşağa qulluq (3 yaş), övladlığa götürmə, təhsil, yaradıcılıq, ödənişsiz |
 | C7 | **Məzuniyyət pulu — orta əmək haqqı (son 12 ay) × günlər** | ✅ | `calcEmployeeLeavePay` (m.140.3 ÷30.4) + Hesablamalar tab |
 | C8 | **İş vaxtı — 40 saat/həftə, gündəlik norma, nahar** | ⚠️ | `AZ_LABOUR_RULES` normaları var; tabellə avtomatik yoxlama qalır |
 | C9 | **İş vaxtından artıq (2x), gecə işi (+ əlavə), bayram/istirahət işi (2x)** | ✅ | `overtimePay`/`holidayWorkPay`/`nightPremium` (m.164–166) |
