@@ -36,7 +36,7 @@ Status: ✅ var · ⚠️ qismən var · ❌ yoxdur (qurulacaq)
 | A11 | **Mikro/kiçik sahibkar güzəştləri (maddə 102.1.30, 106 — mikro 75% azadolma)** | ✅ | `microExemptionEligible`/`applyMicroExemption` (≥3 işçi, borcsuz → 75%) |
 | A12 | **ƏDV qeydiyyatı həddi (200.000 AZN) — məcburi/könüllü** | ✅ | `thresholdStatus` + Vergi səhifəsində 12 aylıq dövriyyə monitoru |
 | A13 | **e-Qaimə-faktura (STS e-qaimə)** | ⚠️ | Tam axın: e-qaimə nömrəsi, status, XML/formatı (göndəriş infra tələb edir) |
-| A14 | **Vergi təqvimi — bəyannamə/ödəniş müddətləri (maddə 149, 151 və s.)** | ❌ | Vergi təqvimi + son tarix xatırlatmaları (hər vergi növü üzrə) |
+| A14 | **Vergi təqvimi — bəyannamə/ödəniş müddətləri (maddə 149, 151 və s.)** | ✅ | `upcomingDeadlines` + Vergi səhifəsində təqvim kartı (profil əsaslı, m.149/174/201/209/221) |
 | A15 | **Cərimə və faizlər (maddə 57-59)** | ✅ | `latePaymentInterest` 0.1%/gün, 365 gün hədd (m.59.1) + kalkulyator |
 | A16 | **Vergi öhdəlikləri icmalı (vahid hesab)** | ❌ | Şirkət üzrə bütün vergilər üzrə hesablanmış/ödənilmiş icmal paneli |
 
@@ -52,7 +52,7 @@ Status: ✅ var · ⚠️ qismən var · ❌ yoxdur (qurulacaq)
 | B4 | **İlkin sənədlərin məcburi rekvizitləri (maddə 9)** | ⚠️ | Rekvizit yoxlaması (ad, tarix, №, tərəflər, məbləğ, imza) bütün sənədlərdə |
 | B5 | **İnventarizasiya (maddə)** | ✅ | — (stocktake) |
 | B6 | **Əsas vəsait + amortizasiya (m.114) + qeyri-maddi aktivlər** | ✅ | — |
-| B7 | **Maliyyə hesabatlarının təqdim müddəti (illik, dövlət orqanına)** | ❌ | Hesabat təqvimi + son tarix xatırlatması |
+| B7 | **Maliyyə hesabatlarının təqdim müddəti (illik, dövlət orqanına)** | ⚠️ | Vergi təqvimi illik mənfəət/əmlak son tarixini əhatə edir; ayrıca FS təqdim tarixi qalır |
 | B8 | **Sənədlərin saxlanma müddəti (5 il)** | ⚠️ | DMS-də saxlama siyasəti + arxiv/müddət etiketi |
 | B9 | **Hesabatlara qeydlər (notes to FS) — uçot siyasəti açıqlaması** | ⚠️ | Qeydlər bölməsinin genişləndirilməsi (uçot siyasəti, bölgülər) |
 | B10 | **Audit tələbi (ictimai əhəmiyyətli subyektlər)** | ❌ | Audit bayrağı + hesabatda audit statusu |

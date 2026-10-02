@@ -23,6 +23,7 @@ import { vatDeclarationXml, withholdingXml, profitTaxXml, downloadXml, type Decl
 import { exportToExcel } from '@/lib/utils/export';
 import { formatCurrency } from '@/lib/utils/format';
 import { TaxCalculators } from './calculators';
+import { TaxCalendar } from './tax-calendar';
 
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
 
@@ -194,6 +195,10 @@ export default function TaxPage() {
       <p className="mt-4 text-xs text-muted-foreground">
         {tt('Bu bəyannamələr sistemdəki fakturalar, alışlar və əmək haqqı əsasında hesablanır. e-taxes.gov.az formatına ixrac və birbaşa göndərmə növbəti mərhələdədir.', 'These returns are computed from the system’s invoices, purchases and payroll. e-taxes.gov.az export and direct submission are on the roadmap.')}
       </p>
+
+      <div className="mt-8">
+        <TaxCalendar defaultVatPayer={rolling12mTurnover > 200000} />
+      </div>
 
       <TaxCalculators cur={cur} rolling12mTurnover={rolling12mTurnover} />
     </div>
