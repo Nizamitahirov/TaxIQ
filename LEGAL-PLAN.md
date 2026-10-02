@@ -26,18 +26,18 @@ Status: ✅ var · ⚠️ qismən var · ❌ yoxdur (qurulacaq)
 | A1 | **ƏDV (18%)** — hesablama, bəyannamə, sətir-registr | ✅ | — (XML ixrac da əlavə olundu) |
 | A2 | **ƏDV əvəzləşdirmə + ƏDV depozit subhesabı (maddə 175, 177-179)** | ⚠️ | 226/521 ƏDV depozit subledger, əvəzləşdirilən/əvəzləşdirilməyən ayrımı |
 | A3 | **Mənfəət vergisi (20%)** — illik | ✅ | — |
-| A4 | **Mənfəət vergisi — rüblük cari ödənişlər (avans)** | ❌ | Rüblük avans hesablama (əvvəlki il / cari dövriyyə metodu) + cədvəl |
+| A4 | **Mənfəət vergisi — rüblük cari ödənişlər (avans)** | ✅ | `profitAdvancePriorYear`/`profitAdvanceCurrentTurnover` (m.151) |
 | A5 | **Gəlir vergisi (muzdlu iş, 14%/25%, 2500 həddi)** | ✅ | — (payroll-da) |
-| A6 | **Sadələşdirilmiş vergi (dövriyyədən 2%, maddə 218-220)** | ❌ | Sadələşdirilmiş vergi rejimi: dövriyyə×2%, bəyannamə, rejim seçimi |
-| A7 | **Ödəmə mənbəyində vergi — dividend/faiz/icarə/qeyri-rezident (maddə 123-125)** | ⚠️ | Muzdlu işdən başqa withholding (dividend 10%, icarə 14%, qeyri-rezident) |
-| A8 | **Əmlak vergisi (hüquqi şəxs, 1%, maddə 197-200)** | ❌ | Əsas vəsaitlərin orta illik dəyərindən əmlak vergisi + bəyannamə |
-| A9 | **Torpaq vergisi (maddə 206-210)** | ❌ | Torpaq sahəsi uçotu + vergi hesablama |
+| A6 | **Sadələşdirilmiş vergi (dövriyyədən 2%, maddə 218-220)** | ✅ | `simplifiedTax` 2%/6%/8% (m.220.1, 220.1-1) + kalkulyator |
+| A7 | **Ödəmə mənbəyində vergi — dividend/faiz/icarə/qeyri-rezident (maddə 123-125)** | ✅ | `withholdingTax` — dividend **5%** (m.122.1), faiz 10%, icarə 14%, kirayə 10%, royalti 14%, lizinq 4% |
+| A8 | **Əmlak vergisi (hüquqi şəxs, 1%, maddə 197-200)** | ✅ | `propertyTax` orta illik dəyər × 1% + rüblük avans 20% (m.199/201) |
+| A9 | **Torpaq vergisi (maddə 206-210)** | ⚠️ | `landTax` (sahə × zona tarifi) mühərrikdə; zona tarif cədvəli qalır |
 | A10 | **Aksizlər (maddə 182-192)** | ❌ | Aksizli mallar üçün aksiz hesablama (sahəyə bağlı, opsional) |
-| A11 | **Mikro/kiçik sahibkar güzəştləri (maddə 102.1.30, 106 — mikro 75% azadolma)** | ❌ | Subyekt statusu → mənfəət/gəlir vergisi güzəşti tətbiqi |
-| A12 | **ƏDV qeydiyyatı həddi (200.000 AZN) — məcburi/könüllü** | ❌ | 12 aylıq dövriyyə izləmə + qeydiyyat həddi xəbərdarlığı |
+| A11 | **Mikro/kiçik sahibkar güzəştləri (maddə 102.1.30, 106 — mikro 75% azadolma)** | ✅ | `microExemptionEligible`/`applyMicroExemption` (≥3 işçi, borcsuz → 75%) |
+| A12 | **ƏDV qeydiyyatı həddi (200.000 AZN) — məcburi/könüllü** | ✅ | `thresholdStatus` + Vergi səhifəsində 12 aylıq dövriyyə monitoru |
 | A13 | **e-Qaimə-faktura (STS e-qaimə)** | ⚠️ | Tam axın: e-qaimə nömrəsi, status, XML/formatı (göndəriş infra tələb edir) |
 | A14 | **Vergi təqvimi — bəyannamə/ödəniş müddətləri (maddə 149, 151 və s.)** | ❌ | Vergi təqvimi + son tarix xatırlatmaları (hər vergi növü üzrə) |
-| A15 | **Cərimə və faizlər (maddə 57-59)** | ❌ | Gecikmə faizi (0.1%/gün) və cərimə hesablayıcısı |
+| A15 | **Cərimə və faizlər (maddə 57-59)** | ✅ | `latePaymentInterest` 0.1%/gün, 365 gün hədd (m.59.1) + kalkulyator |
 | A16 | **Vergi öhdəlikləri icmalı (vahid hesab)** | ❌ | Şirkət üzrə bütün vergilər üzrə hesablanmış/ödənilmiş icmal paneli |
 
 ---

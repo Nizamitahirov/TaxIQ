@@ -18,12 +18,14 @@ export interface AssetCategory {
 }
 
 export const AZ_ASSET_CATEGORIES: AssetCategory[] = [
-  { key: 'buildings', name: L('Binalar, tikililər və qurğular', 'Buildings & constructions'), taxRate: 7, defaultMethod: 'reducing_balance' },
-  { key: 'machinery', name: L('Maşınlar, avadanlıq və hesablama texnikası', 'Machinery, equipment & computers'), taxRate: 25, defaultMethod: 'reducing_balance' },
-  { key: 'vehicles', name: L('Nəqliyyat vasitələri', 'Vehicles'), taxRate: 25, defaultMethod: 'reducing_balance' },
-  { key: 'working_animals', name: L('İş heyvanları', 'Working animals'), taxRate: 20, defaultMethod: 'reducing_balance' },
-  { key: 'geological', name: L('Geoloji-kəşfiyyat və hasilata hazırlıq xərcləri', 'Geological exploration & extraction prep.'), taxRate: 25, defaultMethod: 'reducing_balance' },
-  { key: 'other', name: L('Digər əsas vəsaitlər', 'Other fixed assets'), taxRate: 20, defaultMethod: 'reducing_balance' },
+  { key: 'buildings', name: L('Binalar, tikililər və qurğular (m.114.3.1)', 'Buildings & constructions'), taxRate: 7, defaultMethod: 'reducing_balance' },
+  { key: 'machinery', name: L('Maşınlar və avadanlıq (m.114.3.2)', 'Machinery & equipment'), taxRate: 20, defaultMethod: 'reducing_balance' },
+  { key: 'computers', name: L('Yüksək texnologiyalı hesablama texnikası (m.114.3.2-1)', 'High-tech computing equipment'), taxRate: 25, defaultMethod: 'reducing_balance' },
+  { key: 'vehicles', name: L('Nəqliyyat vasitələri (m.114.3.3)', 'Vehicles'), taxRate: 25, defaultMethod: 'reducing_balance' },
+  { key: 'working_animals', name: L('İş heyvanları (m.114.3.4)', 'Working animals'), taxRate: 20, defaultMethod: 'reducing_balance' },
+  { key: 'geological', name: L('Geoloji-kəşfiyyat və hasilata hazırlıq xərcləri (m.114.3.5)', 'Geological exploration & extraction prep.'), taxRate: 25, defaultMethod: 'reducing_balance' },
+  { key: 'intangible', name: L('Qeyri-maddi aktivlər (m.114.3.6)', 'Intangible assets'), taxRate: 10, defaultMethod: 'straight_line' },
+  { key: 'other', name: L('Digər əsas vəsaitlər (m.114.3.7)', 'Other fixed assets'), taxRate: 20, defaultMethod: 'reducing_balance' },
 ];
 
 export const ASSET_CATEGORY_MAP: Record<string, AssetCategory> = Object.fromEntries(

@@ -11,9 +11,11 @@ import type { InventoryLot, PurchaseOrder, FixedAsset } from '@/types';
 describe('asset categories (Tax Code Art.114)', () => {
   it('exposes the statutory rates', () => {
     expect(ASSET_CATEGORY_MAP['buildings'].taxRate).toBe(7);
-    expect(ASSET_CATEGORY_MAP['machinery'].taxRate).toBe(25);
+    expect(ASSET_CATEGORY_MAP['machinery'].taxRate).toBe(20); // m.114.3.2 — maşın/avadanlıq 20%
+    expect(ASSET_CATEGORY_MAP['computers'].taxRate).toBe(25); // m.114.3.2-1 — yüksək texnologiya 25%
+    expect(ASSET_CATEGORY_MAP['vehicles'].taxRate).toBe(25);
     expect(ASSET_CATEGORY_MAP['other'].taxRate).toBe(20);
-    expect(AZ_ASSET_CATEGORIES.every((c) => c.defaultMethod === 'reducing_balance')).toBe(true);
+    expect(AZ_ASSET_CATEGORIES.filter((c) => c.key !== 'intangible').every((c) => c.defaultMethod === 'reducing_balance')).toBe(true);
     expect(ASSET_CATEGORY_MAP[DEFAULT_ASSET_CATEGORY]).toBeDefined();
   });
 });

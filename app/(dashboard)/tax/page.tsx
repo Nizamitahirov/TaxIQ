@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { vatDeclarationXml, withholdingXml, profitTaxXml, downloadXml, type DeclMeta } from '@/lib/tax/xml';
 import { exportToExcel } from '@/lib/utils/export';
 import { formatCurrency } from '@/lib/utils/format';
+import { TaxCalculators } from './calculators';
 
 const MONTHS = ['Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun', 'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'];
 
@@ -57,6 +58,13 @@ export default function TaxPage() {
     return line?.current ?? 0;
   }, [pnl]);
   const profitTax = useMemo(() => computeProfitTax(netProfit), [netProfit]);
+  const rolling12mTurnover = useMemo(() => {
+    const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth() - 12);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return (invoices ?? [])
+      .filter((i) => i.issueDate >= cutoffStr && i.status !== 'cancelled')
+      .reduce((s, i) => s + (i.subtotal - (i.discountTotal ?? 0)), 0);
+  }, [invoices]);
   const meta: DeclMeta = useMemo(() => ({
     companyName: active?.company.name ?? '', taxId: active?.company.taxId ?? '',
     periodLabel, year, month: mode === 'month' ? month : undefined, quarter: mode === 'quarter' ? quarter : undefined,
@@ -186,6 +194,8 @@ export default function TaxPage() {
       <p className="mt-4 text-xs text-muted-foreground">
         {tt('Bu bəyannamələr sistemdəki fakturalar, alışlar və əmək haqqı əsasında hesablanır. e-taxes.gov.az formatına ixrac və birbaşa göndərmə növbəti mərhələdədir.', 'These returns are computed from the system’s invoices, purchases and payroll. e-taxes.gov.az export and direct submission are on the roadmap.')}
       </p>
+
+      <TaxCalculators cur={cur} rolling12mTurnover={rolling12mTurnover} />
     </div>
   );
 }
