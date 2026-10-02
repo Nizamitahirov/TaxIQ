@@ -1,8 +1,15 @@
 # TaxIQ — Qanunvericiliyə uyğunluq planı (Vergi + Mühasibatlıq + Əmək)
 
-Mənbə: Azərbaycan Respublikasının 3 əsas məcəlləsi/qanunu
-(e-qanun.az/framework/46943, 46948, 46957):
-**Vergi Məcəlləsi**, **Mühasibat uçotu haqqında Qanun**, **Əmək Məcəlləsi**.
+Mənbə: istifadəçinin repoya yüklədiyi 3 rəsmi məcəllə (mətndən oxundu):
+**Vergi Məcəlləsi**, **Əmək Məcəlləsi**, **Gömrük Məcəlləsi**.
+(Mühasibatlıq tələbləri Vergi Məcəlləsi + IFRS/uçot standartları əsasında
+qurulub — ayrıca «Mühasibat uçotu haqqında Qanun» faylı yüklənməyib;
+Gömrük Məcəlləsi idxal ƏDV/aksiz/rüsum hissəsində Vergi ilə bağlanır.)
+
+> Faza 1 tamamlandı — orta əmək haqqı mühərriki (m.140/177), məzuniyyət pulu,
+> əlavə məzuniyyət günləri (m.115–119), iş vaxtından artıq/gecə/bayram
+> üstəlikləri (m.164–166), işdənçıxma müavinəti (m.77) qanun mətnindən
+> dəqiq dərəcələrlə quruldu (`lib/payroll/average-salary.ts` + 19 test).
 
 > Qeyd: dərəcələr, həddlər və müddətlər tez-tez dəyişir — bütün rəqəmlər
 > kodda sabit deyil, **konfiqurasiya** kimi saxlanılır və istehsalatdan əvvəl
@@ -61,17 +68,17 @@ Status: ✅ var · ⚠️ qismən var · ❌ yoxdur (qurulacaq)
 | C2 | **Əmək haqqı — min. əmək haqqı, ayda ≥1 ödəniş, hesablaşma vərəqi** | ✅ | Payslip var; min. əmək haqqı yoxlaması əlavə |
 | C3 | **Gəlir vergisi + DSMF (sosial 3%/22%, işsizlik 0.5%/0.5%, tibbi 2%/0.5%)** | ✅ | — (konfiqurasiya) |
 | C4 | **Əsas məzuniyyət — 21 gün (bəzi hallarda 30)** | ✅ | — |
-| C5 | **Əlavə məzuniyyət — iş stajına görə (5/10/15 il → +2/4/6 gün, maddə 116)** | ❌ | Stajdan avtomatik əlavə gün hesablanması |
-| C6 | **Sosial məzuniyyətlər — analıq (126 g), uşağa qulluq (3 yaş), tədris** | ⚠️ | Analıq var; uşağa qulluq + tədris + ödənişsiz tam dəst |
-| C7 | **Məzuniyyət pulu — orta əmək haqqı (son 12 ay) × günlər** | ❌ | **Orta əmək haqqı mühərriki** + məzuniyyət pulu avtomatik hesablanması |
-| C8 | **İş vaxtı — 40 saat/həftə, gündəlik norma, nahar** | ⚠️ | İş vaxtı normaları + tabellə yoxlama |
-| C9 | **İş vaxtından artıq (2x), gecə işi (+ əlavə), bayram/istirahət işi (2x)** | ❌ | Overtime/gecə/bayram üstəlik avtomatik hesablanması |
-| C10 | **Əmək müqaviləsinə xitam — əsaslar + kompensasiya (maddə 68-77, 77)** | ❌ | Xitam əmri + işdənçıxma müavinəti/kompensasiya hesablanması |
+| C5 | **Əlavə məzuniyyət — iş stajına görə (5/10/15 il → +2/4/6 gün, maddə 116)** | ✅ | `seniorityLeaveDays` + Hesablamalar tab (staj avtomatik) |
+| C6 | **Sosial məzuniyyətlər — analıq (126 g), uşağa qulluq (3 yaş), tədris** | ⚠️ | Analıq + uşaqlı valideyn (m.117) var; uşağa qulluq (3 yaş) + tədris növləri qalır |
+| C7 | **Məzuniyyət pulu — orta əmək haqqı (son 12 ay) × günlər** | ✅ | `calcEmployeeLeavePay` (m.140.3 ÷30.4) + Hesablamalar tab |
+| C8 | **İş vaxtı — 40 saat/həftə, gündəlik norma, nahar** | ⚠️ | `AZ_LABOUR_RULES` normaları var; tabellə avtomatik yoxlama qalır |
+| C9 | **İş vaxtından artıq (2x), gecə işi (+ əlavə), bayram/istirahət işi (2x)** | ✅ | `overtimePay`/`holidayWorkPay`/`nightPremium` (m.164–166) |
+| C10 | **Əmək müqaviləsinə xitam — əsaslar + kompensasiya (maddə 68-77, 77)** | ✅ | `calcEmployeeSeverance` + `terminateEmployee` (m.77.3 misli, m.140.4 məz. komp.) |
 | C11 | **İşçi əmrləri — işə qəbul, xitam, məzuniyyət, ezamiyyət, intizam** | ✅ | — (orders var; intizam/xitam şablonları əlavə) |
 | C12 | **Şəxsi iş (personnel file), iş kitabçası məlumatları** | ⚠️ | Şəxsi iş toplusu (sənədlər + əmrlər + müqavilə bir yerdə) |
 | C13 | **Tabel (T-13) + davamiyyət** | ✅ | — |
 | C14 | **Ştat cədvəli (штатное расписание)** | ❌ | Ştat cədvəli: vəzifə, say, maaş dərəcəsi |
-| C15 | **Minimum əmək haqqı / yaşayış minimumu yoxlaması** | ⚠️ | Maaş < min. əmək haqqı xəbərdarlığı |
+| C15 | **Minimum əmək haqqı / yaşayış minimumu yoxlaması** | ✅ | `belowMinimumWage` (m.155.3) mühərrikdə |
 
 ---
 

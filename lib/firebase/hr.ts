@@ -5,6 +5,10 @@ import { logAudit } from './audit';
 import { listAccounts, postJournalEntry } from './accounting';
 import { resolvePostingRule, codeFor } from './posting-rules';
 import { DEFAULT_TAX_CONFIG, calcPayrollLine } from '@/lib/payroll/tax';
+import {
+  type MonthEarning, calcLeavePay, averageMonthlyWage, severancePay, noticeWeeks,
+  serviceYearsBetween, type SeveranceKind,
+} from '@/lib/payroll/average-salary';
 import { fireWorkflows } from '@/lib/workflow/engine';
 import type {
   Employee, LeaveType, LeaveRequest, LeaveBalance, LeaveBalanceItem, PayrollRun, PayrollLine,
@@ -188,17 +192,81 @@ export async function nextServiceContractNumber(companyId: string): Promise<stri
 export const createServiceContract = (d: Omit<ServiceContract, 'id'>) => createDoc('serviceContracts', d as Record<string, unknown>);
 export const updateServiceContract = (id: string, d: Partial<ServiceContract>) => updateDocById('serviceContracts', id, d as Record<string, unknown>);
 
+// ── Orta əmək haqqı — 12 aylıq qazanc tarixçəsi (Əmək Məcəlləsi m.139–140) ──
+/**
+ * İşçinin verilmiş ay/ildən əvvəlki 12 təqvim ayının qazanc tarixçəsini
+ * təsdiqlənmiş/ödənilmiş əmək haqqı dövrlərindən qurur. Dövr tapılmayan
+ * aylar cari əsas maaşla doldurulur (fallback) ki, mühərrik işlək qalsın.
+ */
+export async function employeeEarningsHistory(
+  companyId: string, emp: Employee, beforeYear: number, beforeMonth: number, months = 12,
+): Promise<MonthEarning[]> {
+  const runs = (await listPayrollRuns(companyId)).filter((r) => r.status === 'approved' || r.status === 'paid');
+  const byPeriod = new Map<string, number>();
+  for (const r of runs) {
+    const line = r.lines.find((l) => l.employeeId === emp.id);
+    if (!line) continue;
+    byPeriod.set(`${r.periodYear}-${String(r.periodMonth).padStart(2, '0')}`, line.grossSalary);
+  }
+  const out: MonthEarning[] = [];
+  for (let i = months; i >= 1; i--) {
+    const d = new Date(beforeYear, beforeMonth - 1 - i, 1);
+    const y = d.getFullYear(), mo = d.getMonth() + 1;
+    const key = `${y}-${String(mo).padStart(2, '0')}`;
+    const earned = byPeriod.get(key);
+    const [yy, mm] = [y, mo];
+    let workdays = 0;
+    const dim = new Date(yy, mm, 0).getDate();
+    for (let dd = 1; dd <= dim; dd++) { const w = new Date(yy, mm - 1, dd).getDay(); if (w !== 0 && w !== 6) workdays++; }
+    out.push({ month: key, earnings: earned ?? emp.baseSalary, workdays, fullyWorked: true });
+  }
+  return out;
+}
+
+/** Məzuniyyət pulu (m.140.3) — işçi üçün */
+export async function calcEmployeeLeavePay(
+  companyId: string, emp: Employee, calendarDays: number, leaveStart: string,
+): Promise<{ daily: number; total: number }> {
+  const d = new Date(leaveStart);
+  const history = await employeeEarningsHistory(companyId, emp, d.getFullYear(), d.getMonth() + 1);
+  return calcLeavePay(history, calendarDays);
+}
+
+/** İşdənçıxma müavinəti (m.77) — işçi üçün */
+export async function calcEmployeeSeverance(
+  companyId: string, emp: Employee, asOf: string, kind: SeveranceKind = 'redundancy',
+): Promise<{ averageMonthly: number; serviceYears: number; noticeWeeks: number; multiplier: number; amount: number }> {
+  const d = new Date(asOf);
+  const history = await employeeEarningsHistory(companyId, emp, d.getFullYear(), d.getMonth() + 1);
+  const avg = averageMonthlyWage(history);
+  const years = emp.hireDate ? serviceYearsBetween(emp.hireDate, asOf) : 0;
+  const sev = severancePay(avg, years, kind);
+  return { averageMonthly: avg, serviceYears: round2(years), noticeWeeks: noticeWeeks(years), ...sev };
+}
+
 // ── İşdən çıxarma + istifadə olunmamış məzuniyyət kompensasiyası (10 §3) ──
-export async function terminateEmployee(emp: Employee, terminationDate: string, reason: TerminationReason, actorUid: string): Promise<{ compensationDays: number }> {
+export async function terminateEmployee(
+  emp: Employee, terminationDate: string, reason: TerminationReason, actorUid: string,
+): Promise<{ compensationDays: number; leaveCompensation: number; severance: number }> {
   const year = new Date(terminationDate).getFullYear();
   const bal = await getLeaveBalance(emp.id, year);
   // Konstitusiya Məhkəməsi 2026: istifadə olunmamış əsas+əlavə məzuniyyət tam kompensasiya olunur
   const compensationDays = round2((bal?.balances ?? [])
     .filter((b) => b.remainingDays > 0)
     .reduce((s, b) => s + b.remainingDays, 0));
+  // İstifadə edilməmiş məzuniyyətə görə pul kompensasiyası (m.140.4)
+  const history = await employeeEarningsHistory(emp.companyId, emp, year, new Date(terminationDate).getMonth() + 1);
+  const { total: leaveCompensation } = calcLeavePay(history, compensationDays);
+  // İşdənçıxma müavinəti yalnız ştat ixtisarı/say azaldılması (m.77.3) üçün
+  let severance = 0;
+  if (reason === 'redundancy') {
+    const avg = averageMonthlyWage(history);
+    const years = emp.hireDate ? serviceYearsBetween(emp.hireDate, terminationDate) : 0;
+    severance = severancePay(avg, years, 'redundancy').amount;
+  }
   await updateEmployee(emp.id, { status: 'terminated', terminationDate, terminationReason: reason });
-  await logAudit({ companyId: emp.companyId, userId: actorUid, action: 'EMPLOYEE_TERMINATED', entityType: 'employee', entityId: emp.id, after: { reason, compensationDays } });
-  return { compensationDays };
+  await logAudit({ companyId: emp.companyId, userId: actorUid, action: 'EMPLOYEE_TERMINATED', entityType: 'employee', entityId: emp.id, after: { reason, compensationDays, leaveCompensation, severance } });
+  return { compensationDays, leaveCompensation, severance };
 }
 
 // ── Vergi konfiqurasiyası ───────────────────────────────────

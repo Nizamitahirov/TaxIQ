@@ -13,6 +13,7 @@ import { TripsTab } from './trips-tab';
 import { TimesheetTab } from './timesheet-tab';
 import { OrdersTab } from './orders-tab';
 import { ContractsTab } from './contracts-tab';
+import { CalculatorsTab } from './calculators-tab';
 
 export default function HRPage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
@@ -42,6 +43,7 @@ export default function HRPage() {
           <TabsTrigger value="timesheet">{tt('Tabel', 'Timesheet')}</TabsTrigger>
           <TabsTrigger value="orders">{tt('Əmrlər', 'Orders')}</TabsTrigger>
           <TabsTrigger value="contracts">{tt('Müqavilələr', 'Contracts')}</TabsTrigger>
+          <TabsTrigger value="calculators">{tt('Hesablamalar', 'Calculators')}</TabsTrigger>
         </TabsList>
         <TabsContent value="employees"><EmployeesTab {...base} canViewSalary={canViewSalary} baseCurrency={baseCurrency} company={active?.company} /></TabsContent>
         <TabsContent value="leave"><LeaveTab {...base} canApprove={canApprove} /></TabsContent>
@@ -51,6 +53,7 @@ export default function HRPage() {
         <TabsContent value="timesheet"><TimesheetTab {...base} canApprove={canApprove} /></TabsContent>
         <TabsContent value="orders"><OrdersTab {...base} company={active?.company} /></TabsContent>
         <TabsContent value="contracts"><ContractsTab {...base} baseCurrency={baseCurrency} company={active?.company} /></TabsContent>
+        <TabsContent value="calculators"><CalculatorsTab companyId={companyId} baseCurrency={baseCurrency} /></TabsContent>
       </Tabs>
     </div>
   );
