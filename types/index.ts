@@ -1375,6 +1375,10 @@ export interface LeaveRequest {
   totalDays: number;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
   reason?: string | null;
+  /** Təsdiqdə hesablanan məzuniyyət pulu (m.140) */
+  leavePay?: number | null;
+  leavePayDaily?: number | null;
+  journalEntryId?: string | null;
   createdAt?: TS;
   createdBy?: string;
 }

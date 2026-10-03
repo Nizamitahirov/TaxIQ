@@ -66,14 +66,49 @@ export async function createLeaveRequest(d: Omit<LeaveRequest, 'id' | 'status'>)
   return id;
 }
 
-export async function decideLeaveRequest(req: LeaveRequest, approve: boolean, actorUid: string): Promise<void> {
-  await updateDocById('leaveRequests', req.id, { status: approve ? 'approved' : 'rejected' });
-  // Təsdiqləndikdə balansdan çıxılır (10 §4.3)
+export async function decideLeaveRequest(req: LeaveRequest, approve: boolean, actorUid: string, baseCurrency = 'AZN'): Promise<void> {
+  const patch: Record<string, unknown> = { status: approve ? 'approved' : 'rejected' };
   if (approve) {
     const year = new Date(req.startDate).getFullYear();
     await applyLeaveUsage(req.companyId, req.employeeId, req.employeeName ?? '', year, req.leaveTypeId, req.leaveTypeName ?? '', req.totalDays);
+    // Məzuniyyət pulu (m.140) — yalnız əmək məzuniyyəti (annual/additional) üçün
+    try {
+      const types = await listLeaveTypes(req.companyId);
+      const lt = types.find((t) => t.id === req.leaveTypeId);
+      if (lt && (lt.code === 'annual' || lt.code === 'additional')) {
+        const emp = await getEmployee(req.employeeId);
+        if (emp) {
+          const { daily, total } = await calcEmployeeLeavePay(req.companyId, emp, req.totalDays, req.startDate);
+          patch.leavePay = total; patch.leavePayDaily = daily;
+          // Jurnal (721 Dr / 533 Cr) — hesablar varsa; yoxdursa səssiz ötürülür
+          const jid = await postLeavePayJournal(req, total, actorUid, baseCurrency).catch(() => null);
+          if (jid) patch.journalEntryId = jid;
+        }
+      }
+    } catch { /* leave-pay hesablanması təsdiqi bloklamamalıdır */ }
   }
-  await logAudit({ companyId: req.companyId, userId: actorUid, action: approve ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED', entityType: 'leaveRequest', entityId: req.id });
+  await updateDocById('leaveRequests', req.id, patch);
+  await logAudit({ companyId: req.companyId, userId: actorUid, action: approve ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED', entityType: 'leaveRequest', entityId: req.id, after: { leavePay: patch.leavePay ?? null } });
+}
+
+/** Məzuniyyət pulu jurnal yazısı — 721 (xərc) Dr / 533 (əmək haqqı öhdəliyi) Cr */
+async function postLeavePayJournal(req: LeaveRequest, amount: number, actorUid: string, baseCurrency: string): Promise<string | null> {
+  if (!(amount > 0)) return null;
+  const accounts = await listAccounts(req.companyId);
+  const rule = await resolvePostingRule(req.companyId, 'salary_accrued');
+  const cExpense = codeFor(rule, 'expense', '721'), cPayroll = codeFor(rule, 'payrollPayable', '533');
+  const expense = accounts.find((a) => a.accountCode === cExpense);
+  const payable = accounts.find((a) => a.accountCode === cPayroll);
+  if (!expense || !payable) return null;
+  return postJournalEntry({
+    companyId: req.companyId, entryDate: req.startDate,
+    description: `Məzuniyyət pulu — ${req.employeeName ?? ''} (${req.totalDays} gün)`,
+    sourceType: 'payroll', sourceDocumentId: req.id, createdBy: actorUid, baseCurrency,
+    lines: [
+      { accountId: expense.id, accountCode: expense.accountCode, accountName: expense.accountName.az, debit: amount, credit: 0 },
+      { accountId: payable.id, accountCode: payable.accountCode, accountName: payable.accountName.az, debit: 0, credit: amount },
+    ],
+  });
 }
 
 export function pendingLeaveCount(requests: LeaveRequest[]): number {
