@@ -7,6 +7,7 @@ import { useAuth } from '@/components/providers/auth-provider';
 import { useTT } from '@/lib/i18n/tt';
 import { listVacancies, createVacancy, setVacancyStatus, deleteVacancy, listCandidates, createCandidate, setCandidateStage, deleteCandidate, hireCandidate } from '@/lib/firebase/recruitment';
 import { listDepartments } from '@/lib/firebase/departments';
+import { fileToDataUrl, openDataUrl } from '@/lib/utils/file';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Card, CardContent } from '@/components/ui/card';
@@ -153,7 +154,7 @@ function CandidatesTab({ companyId }: { companyId: string }) {
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.fullName}</TableCell>
                 <TableCell className="text-muted-foreground">{c.vacancyTitle ?? '—'}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{c.email ?? ''}{c.phone ? ` · ${c.phone}` : ''}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{c.email ?? ''}{c.phone ? ` · ${c.phone}` : ''}{c.resumeUrl && <button className="ml-2 text-primary underline" onClick={() => openDataUrl(c.resumeUrl!)}>CV</button>}</TableCell>
                 <TableCell>{c.rating ? <span className="flex items-center gap-0.5 text-amber-500">{c.rating}<Star className="h-3.5 w-3.5 fill-current" /></span> : '—'}</TableCell>
                 <TableCell>{canEdit ? (
                   <Select value={c.stage} onValueChange={(s) => setCandidateStage(c, s as CandidateStage, profile?.uid ?? '').then(refresh)}>
@@ -212,8 +213,14 @@ function CandidateDialog({ companyId, actorUid, onClose, onSaved }: { companyId:
   const tt = useTT();
   const { data: vacancies } = useQuery({ queryKey: ['vacancies', companyId], queryFn: () => listVacancies(companyId) });
   const [f, setF] = useState({ fullName: '', vacancyId: '', email: '', phone: '', source: '', rating: '', appliedDate: new Date().toISOString().slice(0, 10) });
+  const [resume, setResume] = useState<{ name: string; dataUrl: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const set = (p: Partial<typeof f>) => setF((s) => ({ ...s, ...p }));
+  async function onResume(file: File | undefined) {
+    if (!file) return;
+    try { const u = await fileToDataUrl(file); setResume({ name: u.name, dataUrl: u.dataUrl }); }
+    catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
+  }
   async function save() {
     if (!f.fullName.trim()) { toast.error(tt('Ad Soyad lazımdır', 'Full name required')); return; }
     setSaving(true);
@@ -222,7 +229,7 @@ function CandidateDialog({ companyId, actorUid, onClose, onSaved }: { companyId:
       await createCandidate({
         companyId, fullName: f.fullName.trim(), vacancyId: f.vacancyId || null, vacancyTitle: vac?.title ?? null,
         email: f.email || null, phone: f.phone || null, source: f.source || null, stage: 'applied',
-        rating: f.rating ? Number(f.rating) : null, appliedDate: f.appliedDate, resumeUrl: null, notes: null, createdBy: actorUid,
+        rating: f.rating ? Number(f.rating) : null, appliedDate: f.appliedDate, resumeUrl: resume?.dataUrl ?? null, notes: null, createdBy: actorUid,
       });
       toast.success(tt('Namizəd əlavə edildi', 'Candidate added'));
       onSaved();
@@ -241,6 +248,10 @@ function CandidateDialog({ companyId, actorUid, onClose, onSaved }: { companyId:
         <div className="space-y-1"><Label>{tt('Telefon', 'Phone')}</Label><Input value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
         <div className="space-y-1"><Label>{tt('Mənbə', 'Source')}</Label><Input value={f.source} onChange={(e) => set({ source: e.target.value })} placeholder={tt('LinkedIn, tövsiyə…', 'LinkedIn, referral…')} /></div>
         <div className="space-y-1"><Label>{tt('Reytinq (1–5)', 'Rating (1–5)')}</Label><Input type="number" min={1} max={5} value={f.rating} onChange={(e) => set({ rating: e.target.value })} /></div>
+        <div className="space-y-1 sm:col-span-2"><Label>{tt('CV (PDF/şəkil, ≤0.7 MB)', 'CV (PDF/image, ≤0.7 MB)')}</Label>
+          <Input type="file" accept=".pdf,image/*" onChange={(e) => onResume(e.target.files?.[0])} />
+          {resume && <p className="mt-1 text-xs text-emerald-600">✓ {resume.name}</p>}
+        </div>
       </div>
       <DialogFooter><Button variant="outline" onClick={onClose}>{tt('Ləğv', 'Cancel')}</Button><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users2 className="h-4 w-4" />} {tt('Əlavə et', 'Add')}</Button></DialogFooter>
     </DialogContent></Dialog>
