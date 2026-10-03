@@ -1366,6 +1366,21 @@ export interface LeaveType {
   defaultDays: number;
 }
 
+/** Ştat cədvəli mövqeyi (штатное расписание) — Əmək Məcəlləsi (C14) */
+export interface StaffingPosition {
+  id: string;
+  companyId: string;
+  departmentId?: string | null;
+  departmentName?: string | null;
+  title: string;                 // vəzifə adı
+  plannedCount: number;          // ştat vahidi sayı
+  salaryMin?: number | null;     // maaş dərəcəsi (aşağı)
+  salaryMax?: number | null;     // maaş dərəcəsi (yuxarı)
+  notes?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
 export interface LeaveRequest {
   id: string;
   companyId: string;
