@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Trash2, Briefcase, Users2, Star } from 'lucide-react';
+import { Loader2, Plus, Trash2, Briefcase, Users2, Star, UserPlus } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTT } from '@/lib/i18n/tt';
-import { listVacancies, createVacancy, setVacancyStatus, deleteVacancy, listCandidates, createCandidate, setCandidateStage, deleteCandidate } from '@/lib/firebase/recruitment';
+import { listVacancies, createVacancy, setVacancyStatus, deleteVacancy, listCandidates, createCandidate, setCandidateStage, deleteCandidate, hireCandidate } from '@/lib/firebase/recruitment';
 import { listDepartments } from '@/lib/firebase/departments';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -130,6 +130,7 @@ function CandidatesTab({ companyId }: { companyId: string }) {
   const { profile, isSuperAdmin, can } = useAuth();
   const canEdit = isSuperAdmin || can('hr.employee.view');
   const [open, setOpen] = useState(false);
+  const [hireFor, setHireFor] = useState<Candidate | null>(null);
   const [stageFilter, setStageFilter] = useState<'all' | CandidateStage>('all');
   const { data, isLoading } = useQuery({ queryKey: ['candidates', companyId], queryFn: () => listCandidates(companyId) });
   const refresh = () => qc.invalidateQueries({ queryKey: ['candidates', companyId] });
@@ -159,10 +160,51 @@ function CandidatesTab({ companyId }: { companyId: string }) {
                     <SelectTrigger className="h-8 w-36"><SelectValue /></SelectTrigger>
                     <SelectContent>{STAGES.map((s) => <SelectItem key={s} value={s}>{tt(STAGE_LABEL[s][0], STAGE_LABEL[s][1])}</SelectItem>)}</SelectContent></Select>
                 ) : <Badge variant="secondary">{tt(STAGE_LABEL[c.stage][0], STAGE_LABEL[c.stage][1])}</Badge>}</TableCell>
-                <TableCell>{canEdit && <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-600" onClick={() => { if (confirm(tt('Silinsin?', 'Delete?'))) deleteCandidate(c, profile?.uid ?? '').then(refresh); }}><Trash2 className="h-3.5 w-3.5" /></Button>}</TableCell>
+                <TableCell className="flex items-center justify-end gap-1">
+                  {canEdit && c.stage !== 'hired' && !c.hiredEmployeeId && <Button variant="ghost" size="icon" className="h-7 w-7 text-emerald-600" title={tt('İşə götür', 'Hire')} onClick={() => setHireFor(c)}><UserPlus className="h-3.5 w-3.5" /></Button>}
+                  {canEdit && c.hiredEmployeeId && <Badge variant="success">{tt('İşçi', 'Employee')}</Badge>}
+                  {canEdit && <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-600" onClick={() => { if (confirm(tt('Silinsin?', 'Delete?'))) deleteCandidate(c, profile?.uid ?? '').then(refresh); }}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                </TableCell>
               </TableRow>))}</TableBody></Table></div></CardContent></Card>}
       {open && <CandidateDialog companyId={companyId} actorUid={profile?.uid ?? ''} onClose={() => setOpen(false)} onSaved={() => { setOpen(false); refresh(); }} />}
+      {hireFor && <HireDialog companyId={companyId} candidate={hireFor} actorUid={profile?.uid ?? ''} onClose={() => setHireFor(null)} onSaved={() => { setHireFor(null); refresh(); qc.invalidateQueries({ queryKey: ['employees', companyId] }); qc.invalidateQueries({ queryKey: ['vacancies', companyId] }); }} />}
     </div>
+  );
+}
+
+function HireDialog({ companyId, candidate, actorUid, onClose, onSaved }: { companyId: string; candidate: Candidate; actorUid: string; onClose: () => void; onSaved: () => void }) {
+  const tt = useTT();
+  const { data: departments } = useQuery({ queryKey: ['departments', companyId], queryFn: () => listDepartments(companyId) });
+  const [f, setF] = useState({ employeeCode: '', position: candidate.vacancyTitle ?? '', departmentId: '', baseSalary: '', hireDate: new Date().toISOString().slice(0, 10) });
+  const [saving, setSaving] = useState(false);
+  const set = (p: Partial<typeof f>) => setF((s) => ({ ...s, ...p }));
+  async function save() {
+    if (!(Number(f.baseSalary) > 0)) { toast.error(tt('Əmək haqqı daxil edin', 'Enter a salary')); return; }
+    setSaving(true);
+    try {
+      await hireCandidate(candidate, {
+        employeeCode: f.employeeCode.trim() || undefined, position: f.position.trim() || undefined,
+        departmentId: f.departmentId || null, baseSalary: Number(f.baseSalary), hireDate: f.hireDate,
+      }, actorUid);
+      toast.success(tt('İşçi yaradıldı', 'Employee created'), candidate.fullName);
+      onSaved();
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); }
+    finally { setSaving(false); }
+  }
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}><DialogContent className="max-w-md">
+      <DialogHeader><DialogTitle>{tt('İşə götür', 'Hire')} — {candidate.fullName}</DialogTitle></DialogHeader>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1"><Label>{tt('İşçi kodu', 'Employee code')}</Label><Input value={f.employeeCode} onChange={(e) => set({ employeeCode: e.target.value })} placeholder={tt('avtomatik', 'auto')} /></div>
+        <div className="space-y-1"><Label>{tt('Vəzifə', 'Position')}</Label><Input value={f.position} onChange={(e) => set({ position: e.target.value })} /></div>
+        <div className="space-y-1"><Label>{tt('Şöbə', 'Department')}</Label>
+          <Select value={f.departmentId} onValueChange={(v) => set({ departmentId: v })}><SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+            <SelectContent>{(departments ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{d.name.az}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-1"><Label>{tt('Əmək haqqı *', 'Base salary *')}</Label><Input type="number" value={f.baseSalary} onChange={(e) => set({ baseSalary: e.target.value })} /></div>
+        <div className="space-y-1 sm:col-span-2"><Label>{tt('İşə qəbul tarixi', 'Hire date')}</Label><Input type="date" value={f.hireDate} onChange={(e) => set({ hireDate: e.target.value })} /></div>
+      </div>
+      <DialogFooter><Button variant="outline" onClick={onClose}>{tt('Ləğv', 'Cancel')}</Button><Button onClick={save} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />} {tt('İşçi yarat', 'Create employee')}</Button></DialogFooter>
+    </DialogContent></Dialog>
   );
 }
 

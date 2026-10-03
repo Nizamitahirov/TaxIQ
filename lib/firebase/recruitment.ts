@@ -3,7 +3,8 @@
 /** İşə qəbul — vakansiyalar + namizədlər (pipeline). */
 import { listByCompanySorted, createDoc, updateDocById, deleteDocById } from './firestore';
 import { logAudit } from './audit';
-import type { Vacancy, VacancyStatus, Candidate, CandidateStage } from '@/types';
+import { createEmployee } from './hr';
+import type { Vacancy, VacancyStatus, Candidate, CandidateStage, Employee } from '@/types';
 
 export const listVacancies = (companyId: string) => listByCompanySorted<Vacancy>('vacancies', companyId, 'openedDate', 'desc');
 export const listCandidates = (companyId: string) => listByCompanySorted<Candidate>('candidates', companyId, 'appliedDate', 'desc');
@@ -36,4 +37,41 @@ export async function setCandidateStage(c: Candidate, stage: CandidateStage, act
 export async function deleteCandidate(c: Candidate, actorUid: string): Promise<void> {
   await deleteDocById('candidates', c.id);
   await logAudit({ companyId: c.companyId, userId: actorUid, action: 'CANDIDATE_DELETED', entityType: 'candidate', entityId: c.id });
+}
+
+export interface HireDetails {
+  employeeCode?: string;
+  position?: string;
+  departmentId?: string | null;
+  baseSalary: number;
+  hireDate: string;
+  employmentType?: Employee['employmentType'];
+}
+
+/**
+ * Namizədi işə götür → avtomatik `Employee` yaradır, namizədi "hired"
+ * mərhələsinə keçirir və (varsa) vakansiyanı "filled" edir.
+ */
+export async function hireCandidate(c: Candidate, details: HireDetails, actorUid: string): Promise<string> {
+  const parts = c.fullName.trim().split(/\s+/);
+  const firstName = parts[0] ?? c.fullName;
+  const lastName = parts.slice(1).join(' ') || '—';
+  const employeeId = await createEmployee({
+    companyId: c.companyId,
+    employeeCode: details.employeeCode?.trim() || `EMP-${Date.now().toString().slice(-5)}`,
+    firstName, lastName,
+    email: c.email ?? undefined,
+    phone: c.phone ?? undefined,
+    position: details.position || c.vacancyTitle || undefined,
+    departmentId: details.departmentId ?? null,
+    employmentType: details.employmentType ?? 'full_time',
+    hireDate: details.hireDate,
+    baseSalary: details.baseSalary,
+    status: 'active',
+    createdBy: actorUid,
+  } as Omit<Employee, 'id'>);
+  await updateDocById('candidates', c.id, { stage: 'hired', hiredEmployeeId: employeeId });
+  if (c.vacancyId) await updateDocById('vacancies', c.vacancyId, { status: 'filled', closedDate: new Date().toISOString().slice(0, 10) });
+  await logAudit({ companyId: c.companyId, userId: actorUid, action: 'CANDIDATE_HIRED', entityType: 'candidate', entityId: c.id, after: { employeeId } });
+  return employeeId;
 }

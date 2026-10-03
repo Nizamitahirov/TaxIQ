@@ -928,6 +928,8 @@ export interface Candidate {
   appliedDate: string;
   resumeUrl?: string | null;
   notes?: string | null;
+  /** işə götürüldükdə yaradılan işçi (recruitment → HR körpüsü) */
+  hiredEmployeeId?: string | null;
   createdAt?: TS;
   updatedAt?: TS;
   createdBy?: string;
