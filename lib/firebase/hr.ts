@@ -7,7 +7,7 @@ import { resolvePostingRule, codeFor } from './posting-rules';
 import { DEFAULT_TAX_CONFIG, calcPayrollLine } from '@/lib/payroll/tax';
 import {
   type MonthEarning, calcLeavePay, averageMonthlyWage, severancePay, noticeWeeks,
-  serviceYearsBetween, type SeveranceKind,
+  serviceYearsBetween, seniorityLeaveDays, type SeveranceKind,
 } from '@/lib/payroll/average-salary';
 import { fireWorkflows } from '@/lib/workflow/engine';
 import type {
@@ -89,12 +89,17 @@ export const getLeaveBalance = (employeeId: string, year: number) => getDocById<
 export async function ensureLeaveBalance(companyId: string, emp: Employee, year: number, types: LeaveType[]): Promise<LeaveBalance> {
   const existing = await getLeaveBalance(emp.id, year);
   const prev = await getLeaveBalance(emp.id, year - 1);
+  // Staja görə əlavə məzuniyyət (m.116): 5/10/15 il → 2/4/6 gün — avtomatik hesablanır
+  const serviceYears = emp.hireDate ? serviceYearsBetween(emp.hireDate, `${year}-12-31`) : 0;
+  const seniorityDays = seniorityLeaveDays(serviceYears);
   const items: LeaveBalanceItem[] = types.filter((t) => t.paid).map((t) => {
     const cur = existing?.balances.find((b) => b.leaveTypeId === t.id);
     const prevItem = prev?.balances.find((b) => b.leaveTypeId === t.id);
     // 2 illik daşınma məhdudiyyəti: yalnız 1 il əvvəlin qalığı köçür
     const carriedOver = t.code === 'annual' ? Math.min(prevItem?.remainingDays ?? 0, t.defaultDays) : 0;
-    const entitled = (t.defaultDays ?? 0) + carriedOver;
+    // 'additional' tipinə staj günləri avtomatik əlavə olunur (m.116)
+    const statutory = t.code === 'additional' ? seniorityDays : 0;
+    const entitled = (t.defaultDays ?? 0) + carriedOver + statutory;
     const used = cur?.usedDays ?? 0;
     return { leaveTypeId: t.id, leaveTypeName: t.name.az, entitledDays: entitled, usedDays: used, remainingDays: round2(entitled - used), carriedOver };
   });
