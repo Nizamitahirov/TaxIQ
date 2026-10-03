@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
-/** Bölmə (area) açarları — modul launcher blokları */
-export type AreaKey = 'tax' | 'accounting' | 'hr' | 'hse' | 'reports' | 'settings';
+/** Bölmə (area) açarları — modul launcher blokları (məntiqli iş sahələri) */
+export type AreaKey = 'sales' | 'supply' | 'accounting' | 'finance' | 'tax' | 'hr' | 'hse' | 'settings';
 
 export interface NavItem {
   href: string;
@@ -25,7 +25,10 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-/** TaxIQ sidebar naviqasiyası — modullar 1–10 */
+/**
+ * TaxIQ sidebar naviqasiyası — məntiqli qruplaşma.
+ * Hər item bir `area` (iş sahəsi) və bir nav qrupuna aiddir; ikisi uyğundur.
+ */
 export const NAV_GROUPS: NavGroup[] = [
   {
     items: [
@@ -43,35 +46,50 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    // Excel: "Sənədlər" vərəqi — GRN/Despatch/Invoice/Credit-Debit Note,
-    // Müqavilələr, Remittance, CMR (Alış/Satış Əməliyyatlar-a köçürülüb)
-    labelKey: 'documents',
+    // Satış dövrü + müştəri münasibətləri (CRM burada məntiqlidir — vergidə yox)
+    labelKey: 'sales',
     items: [
-      { href: '/crm', labelKey: 'crm', icon: Target, module: 'crm', area: 'tax' },
-      { href: '/documents', labelKey: 'documents', icon: FileText, module: 'sales', area: 'tax' },
-      { href: '/credit-notes', labelKey: 'creditNotes', icon: Undo2, module: 'sales', area: 'tax' },
-      { href: '/debit-notes', labelKey: 'debitNotes', icon: FileMinus, module: 'cashbank', area: 'tax' },
-      { href: '/contracts', labelKey: 'contracts', icon: FileSignature, module: 'sales', area: 'tax' },
+      { href: '/crm', labelKey: 'crm', icon: Target, module: 'crm', area: 'sales' },
+      { href: '/sales', labelKey: 'sales', icon: Store, module: 'sales', area: 'sales' },
+      { href: '/documents', labelKey: 'documents', icon: FileText, module: 'sales', area: 'sales' },
+      { href: '/contracts', labelKey: 'contracts', icon: FileSignature, module: 'sales', area: 'sales' },
+      { href: '/credit-notes', labelKey: 'creditNotes', icon: Undo2, module: 'sales', area: 'sales' },
+      { href: '/debit-notes', labelKey: 'debitNotes', icon: FileMinus, module: 'cashbank', area: 'sales' },
     ],
   },
   {
-    // Excel: "Mühasibat uçotu" — Sahələr (sektorlar) + Əməliyyatlar
-    // (Bank, Kassa, Alış, Satış, Anbar, İstehsal, Əsas vəsaitlər, Qeyri-Maddi aktivlər)
+    // Təchizat və anbar əməliyyatları
+    labelKey: 'supply',
+    items: [
+      { href: '/purchase-orders', labelKey: 'purchaseOrders', icon: ClipboardList, module: 'cashbank', area: 'supply' },
+      { href: '/warehouse', labelKey: 'warehouse', icon: Warehouse, module: 'warehouse', area: 'supply' },
+      { href: '/production', labelKey: 'production', icon: Factory, module: 'warehouse', area: 'supply' },
+    ],
+  },
+  {
+    // Mühasibat uçotu nüvəsi
     labelKey: 'accounting',
     items: [
       { href: '/accounting', labelKey: 'accounting', icon: BookOpen, module: 'accounting', area: 'accounting' },
-      { href: '/sector-templates', labelKey: 'sectorTemplates', icon: Layers, module: 'companies', area: 'accounting', superAdminOnly: true },
-      { href: '/cashbank', labelKey: 'cashbank', icon: Wallet, module: 'cashbank', area: 'tax' },
-      { href: '/purchase-orders', labelKey: 'purchaseOrders', icon: ClipboardList, module: 'cashbank', area: 'tax' },
-      { href: '/sales', labelKey: 'sales', icon: Store, module: 'sales', area: 'tax' },
-      { href: '/warehouse', labelKey: 'warehouse', icon: Warehouse, module: 'warehouse', area: 'tax' },
-      { href: '/production', labelKey: 'production', icon: Factory, module: 'warehouse', area: 'tax' },
       { href: '/depreciation', labelKey: 'depreciation', icon: FileSpreadsheet, module: 'accounting', area: 'accounting' },
       { href: '/intangibles', labelKey: 'intangibles', icon: Sparkles, module: 'accounting', area: 'accounting' },
+      { href: '/sector-templates', labelKey: 'sectorTemplates', icon: Layers, module: 'companies', area: 'accounting', superAdminOnly: true },
     ],
   },
   {
-    // Excel: "Vergi uçotu" — Bəyannamələr, Fəaliyyət kodları (+ vahid standartlar / vergi təqvimi bağlantıları səhifə içindədir)
+    // Maliyyə — xəzinədarlıq + maliyyə hesabatları
+    labelKey: 'finance',
+    items: [
+      { href: '/cashbank', labelKey: 'cashbank', icon: Wallet, module: 'cashbank', area: 'finance' },
+      { href: '/ifrs', labelKey: 'ifrs', icon: BarChart3, module: 'ifrs', area: 'finance' },
+      { href: '/consolidated', labelKey: 'consolidated', icon: GitMerge, module: 'ifrs', area: 'finance' },
+      { href: '/budget', labelKey: 'budget', icon: Target, module: 'reports', area: 'finance' },
+      { href: '/cashflow', labelKey: 'cashflow', icon: BarChart3, module: 'reports', area: 'finance' },
+      { href: '/reports', labelKey: 'reports', icon: FileSpreadsheet, module: 'reports', area: 'finance' },
+    ],
+  },
+  {
+    // Vergi uçotu — yalnız vergi
     labelKey: 'tax',
     items: [
       { href: '/tax', labelKey: 'taxReturns', icon: Landmark, module: 'accounting', area: 'tax' },
@@ -79,16 +97,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    labelKey: 'reports',
-    items: [
-      { href: '/ifrs', labelKey: 'ifrs', icon: BarChart3, module: 'ifrs', area: 'reports' },
-      { href: '/consolidated', labelKey: 'consolidated', icon: GitMerge, module: 'ifrs', area: 'reports' },
-      { href: '/budget', labelKey: 'budget', icon: Target, module: 'reports', area: 'reports' },
-      { href: '/cashflow', labelKey: 'cashflow', icon: BarChart3, module: 'reports', area: 'reports' },
-      { href: '/reports', labelKey: 'reports', icon: FileSpreadsheet, module: 'reports', area: 'reports' },
-    ],
-  },
-  {
+    // Kadr və Əmək haqqı
     labelKey: 'people',
     items: [
       { href: '/hr', labelKey: 'hr', icon: Users2, module: 'hr', area: 'hr' },

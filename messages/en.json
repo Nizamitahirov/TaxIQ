@@ -59,7 +59,9 @@
     "documents": "Documents",
     "accounting": "Accounting",
     "tax": "Tax",
-    "reports": "Reports"
+    "reports": "Reports",
+    "sales": "Sales & CRM",
+    "supply": "Supply & Inventory"
   },
   "nav": {
     "dashboard": "Dashboard",

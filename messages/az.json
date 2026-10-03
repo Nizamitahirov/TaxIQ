@@ -59,7 +59,9 @@
     "documents": "Sənədlər",
     "accounting": "Mühasibat uçotu",
     "tax": "Vergi uçotu",
-    "reports": "Hesabatlar"
+    "reports": "Hesabatlar",
+    "sales": "Satış və CRM",
+    "supply": "Təchizat və Anbar"
   },
   "nav": {
     "dashboard": "İdarə paneli",

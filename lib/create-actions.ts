@@ -17,12 +17,12 @@ export interface CreateAction {
 /** Kontekst-həssas "Yarat" əməliyyatları (top bar + ⌘K) */
 export const CREATE_ACTIONS: CreateAction[] = [
   { label: 'Yeni lead (CRM)', labelEn: 'New lead (CRM)', href: '/crm', module: 'crm', area: 'tax', icon: Target },
-  { label: 'Yeni faktura', labelEn: 'New invoice', href: '/sales', module: 'sales', area: 'tax', icon: FileText },
-  { label: 'Yeni mal / xidmət', labelEn: 'New good / service', href: '/warehouse', module: 'warehouse', area: 'tax', icon: Package },
-  { label: 'Yeni ödəniş', labelEn: 'New payment', href: '/cashbank', module: 'cashbank', area: 'tax', icon: Wallet },
+  { label: 'Yeni faktura', labelEn: 'New invoice', href: '/sales', module: 'sales', area: 'sales', icon: FileText },
+  { label: 'Yeni mal / xidmət', labelEn: 'New good / service', href: '/warehouse', module: 'warehouse', area: 'supply', icon: Package },
+  { label: 'Yeni ödəniş', labelEn: 'New payment', href: '/cashbank', module: 'cashbank', area: 'finance', icon: Wallet },
   { label: 'Yeni jurnal yazısı', labelEn: 'New journal entry', href: '/accounting', module: 'accounting', area: 'accounting', icon: BookOpen },
   { label: 'Yeni işçi', labelEn: 'New employee', href: '/hr', module: 'hr', area: 'hr', icon: UserPlus },
-  { label: 'Yeni hesabat', labelEn: 'New report', href: '/reports', module: 'reports', area: 'reports', icon: FileSpreadsheet },
+  { label: 'Yeni hesabat', labelEn: 'New report', href: '/reports', module: 'reports', area: 'finance', icon: FileSpreadsheet },
   { label: 'SƏTƏM sənədi / təlim qeydi', labelEn: 'HSE document / training', href: '/hse', module: 'hse', area: 'hse', icon: HardHat },
   { label: 'Yeni tapşırıq', labelEn: 'New task', href: '/tasks', module: 'dashboard', area: 'settings', icon: ListChecks },
   { label: 'Yeni workflow', labelEn: 'New workflow', href: '/workflow', module: 'workflow', area: 'settings', icon: Workflow },
