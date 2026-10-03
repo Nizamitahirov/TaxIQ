@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Plus, Check, Banknote, FileText, Printer, Info, SlidersHorizontal, Settings2, FileSpreadsheet } from 'lucide-react';
+import { Loader2, Plus, Check, Banknote, FileText, Printer, Info, SlidersHorizontal, Settings2, FileSpreadsheet, Clock } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTT } from '@/lib/i18n/tt';
 import {
@@ -10,6 +10,7 @@ import {
   listEmployees, listPayrollAdjustments, savePayrollAdjustment, saveTaxConfig,
 } from '@/lib/firebase/hr';
 import { DEFAULT_TAX_CONFIG } from '@/lib/payroll/tax';
+import { hourlyRate, overtimePay as calcOT, holidayWorkPay, nightPremium, AZ_LABOUR_RULES } from '@/lib/payroll/average-salary';
 import { exportToCsv, exportToExcel } from '@/lib/utils/export';
 import { PageHeader } from '@/components/shared/page-header';
 import { StatutoryReportsPanel } from './statutory-reports';
@@ -230,6 +231,8 @@ function AdjustmentsDialog({ companyId, year, month, base, onClose }: { companyI
   const { data: employees, isLoading } = useQuery({ queryKey: ['employees', companyId], queryFn: () => listEmployees(companyId) });
   const { data: adjustments } = useQuery({ queryKey: ['payrollAdjustments', companyId, year, month], queryFn: () => listPayrollAdjustments(companyId, year, month) });
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [normHours, setNormHours] = useState('176');
+  const [calcFor, setCalcFor] = useState<string | null>(null);
   const active = (employees ?? []).filter((e) => e.status === 'active');
   const adjMap = new Map((adjustments ?? []).map((a) => [a.employeeId, a]));
 
@@ -247,21 +250,29 @@ function AdjustmentsDialog({ companyId, year, month, base, onClose }: { companyI
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
         <DialogHeader><DialogTitle>{monthName(month - 1)} {year} — {tt('aylıq düzəlişlər', 'monthly adjustments')} ({base})</DialogTitle></DialogHeader>
-        <p className="text-xs text-muted-foreground">{tt('Bu dəyərlər növbəti hesablamada gross-a (overtime + bonus) və net-dən (kəsinti) tətbiq olunur.', 'These values are applied to gross (overtime + bonus) and from net (deduction) in the next calculation.')}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">{tt('Dəyərlər gross-a (overtime + bonus) və net-dən (kəsinti) tətbiq olunur. «Saat» ilə overtime/gecə/bayram Əmək Məcəlləsinə görə (m.164–166) hesablanır.', 'Values apply to gross (overtime + bonus) and net (deduction). "Hours" computes overtime/night/holiday per Labour Code (Art.164-166).')}</p>
+          <div className="flex items-center gap-1.5"><Label className="text-[11px] text-muted-foreground">{tt('Aylıq norma saat', 'Monthly norm hrs')}</Label><Input type="number" value={normHours} onChange={(e) => setNormHours(e.target.value)} className="h-8 w-20 text-right" /></div>
+        </div>
         {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : (
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader><TableRow><TableHead>{tt('İşçi', 'Employee')}</TableHead><TableHead className="text-right">Overtime</TableHead><TableHead className="text-right">Bonus</TableHead><TableHead className="text-right">{tt('Kəsinti', 'Deduction')}</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>{tt('İşçi', 'Employee')}</TableHead><TableHead className="text-right">Overtime</TableHead><TableHead className="text-right">Bonus</TableHead><TableHead className="text-right">{tt('Kəsinti', 'Deduction')}</TableHead><TableHead className="w-10" /></TableRow></TableHeader>
               <TableBody>
                 {active.map((e) => {
                   const a = adjMap.get(e.id);
                   return (
-                    <TableRow key={e.id}>
+                    <React.Fragment key={e.id}>
+                    <TableRow>
                       <TableCell className="font-medium">{e.firstName} {e.lastName}{busyId === e.id && <Loader2 className="ml-2 inline h-3 w-3 animate-spin" />}</TableCell>
-                      <TableCell className="text-right"><Input type="number" defaultValue={a?.overtimePay ?? 0} className="ml-auto w-24 text-right" onBlur={(ev) => { const v = Number(ev.target.value); if (v !== (a?.overtimePay ?? 0)) save(e.id, { overtimePay: v }); }} /></TableCell>
+                      <TableCell className="text-right"><Input type="number" defaultValue={a?.overtimePay ?? 0} key={`ot-${a?.overtimePay ?? 0}`} className="ml-auto w-24 text-right" onBlur={(ev) => { const v = Number(ev.target.value); if (v !== (a?.overtimePay ?? 0)) save(e.id, { overtimePay: v }); }} /></TableCell>
                       <TableCell className="text-right"><Input type="number" defaultValue={a?.bonuses ?? 0} className="ml-auto w-24 text-right" onBlur={(ev) => { const v = Number(ev.target.value); if (v !== (a?.bonuses ?? 0)) save(e.id, { bonuses: v }); }} /></TableCell>
                       <TableCell className="text-right"><Input type="number" defaultValue={a?.otherDeductions ?? 0} className="ml-auto w-24 text-right" onBlur={(ev) => { const v = Number(ev.target.value); if (v !== (a?.otherDeductions ?? 0)) save(e.id, { otherDeductions: v }); }} /></TableCell>
+                      <TableCell><Button variant="ghost" size="icon" className="h-7 w-7" title={tt('Saatdan hesabla', 'Compute from hours')} onClick={() => setCalcFor(calcFor === e.id ? null : e.id)}><Clock className="h-3.5 w-3.5" /></Button></TableCell>
                     </TableRow>
+                    {calcFor === e.id && <HoursCalcRow salary={e.baseSalary} normHours={Number(normHours) || 176} base={base} tt={tt}
+                      onApply={(amount) => { save(e.id, { overtimePay: amount }); setCalcFor(null); }} />}
+                    </React.Fragment>
                   );
                 })}
               </TableBody>
@@ -271,6 +282,30 @@ function AdjustmentsDialog({ companyId, year, month, base, onClose }: { companyI
         <DialogFooter><Button variant="outline" onClick={onClose}>{tt('Bağla', 'Close')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Saatdan overtime/gecə/bayram haqqının hesablanması (Əmək Məcəlləsi m.164–166) */
+function HoursCalcRow({ salary, normHours, base, tt, onApply }: { salary: number; normHours: number; base: string; tt: (a: string, b: string) => string; onApply: (amount: number) => void }) {
+  const [ot, setOt] = useState('0'); const [night, setNight] = useState('0'); const [holiday, setHoliday] = useState('0');
+  const rate = hourlyRate(salary, normHours);
+  const otPay = calcOT(Number(ot) || 0, rate);
+  const holPay = holidayWorkPay(Number(holiday) || 0, rate);
+  const nightPay = nightPremium(Number(night) || 0, rate);
+  const total = Math.round((otPay + holPay + nightPay) * 100) / 100;
+  return (
+    <TableRow className="bg-muted/30">
+      <TableCell colSpan={5}>
+        <div className="flex flex-wrap items-end gap-3 text-sm">
+          <span className="text-xs text-muted-foreground">{tt('Saatlıq tarif', 'Hourly rate')}: <b>{formatCurrency(rate, base)}</b></span>
+          <div className="space-y-0.5"><Label className="text-[11px]">{tt('İş vaxtından artıq saat (2×)', 'Overtime hrs (2×)')}</Label><Input type="number" value={ot} onChange={(e) => setOt(e.target.value)} className="h-8 w-24" /></div>
+          <div className="space-y-0.5"><Label className="text-[11px]">{tt(`Gecə saat (+${AZ_LABOUR_RULES.nightPremiumRate * 100}%)`, `Night hrs (+${AZ_LABOUR_RULES.nightPremiumRate * 100}%)`)}</Label><Input type="number" value={night} onChange={(e) => setNight(e.target.value)} className="h-8 w-24" /></div>
+          <div className="space-y-0.5"><Label className="text-[11px]">{tt('Bayram/istirahət saat (2×)', 'Holiday hrs (2×)')}</Label><Input type="number" value={holiday} onChange={(e) => setHoliday(e.target.value)} className="h-8 w-24" /></div>
+          <span className="text-sm">= <b className="text-primary">{formatCurrency(total, base)}</b></span>
+          <Button size="sm" onClick={() => onApply(total)}>{tt('Overtime-a tətbiq et', 'Apply to overtime')}</Button>
+        </div>
+      </TableCell>
+    </TableRow>
   );
 }
 
