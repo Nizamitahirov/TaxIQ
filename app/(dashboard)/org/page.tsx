@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Building2, User, Users2 } from 'lucide-react';
+import { Loader2, Building2, User, Users2, Network, GitBranch } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useTT } from '@/lib/i18n/tt';
 import { listDepartments } from '@/lib/firebase/departments';
@@ -13,15 +13,30 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { Department, Employee } from '@/types';
 
 interface Node { dept: Department; children: Node[]; employees: Employee[] }
+interface EmpNode { emp: Employee; reports: EmpNode[] }
 
 export default function OrgPage() {
   const tt = useTT();
   const { active, isSuperAdmin, can } = useAuth();
   const companyId = active?.companyId;
   const canView = isSuperAdmin || can('hr.employee.view');
+  const [view, setView] = useState<'department' | 'reporting'>('department');
 
   const { data: departments, isLoading: dl } = useQuery({ queryKey: ['departments', companyId], queryFn: () => listDepartments(companyId!), enabled: canView && !!companyId });
   const { data: employees, isLoading: el } = useQuery({ queryKey: ['employees', companyId], queryFn: () => listEmployees(companyId!), enabled: canView && !!companyId });
+
+  const reporting = useMemo(() => {
+    const emps = (employees ?? []).filter((e) => e.status === 'active');
+    const byId = new Map<string, EmpNode>();
+    for (const e of emps) byId.set(e.id, { emp: e, reports: [] });
+    const roots: EmpNode[] = [];
+    for (const e of emps) {
+      const node = byId.get(e.id)!;
+      if (e.managerId && byId.has(e.managerId) && e.managerId !== e.id) byId.get(e.managerId)!.reports.push(node);
+      else roots.push(node);
+    }
+    return roots;
+  }, [employees]);
 
   const { roots, unassigned, totalEmp } = useMemo(() => {
     const depts = (departments ?? []).filter((d) => d.isActive !== false);
@@ -43,22 +58,50 @@ export default function OrgPage() {
   if (!canView) return <div><PageHeader title={tt('Təşkilati struktur', 'Org structure')} /><EmptyState title={tt('İcazə yoxdur', 'No permission')} /></div>;
   if (dl || el) return <div><PageHeader title={tt('Təşkilati struktur', 'Org structure')} /><div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div></div>;
 
+  const tabBtn = (v: typeof view, icon: React.ReactNode, label: string) => (
+    <button onClick={() => setView(v)} className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium ${view === v ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground hover:text-foreground'}`}>{icon}{label}</button>
+  );
+
   return (
     <div>
-      <PageHeader title={tt('Təşkilati struktur', 'Org structure')} subtitle={tt(`${departments?.length ?? 0} şöbə · ${totalEmp} aktiv işçi`, `${departments?.length ?? 0} departments · ${totalEmp} active employees`)} />
-      {roots.length === 0 && unassigned.length === 0 ? (
-        <EmptyState title={tt('Struktur boşdur', 'Structure is empty')} description={tt('Şirkət → Şöbələr və HR → İşçilər bölmələrindən əlavə edin', 'Add via Company → Departments and HR → Employees')} />
+      <PageHeader title={tt('Təşkilati struktur', 'Org structure')} subtitle={tt(`${departments?.length ?? 0} şöbə · ${totalEmp} aktiv işçi`, `${departments?.length ?? 0} departments · ${totalEmp} active employees`)}
+        action={<div className="flex gap-2">{tabBtn('department', <Building2 className="h-4 w-4" />, tt('Şöbə üzrə', 'By department'))}{tabBtn('reporting', <GitBranch className="h-4 w-4" />, tt('Hesabat xətti', 'Reporting line'))}</div>} />
+      {view === 'department' ? (
+        roots.length === 0 && unassigned.length === 0 ? (
+          <EmptyState title={tt('Struktur boşdur', 'Structure is empty')} description={tt('Şirkət → Şöbələr və HR → İşçilər bölmələrindən əlavə edin', 'Add via Company → Departments and HR → Employees')} />
+        ) : (
+          <div className="space-y-4">
+            {roots.map((n) => <TreeNode key={n.dept.id} node={n} level={0} tt={tt} />)}
+            {unassigned.length > 0 && (
+              <Card className="rounded-card border-dashed"><CardContent className="p-4">
+                <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><Users2 className="h-4 w-4" /> {tt('Şöbəsiz işçilər', 'Unassigned employees')} ({unassigned.length})</p>
+                <div className="flex flex-wrap gap-2">{unassigned.map((e) => <EmpChip key={e.id} e={e} />)}</div>
+              </CardContent></Card>
+            )}
+          </div>
+        )
       ) : (
-        <div className="space-y-4">
-          {roots.map((n) => <TreeNode key={n.dept.id} node={n} level={0} tt={tt} />)}
-          {unassigned.length > 0 && (
-            <Card className="rounded-card border-dashed"><CardContent className="p-4">
-              <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-muted-foreground"><Users2 className="h-4 w-4" /> {tt('Şöbəsiz işçilər', 'Unassigned employees')} ({unassigned.length})</p>
-              <div className="flex flex-wrap gap-2">{unassigned.map((e) => <EmpChip key={e.id} e={e} />)}</div>
-            </CardContent></Card>
-          )}
-        </div>
+        reporting.length === 0 ? (
+          <EmptyState title={tt('Hesabat xətti yoxdur', 'No reporting line')} description={tt('HR → İşçilər-də «Birbaşa rəhbər» təyin edin', 'Set "Reports to" on employees in HR → Employees')} />
+        ) : (
+          <div className="space-y-3">{reporting.map((n) => <EmpTreeNode key={n.emp.id} node={n} level={0} />)}</div>
+        )
       )}
+    </div>
+  );
+}
+
+function EmpTreeNode({ node, level }: { node: EmpNode; level: number }) {
+  return (
+    <div className={level > 0 ? 'ml-5 border-l border-border pl-5' : ''}>
+      <Card className="rounded-card"><CardContent className="flex items-center gap-3 p-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><User className="h-4 w-4" /></span>
+        <div className="min-w-0">
+          <p className="font-medium leading-tight">{node.emp.firstName} {node.emp.lastName}</p>
+          <p className="text-xs text-muted-foreground">{node.emp.position ?? '—'}{node.reports.length > 0 ? ` · ${node.reports.length} tabe` : ''}</p>
+        </div>
+      </CardContent></Card>
+      {node.reports.length > 0 && <div className="mt-3 space-y-3">{node.reports.map((c) => <EmpTreeNode key={c.emp.id} node={c} level={level + 1} />)}</div>}
     </div>
   );
 }

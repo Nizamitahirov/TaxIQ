@@ -164,7 +164,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
 }) {
   const empty = {
     code: '', first: '', last: '', father: '', fin: '', birthDate: '', gender: 'male', phone: '', email: '', address: '',
-    position: '', departmentId: '', employmentType: 'full_time', hireDate: new Date().toISOString().slice(0, 10),
+    position: '', departmentId: '', managerId: '', employmentType: 'full_time', hireDate: new Date().toISOString().slice(0, 10),
     contractNumber: '', contractType: 'indefinite', contractEndDate: '', salary: '', iban: '',
     notified: false, eGovRef: '', primaryWorkplace: true,
     isForeigner: false, citizenshipCountry: '', passportSeries: '', passportNumber: '', residencePermitFin: '',
@@ -174,6 +174,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
   const [saving, setSaving] = useState(false);
   const [key, setKey] = useState('');
   const { data: departments } = useQuery({ queryKey: ['departments', companyId], queryFn: () => listDepartments(companyId), enabled: open });
+  const { data: managers } = useQuery({ queryKey: ['employees', companyId], queryFn: () => listEmployees(companyId), enabled: open });
 
   const k = (edit?.id ?? 'new') + (open ? '1' : '0');
   if (k !== key && open) {
@@ -181,7 +182,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
     setForm(edit ? {
       code: edit.employeeCode ?? '', first: edit.firstName ?? '', last: edit.lastName ?? '', father: edit.fatherName ?? '',
       fin: edit.personalId ?? '', birthDate: edit.birthDate ?? '', gender: edit.gender ?? 'male', phone: edit.phone ?? '',
-      email: edit.email ?? '', address: edit.address ?? '', position: edit.position ?? '', departmentId: edit.departmentId ?? '',
+      email: edit.email ?? '', address: edit.address ?? '', position: edit.position ?? '', departmentId: edit.departmentId ?? '', managerId: edit.managerId ?? '',
       employmentType: edit.employmentType ?? 'full_time', hireDate: edit.hireDate ?? '', contractNumber: edit.contractNumber ?? '',
       contractType: edit.contractType ?? 'indefinite', contractEndDate: edit.contractEndDate ?? '', salary: String(edit.baseSalary ?? ''),
       iban: edit.bankAccountIban ?? '', notified: !!(edit.laborContractNotified || edit.laborContractNotification?.submittedToEGov),
@@ -200,7 +201,9 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
         employeeCode: form.code.trim() || `EMP-${Date.now().toString().slice(-5)}`, firstName: form.first.trim(), lastName: form.last.trim(),
         fatherName: form.father.trim(), personalId: form.fin.trim(), birthDate: form.birthDate || null, gender: form.gender as 'male' | 'female',
         phone: form.phone.trim(), email: form.email.trim(), address: form.address.trim(),
-        position: form.position.trim(), departmentId: form.departmentId || null, employmentType: form.employmentType as Employee['employmentType'],
+        position: form.position.trim(), departmentId: form.departmentId || null,
+        managerId: form.managerId || null, managerName: form.managerId ? ((managers ?? []).find((m) => m.id === form.managerId) ? `${(managers ?? []).find((m) => m.id === form.managerId)!.firstName} ${(managers ?? []).find((m) => m.id === form.managerId)!.lastName}` : null) : null,
+        employmentType: form.employmentType as Employee['employmentType'],
         hireDate: form.hireDate || null, contractNumber: form.contractNumber.trim(), contractType: form.contractType as Employee['contractType'],
         contractEndDate: form.contractType === 'fixed_term' ? (form.contractEndDate || null) : null,
         baseSalary: Number(form.salary) || 0, currency: baseCurrency, bankAccountIban: form.iban.trim(),
@@ -258,6 +261,10 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
               <div className="space-y-2"><Label>{tt('Şöbə', 'Department')}</Label>
                 <Select value={form.departmentId} onValueChange={(v) => set({ departmentId: v })}><SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
                   <SelectContent>{(departments ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{tt(d.name.az, d.name.en)}</SelectItem>)}</SelectContent></Select>
+              </div>
+              <div className="space-y-2"><Label>{tt('Birbaşa rəhbər', 'Reports to')}</Label>
+                <Select value={form.managerId || 'none'} onValueChange={(v) => set({ managerId: v === 'none' ? '' : v })}><SelectTrigger><SelectValue placeholder={tt('Yoxdur', 'None')} /></SelectTrigger>
+                  <SelectContent><SelectItem value="none">{tt('Yoxdur', 'None')}</SelectItem>{(managers ?? []).filter((m) => m.id !== edit?.id && m.status === 'active').map((m) => <SelectItem key={m.id} value={m.id}>{m.firstName} {m.lastName}{m.position ? ` · ${m.position}` : ''}</SelectItem>)}</SelectContent></Select>
               </div>
               <div className="space-y-2"><Label>{tt('İş növü', 'Employment type')}</Label>
                 <Select value={form.employmentType} onValueChange={(v) => set({ employmentType: v })}><SelectTrigger><SelectValue /></SelectTrigger>

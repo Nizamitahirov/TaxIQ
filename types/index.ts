@@ -1318,6 +1318,9 @@ export interface Employee {
   address?: string;
   position?: string;
   departmentId?: string | null;
+  /** birbaşa rəhbər (hesabat xətti — org chart üçün) */
+  managerId?: string | null;
+  managerName?: string | null;
   employmentType?: 'full_time' | 'part_time' | 'contract';
   /** Bu şirkət işçinin əsas iş yeridirmi? (DSMF Əlavə1 Hissə1 «Əsas iş yeri») — default Bəli */
   isPrimaryWorkplace?: boolean;
