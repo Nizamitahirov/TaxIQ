@@ -58,6 +58,17 @@ export default function AutomationPage() {
       },
     },
     {
+      key: 'depreciation-micro', icon: FileSpreadsheet, title: ['Aylıq amortizasiya — mikro sahibkar (×2)', 'Monthly depreciation — micro business (×2)'],
+      desc: ['Mikro sahibkar üçün azalan qalıq norması ×2 (Vergi Məcəlləsi m.114.3-2)', 'Reducing-balance rate ×2 for micro businesses (Tax Code Art.114.3-2)'],
+      run: async () => {
+        const accounts = await listAccounts(companyId!);
+        const exp = accounts.find((a) => a.accountCode === '721'), accum = accounts.find((a) => a.accountCode === '112');
+        if (!exp || !accum) return { ok: false, text: tt('721/112 hesabları tapılmadı — Hesablar Planını qurun', '721/112 accounts not found — set up the chart of accounts') };
+        const { total } = await runDepreciation(companyId!, uid, exp.id, accum.id, true);
+        return { ok: total > 0, text: total > 0 ? tt(`Cəmi ${formatCurrency(total, cur)} amortizasiya (×2)`, `${formatCurrency(total, cur)} depreciation (×2) posted`) : tt('Amortizasiya üçün aktiv yoxdur', 'Nothing to depreciate') };
+      },
+    },
+    {
       key: 'amortization', icon: Sparkles, title: ['Aylıq amortizasiya (qeyri-maddi)', 'Monthly amortization (intangibles)'],
       desc: ['Qeyri-maddi aktivlər üzrə aylıq amortizasiya (Dt 721 / Kt 101)', 'Monthly intangible-asset amortization (Dr 721 / Cr 101)'],
       run: async () => {

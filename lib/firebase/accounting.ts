@@ -238,25 +238,30 @@ export async function createFixedAsset(input: Omit<FixedAsset, 'id' | 'accumulat
 }
 
 /** Aylıq amortizasiya məbləği (08 §5.2, IAS 16) */
-export function monthlyDepreciation(a: FixedAsset): number {
+/**
+ * Aylıq amortizasiya. `micro` = true olduqda azalan qalıq norması ×2 tətbiq olunur
+ * (Vergi Məcəlləsi m.114.3-2 — mikro sahibkarlıq subyektləri).
+ */
+export function monthlyDepreciation(a: FixedAsset, micro = false): number {
   if (a.status !== 'active') return 0;
   if (a.depreciationMethod === 'straight_line') {
     return round2(Math.max(0, (a.acquisitionCost - a.residualValue) / a.usefulLifeMonths));
   }
-  const rate = (a.reducingBalanceRate ?? 0) / 100;
-  return round2(a.netBookValue * (rate / 12));
+  const basePct = a.reducingBalanceRate ?? 0;
+  const pct = micro ? Math.min(100, basePct * 2) : basePct;
+  return round2(a.netBookValue * (pct / 100 / 12));
 }
 
 /**
  * Aylıq amortizasiyanı icra edir: konsolidasiya edilmiş jurnal yazısı (Dt 721 / Kt 112)
  * + hər aktivin accumulatedDepreciation/netBookValue yenilənməsi (08 §5.3).
  */
-export async function runDepreciation(companyId: string, userId: string, expenseAccountId: string, accumAccountId: string): Promise<{ total: number; entryId: string | null }> {
+export async function runDepreciation(companyId: string, userId: string, expenseAccountId: string, accumAccountId: string, micro = false): Promise<{ total: number; entryId: string | null }> {
   const assets = (await listFixedAssets(companyId)).filter((a) => a.status === 'active');
   let total = 0;
   const updates: { id: string; accumulated: number; nbv: number; status: FixedAsset['status'] }[] = [];
   for (const a of assets) {
-    let dep = monthlyDepreciation(a);
+    let dep = monthlyDepreciation(a, micro);
     const maxDep = round2(a.acquisitionCost - a.residualValue - a.accumulatedDepreciation);
     if (dep > maxDep) dep = maxDep;
     if (dep <= 0) continue;

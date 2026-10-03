@@ -122,4 +122,7 @@ describe('monthlyDepreciation', () => {
   it('is zero when not active', () => {
     expect(monthlyDepreciation(asset({ status: 'disposed' }))).toBe(0);
   });
+  it('micro business doubles the reducing-balance rate (m.114.3-2)', () => {
+    expect(monthlyDepreciation(asset({ depreciationMethod: 'reducing_balance', reducingBalanceRate: 24, netBookValue: 1000 }), true)).toBe(40);
+  });
 });
