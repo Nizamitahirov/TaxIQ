@@ -21,10 +21,12 @@ sübutu göstərilib.
 - **İl bağlanışı** sihirbazı (B11) · **Mikro ×2 amortizasiya** (m.114.3-2)
 - **Vergi profili** (rejim/ƏDV/kateqoriya) [A6 bayraq, B3] · **Əmlak/torpaq reyestrləri** [A8,A9]
 - **Mənfəət rüblük avans** UI (m.151) · **Tabel norma yoxlaması** (m.89)
+- **FS qeydləri** — subyekt kateqoriyası + audit statusu bölmələri (B9, B10)
+- **Vəzifə kataloqu** — işçi formasında ştat cədvəlindən avtomatik tamamlama (#8)
 
-Qalan kiçik bəndlər: vəzifə kataloqu (ştat cədvəli ilə əhatə olundu), FS qeydləri (B9),
-sənəd saxlama/audit bayrağı (B8/B10 — audit kateqoriyadan görünür), və 🔌 infrastruktur
-(e-Qaimə/e-taxes/EMAS/DSMF real göndəriş).
+Bütün kod-tərəfli gap bəndləri bağlandı. Qalan yalnız 🔌 **infrastruktur**:
+e-Qaimə / e-taxes / EMAS / DSMF real göndəriş — kod hazırdır, Blaze + dövlət API
+açarları + deploy müştəri tərəfindədir.
 
 ---
 
