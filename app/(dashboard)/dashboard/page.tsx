@@ -64,7 +64,7 @@ function PlatformSection({ greet, firstName, todayStr }: { greet: string; firstN
       <Hero title={`${greet}, ${firstName} 👋`} sub={`${todayStr} · ${tt('Platform İdarə Paneli', 'Platform dashboard')}`} label="TaxIQ · Super Admin" cta={{ href: '/companies/new', label: tt('Yeni müştəri', 'New client') }} />
       {isLoading || !data ? <KpiSkeleton /> : (
         <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             <KpiCard icon={Building2} tint="bg-violet-500/12 text-violet-600" label={tt('Şirkətlər', 'Companies')} value={String(data.totalCompanies)} sub={`${data.activeCompanies} ${tt('aktiv', 'active')}`} />
             <KpiCard icon={ShieldCheck} tint="bg-emerald-500/12 text-emerald-600" label={tt('Aktiv', 'Active')} value={String(data.activeCompanies)} sub={`${data.suspendedCompanies} ${tt('dayandırılıb', 'suspended')}`} />
             <KpiCard icon={Users2} tint="bg-sky-500/12 text-sky-600" label={tt('İstifadəçilər', 'Users')} value={String(data.totalUsers)} sub={`${data.staffUsers} staff`} />
@@ -441,5 +441,5 @@ function MiniRow({ icon: Icon, label, value }: { icon: typeof Wallet; label: str
 }
 function Empty({ text }: { text: string }) { return <p className="py-12 text-center text-sm text-muted-foreground">{text}</p>; }
 function KpiSkeleton() {
-  return <div className="flex flex-col gap-4"><Skeleton className="h-40 rounded-3xl" /><div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}</div><Skeleton className="h-64 rounded-3xl" /></div>;
+  return <div className="flex flex-col gap-4"><Skeleton className="h-40 rounded-3xl" /><div className="grid grid-cols-2 gap-4 sm:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-2xl" />)}</div><Skeleton className="h-64 rounded-3xl" /></div>;
 }

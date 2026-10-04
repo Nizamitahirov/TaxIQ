@@ -316,10 +316,16 @@ export async function terminateEmployee(
 
 // ── Vergi konfiqurasiyası ───────────────────────────────────
 export async function getActiveTaxConfig(): Promise<PayrollTaxConfig> {
-  const configs = await listDocs<PayrollTaxConfig>('payrollTaxConfigs');
-  if (configs.length === 0) return DEFAULT_TAX_CONFIG;
-  // effectiveFrom-a görə ən son
-  return configs.sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
+  // Qlobal `payrollTaxConfigs` kolleksiyası (companyId-siz). Təhlükəsizlik
+  // qaydaları bu qlobal oxunuşu rədd edərsə («insufficient permissions»),
+  // default konfiqurasiyaya qayıdırıq ki, əmək haqqı hesablaması bloklanmasın.
+  try {
+    const configs = await listDocs<PayrollTaxConfig>('payrollTaxConfigs');
+    if (configs.length === 0) return DEFAULT_TAX_CONFIG;
+    return configs.sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
+  } catch {
+    return DEFAULT_TAX_CONFIG;
+  }
 }
 export async function saveTaxConfig(cfg: Omit<PayrollTaxConfig, 'id'>): Promise<void> {
   const id = `cfg_${cfg.effectiveFrom}`;
