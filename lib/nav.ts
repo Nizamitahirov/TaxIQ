@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Building2, UserCog, ShieldCheck, ScrollText,
   Warehouse, Store, Wallet, BookOpen, BarChart3, Users2, Workflow,
   FileSpreadsheet, Settings, Layers, HardHat, ListChecks, Target, Landmark, ClipboardList, Undo2,
-  FileSignature, FileText, FileMinus, Factory, Sparkles, FolderArchive, GitMerge, UserPlus, Gauge, Network, Hash, Repeat, type LucideIcon,
+  FileSignature, FileText, FileMinus, Factory, Sparkles, FolderArchive, GitMerge, UserPlus, Gauge, Network, Hash, Repeat, Ship, type LucideIcon,
 } from 'lucide-react';
 import type { ModuleKey } from '@/lib/rbac/permissions';
 
@@ -64,6 +64,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: '/purchase-orders', labelKey: 'purchaseOrders', icon: ClipboardList, module: 'cashbank', area: 'supply' },
       { href: '/warehouse', labelKey: 'warehouse', icon: Warehouse, module: 'warehouse', area: 'supply' },
       { href: '/production', labelKey: 'production', icon: Factory, module: 'warehouse', area: 'supply' },
+      { href: '/customs', labelKey: 'customs', icon: Ship, module: 'warehouse', area: 'supply' },
     ],
   },
   {

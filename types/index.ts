@@ -1378,6 +1378,43 @@ export interface LeaveType {
   defaultDays: number;
 }
 
+// ── Gömrük (Gömrük Məcəlləsi) ──────────────────────────────
+export type CustomsRegime = 'import' | 'export' | 'transit' | 'temporary_import' | 'warehouse' | 'reexport';
+export type CustomsDeclStatus = 'draft' | 'submitted' | 'cleared' | 'cancelled';
+
+export interface CustomsLine {
+  description: string;
+  hsCode?: string | null;        // ETN / HS kodu
+  quantity: number;
+  customsValue: number;          // gömrük dəyəri (bu sətir üzrə)
+  dutyRate: number;              // gömrük rüsumu dərəcəsi (%)
+  exciseRate?: number;           // aksiz dərəcəsi (%)
+  vatApplicable?: boolean;       // idxal ƏDV tətbiq olunurmu
+}
+
+export interface CustomsDeclaration {
+  id: string;
+  companyId: string;
+  declarationNumber: string;
+  regime: CustomsRegime;
+  status: CustomsDeclStatus;
+  declarationDate: string;       // YYYY-MM-DD
+  counterparty?: string | null;  // göndərən/alan
+  originCountry?: string | null;
+  currency?: string;
+  lines: CustomsLine[];
+  // hesablanmış ödənişlər
+  totalCustomsValue: number;
+  totalDuty: number;
+  totalExcise: number;
+  totalImportVat: number;
+  customsFee: number;
+  totalPayable: number;
+  notes?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
 /** Ştat cədvəli mövqeyi (штатное расписание) — Əmək Məcəlləsi (C14) */
 export interface StaffingPosition {
   id: string;

@@ -101,7 +101,8 @@
     "hse": "HSE",
     "tasks": "Tasks",
     "activityCodes": "Activity codes",
-    "automation": "Periodic operations"
+    "automation": "Periodic operations",
+    "customs": "Customs"
   },
   "dashboard": {
     "greetingMorning": "Good morning",
