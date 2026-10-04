@@ -67,7 +67,7 @@ export default function IfrsPage() {
       if (type === 'cash_flow') return applyStatementTemplate(await generateCashFlow(companyId!, cur, prior), tpl);
       if (type === 'equity_changes') return applyStatementTemplate(await generateEquityChanges(companyId!, cur), tpl);
       if (type === 'fixed_asset_schedule') return applyStatementTemplate(await generateFixedAssetSchedule(companyId!, cur), tpl);
-      return generateAccountingPolicies({ companyId: companyId!, companyName: active?.company.name ?? '', baseCurrency: active?.company.baseCurrency ?? 'AZN', year });
+      return generateAccountingPolicies({ companyId: companyId!, companyName: active?.company.name ?? '', baseCurrency: active?.company.baseCurrency ?? 'AZN', year, category: active?.company.taxProfile?.category });
     },
     enabled: !!companyId && allowed,
   });

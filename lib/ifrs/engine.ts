@@ -261,6 +261,7 @@ export interface NotesDocument { title: string; periodLabel: string; sections: N
  */
 export async function generateAccountingPolicies(input: {
   companyId: string; companyName: string; baseCurrency: string; year: number;
+  category?: 'micro' | 'small' | 'medium' | 'large' | 'public'; customNotes?: { heading: string; body: string }[];
 }): Promise<NotesDocument> {
   const [assets, goods] = await Promise.all([
     listFixedAssets(input.companyId),
@@ -293,6 +294,35 @@ export async function generateAccountingPolicies(input: {
       `Gəlir malların/xidmətlərin nəzarətinin müştəriyə keçdiyi anda, ƏDV çıxılmaqla, tanınır.`,
     ] },
   ];
+
+  // 6. Subyekt kateqoriyası və tətbiq olunan uçot standartı (B3)
+  if (input.category) {
+    const catMap: Record<string, { az: string; std: string }> = {
+      micro: { az: 'mikro', std: 'sadələşdirilmiş uçot qaydaları' },
+      small: { az: 'kiçik', std: 'KOM üçün BMHS (IFRS for SMEs)' },
+      medium: { az: 'orta', std: 'KOM üçün BMHS (IFRS for SMEs)' },
+      large: { az: 'iri', std: 'tam BMHS (full IFRS)' },
+      public: { az: 'ictimai əhəmiyyətli', std: 'tam BMHS (full IFRS)' },
+    };
+    const c = catMap[input.category];
+    sections.push({ heading: '6. Subyekt kateqoriyası', body: [
+      `Subyekt ${c.az} sahibkarlıq subyekti kimi təsnif edilir və ${c.std} tətbiq edir.`,
+    ] });
+  }
+
+  // 7. Audit statusu (B10) — ictimai əhəmiyyətli subyektlər üçün məcburi audit
+  const auditRequired = input.category === 'public';
+  sections.push({ heading: '7. Audit statusu', body: [
+    auditRequired
+      ? `Subyekt ictimai əhəmiyyətli olduğundan maliyyə hesabatları qanunvericiliyə uyğun olaraq məcburi kənar audit tələb edir.`
+      : `Subyekt üçün məcburi kənar audit tələbi tətbiq edilmir (könüllü audit mümkündür).`,
+  ] });
+
+  // 8+. İstifadəçinin əlavə etdiyi qeydlər
+  for (const n of (input.customNotes ?? [])) {
+    if (n.heading?.trim() || n.body?.trim()) sections.push({ heading: n.heading.trim() || 'Əlavə qeyd', body: [n.body] });
+  }
+
   return { title: 'Uçot Siyasəti və Qeydlər', periodLabel: String(input.year), sections };
 }
 
