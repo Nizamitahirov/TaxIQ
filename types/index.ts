@@ -68,6 +68,17 @@ export interface CompanySettings {
   fiscalYearStartMonth: number;
 }
 
+/** Vergi profili — rejim, ƏDV, subyekt kateqoriyası (Vergi + Mühasibatlıq) */
+export type TaxRegime = 'standard' | 'simplified';
+export type EntityCategory = 'micro' | 'small' | 'medium' | 'large' | 'public';
+export interface TaxProfile {
+  regime: TaxRegime;              // sadələşdirilmiş / ümumi (m.218)
+  vatRegistered: boolean;         // ƏDV qeydiyyatında (m.155)
+  category: EntityCategory;       // subyekt kateqoriyası → uçot standartı (B3)
+  ownsProperty?: boolean;         // əmlak vergisi ödəyicisi
+  ownsLand?: boolean;             // torpaq vergisi ödəyicisi
+}
+
 /** companies/{companyId} — 01 §2.3 */
 export interface Company {
   id: string;
@@ -85,6 +96,7 @@ export interface Company {
   phone?: string;
   email?: string;
   settings: CompanySettings;
+  taxProfile?: TaxProfile;
   modulesEnabled?: CompanyModule[];
   // ── 02 §1.2 əlavə profil sahələri ──
   legalForm?: string;            // MMC, ASC, Fərdi Sahibkar, ...

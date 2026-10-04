@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/toast';
 import { useTT } from '@/lib/i18n/tt';
 import type { Currency, PayrollTaxConfig } from '@/types';
@@ -35,12 +36,14 @@ export default function SettingsPage() {
           <TabsTrigger value="company">{tt('Şirkət', 'Company')}</TabsTrigger>
           <TabsTrigger value="currencies">{tt('Valyutalar', 'Currencies')}</TabsTrigger>
           <TabsTrigger value="tax">{tt('Əmək haqqı vergisi', 'Payroll tax')}</TabsTrigger>
+          <TabsTrigger value="taxprofile">{tt('Vergi profili', 'Tax profile')}</TabsTrigger>
           <TabsTrigger value="prefs">{tt('Tərcihlər', 'Preferences')}</TabsTrigger>
           <TabsTrigger value="import">{tt('Excel idxal', 'Excel import')}</TabsTrigger>
         </TabsList>
         <TabsContent value="company"><CompanyTab /></TabsContent>
         <TabsContent value="currencies"><CurrenciesTab /></TabsContent>
         <TabsContent value="tax"><TaxTab canManage={canManageTax} /></TabsContent>
+        <TabsContent value="taxprofile"><TaxProfileTab /></TabsContent>
         <TabsContent value="prefs"><PrefsTab /></TabsContent>
         <TabsContent value="import"><ImportTab /></TabsContent>
       </Tabs>
@@ -137,6 +140,64 @@ function CompanyTab() {
       ) : (
         <p className="mt-4 text-xs text-muted-foreground">{tt('Dəyişiklik üçün «platform.company.settings.edit» icazəsi lazımdır.', 'The «platform.company.settings.edit» permission is required to edit.')}</p>
       )}
+    </CardContent></Card>
+  );
+}
+
+function TaxProfileTab() {
+  const { active, isSuperAdmin, can, profile, refresh } = useAuth();
+  const tt = useTT();
+  const canEdit = isSuperAdmin || can('platform.company.settings.edit');
+  const company = active?.company;
+  const tp = company?.taxProfile;
+  const [regime, setRegime] = useState<string>(tp?.regime ?? 'standard');
+  const [category, setCategory] = useState<string>(tp?.category ?? 'small');
+  const [vat, setVat] = useState(!!tp?.vatRegistered);
+  const [prop, setProp] = useState(!!tp?.ownsProperty);
+  const [land, setLand] = useState(!!tp?.ownsLand);
+  const [busy, setBusy] = useState(false);
+  const [key, setKey] = useState('');
+  const k = company?.id ?? '';
+  if (k !== key && company) { setKey(k); setRegime(tp?.regime ?? 'standard'); setCategory(tp?.category ?? 'small'); setVat(!!tp?.vatRegistered); setProp(!!tp?.ownsProperty); setLand(!!tp?.ownsLand); }
+
+  async function save() {
+    if (!company) return;
+    setBusy(true);
+    try {
+      const taxProfile = { regime, category, vatRegistered: vat, ownsProperty: prop, ownsLand: land };
+      await updateCompany(company.id, { taxProfile } as Record<string, unknown>);
+      await logAudit({ companyId: company.id, userId: profile?.uid ?? '', action: 'COMPANY_TAX_PROFILE_UPDATED', entityType: 'company', entityId: company.id, after: taxProfile });
+      await refresh();
+      toast.success(tt('Yadda saxlanıldı', 'Saved'));
+    } catch (e) { toast.error(tt('Xəta', 'Error'), e instanceof Error ? e.message : undefined); } finally { setBusy(false); }
+  }
+
+  const CATS: [string, string, string][] = [['micro', 'Mikro', 'Micro'], ['small', 'Kiçik', 'Small'], ['medium', 'Orta', 'Medium'], ['large', 'İri', 'Large'], ['public', 'İctimai əhəmiyyətli', 'Public-interest']];
+  const stdByCat: Record<string, string> = { micro: tt('Sadələşdirilmiş uçot', 'Simplified'), small: tt('KOM-IFRS', 'SME-IFRS'), medium: tt('KOM-IFRS', 'SME-IFRS'), large: tt('Tam IFRS', 'Full IFRS'), public: tt('Tam IFRS + audit', 'Full IFRS + audit') };
+
+  return (
+    <Card className="rounded-card"><CardContent className="space-y-4 p-6">
+      <p className="text-sm text-muted-foreground">{tt('Şirkətin vergi rejimi və subyekt kateqoriyası — Vergi təqvimi və hesabat standartı bunlara görə müəyyən edilir.', 'Company tax regime and entity category — the tax calendar and reporting standard follow these.')}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1"><Label>{tt('Vergi rejimi', 'Tax regime')}</Label>
+          <Select value={regime} onValueChange={setRegime} disabled={!canEdit}><SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="standard">{tt('Ümumi (ƏDV/mənfəət)', 'Standard (VAT/profit)')}</SelectItem><SelectItem value="simplified">{tt('Sadələşdirilmiş (2%)', 'Simplified (2%)')}</SelectItem></SelectContent></Select>
+        </div>
+        <div className="space-y-1"><Label>{tt('Subyekt kateqoriyası', 'Entity category')}</Label>
+          <Select value={category} onValueChange={setCategory} disabled={!canEdit}><SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{CATS.map(([v, az, en]) => <SelectItem key={v} value={v}>{tt(az, en)}</SelectItem>)}</SelectContent></Select>
+        </div>
+      </div>
+      <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+        <span className="text-muted-foreground">{tt('Uçot standartı (B3)', 'Reporting standard (B3)')}: </span><b>{stdByCat[category]}</b>
+        {category === 'public' && <span className="ml-2 text-xs text-amber-600">{tt('— məcburi audit', '— audit required')}</span>}
+      </div>
+      <div className="space-y-2 text-sm">
+        <label className="flex items-center gap-2"><input type="checkbox" checked={vat} disabled={!canEdit || regime === 'simplified'} onChange={(e) => setVat(e.target.checked)} /> {tt('ƏDV qeydiyyatında (m.155)', 'VAT registered (Art.155)')}</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={prop} disabled={!canEdit} onChange={(e) => setProp(e.target.checked)} /> {tt('Əmlak vergisi ödəyicisi', 'Property-tax payer')}</label>
+        <label className="flex items-center gap-2"><input type="checkbox" checked={land} disabled={!canEdit} onChange={(e) => setLand(e.target.checked)} /> {tt('Torpaq vergisi ödəyicisi', 'Land-tax payer')}</label>
+      </div>
+      {canEdit && <Button onClick={save} disabled={busy}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} {tt('Yadda saxla', 'Save')}</Button>}
     </CardContent></Card>
   );
 }

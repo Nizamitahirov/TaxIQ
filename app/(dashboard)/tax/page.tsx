@@ -208,7 +208,7 @@ export default function TaxPage() {
       </div>
 
       <div className="mt-8">
-        <TaxCalendar defaultVatPayer={rolling12mTurnover > 200000} />
+        <TaxCalendar defaultVatPayer={rolling12mTurnover > 200000} stored={active?.company.taxProfile} />
       </div>
 
       <TaxCalculators cur={cur} rolling12mTurnover={rolling12mTurnover} />

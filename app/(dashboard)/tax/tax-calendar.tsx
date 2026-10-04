@@ -7,10 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTT } from '@/lib/i18n/tt';
 
-export function TaxCalendar({ defaultVatPayer }: { defaultVatPayer: boolean }) {
+export function TaxCalendar({ defaultVatPayer, stored }: { defaultVatPayer: boolean; stored?: { regime?: string; vatRegistered?: boolean; ownsProperty?: boolean; ownsLand?: boolean } }) {
   const tt = useTT();
   const [profile, setProfile] = useState<CompanyTaxProfile>({
-    vatPayer: defaultVatPayer, simplifiedPayer: false, hasEmployees: true, ownsProperty: false, ownsLand: false,
+    vatPayer: stored?.vatRegistered ?? defaultVatPayer,
+    simplifiedPayer: stored?.regime === 'simplified',
+    hasEmployees: true,
+    ownsProperty: stored?.ownsProperty ?? false,
+    ownsLand: stored?.ownsLand ?? false,
   });
   const deadlines = upcomingDeadlines(profile, new Date(), 6);
 
