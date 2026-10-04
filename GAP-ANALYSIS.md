@@ -9,6 +9,25 @@ sübutu göstərilib.
 
 ---
 
+## ✅ HƏLL EDİLDİ (bu iş sessiyası)
+
+- **Namizəd → İşçi** çevrilməsi + CV yükləmə (data-URL) — Recruitment dead-end-ləri
+- **Əlavə məzuniyyət** (staj) balansa avtomatik (m.116); **məzuniyyət pulu** jurnala (m.140)
+- **Overtime/gecə/bayram** mühərriki payrola qoşuldu (m.164–166)
+- **Org hesabat xətti** (`managerId`) + **Ştat cədvəli** (C14)
+- **Nav məntiqi** — CRM Vergidən çıxarıldı, 8 məntiqli iş sahəsi
+- **Yeni logo** (adaptiv) + favicon
+- **Gömrük modulu** — bütöv (bəyannamə, gömrük dəyəri, rüsum+ƏDV+aksiz, 6 rejim) [G1–G9]
+- **İl bağlanışı** sihirbazı (B11) · **Mikro ×2 amortizasiya** (m.114.3-2)
+- **Vergi profili** (rejim/ƏDV/kateqoriya) [A6 bayraq, B3] · **Əmlak/torpaq reyestrləri** [A8,A9]
+- **Mənfəət rüblük avans** UI (m.151) · **Tabel norma yoxlaması** (m.89)
+
+Qalan kiçik bəndlər: vəzifə kataloqu (ştat cədvəli ilə əhatə olundu), FS qeydləri (B9),
+sənəd saxlama/audit bayrağı (B8/B10 — audit kateqoriyadan görünür), və 🔌 infrastruktur
+(e-Qaimə/e-taxes/EMAS/DSMF real göndəriş).
+
+---
+
 # SİYAHI 1 — ÇATIŞMAYANLAR (platformada tamamilə yoxdur)
 
 ## A. GÖMRÜK MƏCƏLLƏSİ — bütöv modul yoxdur ❌
