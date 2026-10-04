@@ -94,6 +94,7 @@ export const NAV_GROUPS: NavGroup[] = [
     labelKey: 'tax',
     items: [
       { href: '/tax', labelKey: 'taxReturns', icon: Landmark, module: 'accounting', area: 'tax' },
+      { href: '/property-tax', labelKey: 'propertyTax', icon: Building2, module: 'accounting', area: 'tax' },
       { href: '/activity-codes', labelKey: 'activityCodes', icon: Hash, module: 'accounting', area: 'tax' },
     ],
   },

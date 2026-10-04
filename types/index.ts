@@ -1378,6 +1378,32 @@ export interface LeaveType {
   defaultDays: number;
 }
 
+// ── Əmlak və torpaq vergisi reyestrləri (Vergi Məcəlləsi m.197-210) ──
+export interface PropertyTaxAsset {
+  id: string;
+  companyId: string;
+  name: string;
+  openingResidual: number;   // il əvvəli qalıq dəyər
+  closingResidual: number;   // il sonu qalıq dəyər
+  year: number;
+  notes?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
+export interface LandPlot {
+  id: string;
+  companyId: string;
+  location: string;
+  areaUnits: number;          // sahə (m² və ya ha)
+  unit?: 'm2' | 'ha';
+  tariffPerUnit: number;      // zona/kateqoriya tarifi (vahid üzrə)
+  year: number;
+  notes?: string | null;
+  createdAt?: TS;
+  createdBy?: string;
+}
+
 // ── Gömrük (Gömrük Məcəlləsi) ──────────────────────────────
 export type CustomsRegime = 'import' | 'export' | 'transit' | 'temporary_import' | 'warehouse' | 'reexport';
 export type CustomsDeclStatus = 'draft' | 'submitted' | 'cleared' | 'cancelled';
