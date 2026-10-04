@@ -231,7 +231,7 @@ export interface JournalLine {
 export type JournalSourceType =
   | 'manual' | 'sales_invoice' | 'sales_credit_note' | 'purchase_bill' | 'purchase_debit_note'
   | 'payment' | 'cash_transaction'
-  | 'stock_movement' | 'payroll' | 'depreciation' | 'amortization' | 'production' | 'fx_revaluation';
+  | 'stock_movement' | 'payroll' | 'depreciation' | 'amortization' | 'production' | 'fx_revaluation' | 'year_end_closing';
 
 /** journalEntries/{entryId} — 08 §2.1 */
 export interface JournalEntry {

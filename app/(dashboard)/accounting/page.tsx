@@ -17,6 +17,7 @@ import { TrialBalanceTab } from './trial-balance-tab';
 import { PeriodsTab } from './periods-tab';
 import { FixedAssetsTab } from './fixed-assets-tab';
 import { PostingRulesTab } from './posting-rules-tab';
+import { YearEndTab } from './year-end-tab';
 
 export default function AccountingPage() {
   const { active, can, isSuperAdmin, profile } = useAuth();
@@ -76,6 +77,7 @@ export default function AccountingPage() {
           <TabsTrigger value="periods">{tt('Dövrlər', 'Periods')}</TabsTrigger>
           <TabsTrigger value="assets">{tt('Əsas Vəsaitlər', 'Fixed Assets')}</TabsTrigger>
           <TabsTrigger value="posting">{tt('Posting Qaydaları', 'Posting Rules')}</TabsTrigger>
+          <TabsTrigger value="yearend">{tt('İl bağlanışı', 'Year-end')}</TabsTrigger>
         </TabsList>
         <TabsContent value="coa"><CoaTab companyId={companyId} accounts={accounts} canEdit={isSuperAdmin || can('accounting.coa.edit')} actorUid={profile?.uid ?? ''} /></TabsContent>
         <TabsContent value="journal"><JournalTab companyId={companyId} accounts={accounts} canPost={canPost} actorUid={profile?.uid ?? ''} baseCurrency={active?.company.baseCurrency ?? 'AZN'} /></TabsContent>
@@ -83,6 +85,7 @@ export default function AccountingPage() {
         <TabsContent value="periods"><PeriodsTab companyId={companyId} canManage={isSuperAdmin || can('accounting.journal.approve')} actorUid={profile?.uid ?? ''} /></TabsContent>
         <TabsContent value="assets"><FixedAssetsTab companyId={companyId} accounts={accounts} canManage={canPost} actorUid={profile?.uid ?? ''} /></TabsContent>
         <TabsContent value="posting"><PostingRulesTab companyId={companyId} accounts={accounts} canManage={isSuperAdmin || can('accounting.posting_rules.manage')} actorUid={profile?.uid ?? ''} /></TabsContent>
+        <TabsContent value="yearend"><YearEndTab companyId={companyId} canManage={isSuperAdmin || can('accounting.journal.approve')} actorUid={profile?.uid ?? ''} baseCurrency={active?.company.baseCurrency ?? 'AZN'} /></TabsContent>
       </Tabs>
     </div>
   );
