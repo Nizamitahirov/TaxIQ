@@ -92,7 +92,7 @@ export default function OrgPage() {
         <TabsContent value="reporting">
           <p className="mb-3 text-sm text-muted-foreground">{tt('Hər işçi üçün birbaşa rəhbəri seçin — ağac avtomatik qurulur.', 'Pick each employee’s direct manager — the tree builds automatically.')}</p>
           {reporting.length === 0 ? <EmptyState title={tt('İşçi yoxdur', 'No employees')} />
-            : <div className="space-y-3">{reporting.map((n) => <EmpTreeNode key={n.emp.id} node={n} level={0} all={activeEmps} canEdit={canEdit} onSetManager={setManager} tt={tt} />)}</div>}
+            : <div className="space-y-3">{reporting.map((n) => <EmpTreeNode key={n.emp.id} node={n} level={0} all={activeEmps} canEdit={canEdit} onSetManager={setManager} tt={tt} seen={new Set()} />)}</div>}
         </TabsContent>
 
         {/* Şöbələr — əlavə/sil */}
@@ -184,7 +184,9 @@ function DeptDialog({ companyId, departments, onClose, onSaved }: { companyId: s
   );
 }
 
-function EmpTreeNode({ node, level, all, canEdit, onSetManager, tt }: { node: EmpNode; level: number; all: Employee[]; canEdit: boolean; onSetManager: (e: Employee, m: string | null) => void; tt: (az: string, en: string) => string }) {
+function EmpTreeNode({ node, level, all, canEdit, onSetManager, tt, seen }: { node: EmpNode; level: number; all: Employee[]; canEdit: boolean; onSetManager: (e: Employee, m: string | null) => void; tt: (az: string, en: string) => string; seen: Set<string> }) {
+  if (seen.has(node.emp.id)) return null; // dövr mühafizəsi (A↔B rəhbərlik)
+  const nextSeen = new Set(seen).add(node.emp.id);
   return (
     <div className={level > 0 ? 'ml-5 border-l-2 border-border/60 pl-5' : ''}>
       <Card className="rounded-card"><CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -208,7 +210,7 @@ function EmpTreeNode({ node, level, all, canEdit, onSetManager, tt }: { node: Em
           </div>
         )}
       </CardContent></Card>
-      {node.reports.length > 0 && <div className="mt-3 space-y-3">{node.reports.map((c) => <EmpTreeNode key={c.emp.id} node={c} level={level + 1} all={all} canEdit={canEdit} onSetManager={onSetManager} tt={tt} />)}</div>}
+      {node.reports.length > 0 && <div className="mt-3 space-y-3">{node.reports.map((c) => <EmpTreeNode key={c.emp.id} node={c} level={level + 1} all={all} canEdit={canEdit} onSetManager={onSetManager} tt={tt} seen={nextSeen} />)}</div>}
     </div>
   );
 }
