@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Plus, Pencil, FileText, FileSignature, UserX, MoreHorizontal } from 'lucide-react';
 import { listEmployees, createEmployee, updateEmployee, terminateEmployee } from '@/lib/firebase/hr';
 import { listDepartments } from '@/lib/firebase/departments';
+import { listStaffingPositions } from '@/lib/firebase/staffing';
 import { printLaborContract, printEContractNotification } from '@/lib/hr/documents';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ExportButton } from '@/components/shared/export-button';
@@ -175,6 +176,7 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
   const [key, setKey] = useState('');
   const { data: departments } = useQuery({ queryKey: ['departments', companyId], queryFn: () => listDepartments(companyId), enabled: open });
   const { data: managers } = useQuery({ queryKey: ['employees', companyId], queryFn: () => listEmployees(companyId), enabled: open });
+  const { data: positions } = useQuery({ queryKey: ['staffingPositions', companyId], queryFn: () => listStaffingPositions(companyId), enabled: open });
 
   const k = (edit?.id ?? 'new') + (open ? '1' : '0');
   if (k !== key && open) {
@@ -257,7 +259,9 @@ function EmployeeDialog({ open, onOpenChange, companyId, actorUid, edit, baseCur
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{tt('Vəzifə və müqavilə', 'Position & contract')}</p>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{tt('İşçi kodu', 'Employee code')}</Label><Input value={form.code} onChange={(e) => set({ code: e.target.value })} placeholder={tt('avtomatik', 'automatic')} /></div>
-              <div className="space-y-2"><Label>{tt('Vəzifə', 'Position')}</Label><Input value={form.position} onChange={(e) => set({ position: e.target.value })} /></div>
+              <div className="space-y-2"><Label>{tt('Vəzifə', 'Position')}</Label><Input list="staffing-positions" value={form.position} onChange={(e) => set({ position: e.target.value })} />
+                <datalist id="staffing-positions">{Array.from(new Set((positions ?? []).map((p) => p.title))).map((t) => <option key={t} value={t} />)}</datalist>
+              </div>
               <div className="space-y-2"><Label>{tt('Şöbə', 'Department')}</Label>
                 <Select value={form.departmentId} onValueChange={(v) => set({ departmentId: v })}><SelectTrigger><SelectValue placeholder={tt('Seç', 'Select')} /></SelectTrigger>
                   <SelectContent>{(departments ?? []).map((d) => <SelectItem key={d.id} value={d.id}>{tt(d.name.az, d.name.en)}</SelectItem>)}</SelectContent></Select>
