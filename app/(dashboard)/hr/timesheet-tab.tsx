@@ -17,6 +17,16 @@ import { useTT } from '@/lib/i18n/tt';
 import type { MonthlyTimesheet } from '@/types';
 
 interface Props { companyId: string; canCreate: boolean; actorUid: string; canApprove: boolean }
+/** Ayın norma iş saatı — iş günləri × 8 (Əmək Məcəlləsi m.89, 40 saat/həftə) */
+function normHoursForMonth(ym: string): number {
+  const [y, mo] = ym.split('-').map(Number);
+  if (!y || !mo) return 0;
+  const days = new Date(y, mo, 0).getDate();
+  let workdays = 0;
+  for (let d = 1; d <= days; d++) { const w = new Date(y, mo - 1, d).getDay(); if (w !== 0 && w !== 6) workdays++; }
+  return workdays * 8;
+}
+
 const STATUS_LABEL: Record<MonthlyTimesheet['status'], string> = { draft: 'qaralama', submitted: 'təqdim', approved: 'təsdiq' };
 const STATUS_LABEL_EN: Record<MonthlyTimesheet['status'], string> = { draft: 'draft', submitted: 'submitted', approved: 'approved' };
 
@@ -58,14 +68,17 @@ export function TimesheetTab({ companyId, canCreate, actorUid, canApprove }: Pro
       ) : (
         <Card className="rounded-card"><CardContent className="overflow-x-auto p-0">
           <Table>
-            <TableHeader><TableRow><TableHead>{tt('İşçi', 'Employee')}</TableHead><TableHead className="text-right">{tt('İş saatı', 'Worked hours')}</TableHead><TableHead className="text-right">Overtime</TableHead><TableHead className="text-right">{tt('İş günü', 'Worked days')}</TableHead><TableHead className="text-right">{tt('Qayıb', 'Absence')}</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>{tt('İşçi', 'Employee')}</TableHead><TableHead className="text-right">{tt('İş saatı', 'Worked hours')}</TableHead><TableHead className="text-right">{tt('Norma', 'Norm')}</TableHead><TableHead className="text-right">Overtime</TableHead><TableHead className="text-right">{tt('İş günü', 'Worked days')}</TableHead><TableHead className="text-right">{tt('Qayıb', 'Absence')}</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
             <TableBody>
               {(data ?? []).map((t) => {
                 const editable = canCreate && t.status !== 'approved';
+                const norm = normHoursForMonth(ym);
+                const deviates = Math.abs(t.totalWorkedHours - norm) > 0.5;
                 return (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium">{t.employeeName}</TableCell>
                     <TableCell className="text-right">{editable ? <Input type="number" defaultValue={t.totalWorkedHours} className="ml-auto w-20 text-right" onBlur={(e) => { const v = Number(e.target.value); if (v !== t.totalWorkedHours) editRow(t, { totalWorkedHours: v }); }} /> : <span className="tnum">{t.totalWorkedHours}</span>}</TableCell>
+                    <TableCell className="text-right"><span className={`tnum ${deviates ? 'text-amber-600 font-medium' : 'text-muted-foreground'}`} title={deviates ? tt('Normadan kənarlaşma (m.89 — 40 saat/həftə)', 'Deviates from norm (Art.89 — 40h/week)') : ''}>{norm}{deviates ? ` (${t.totalWorkedHours - norm > 0 ? '+' : ''}${Math.round((t.totalWorkedHours - norm) * 10) / 10})` : ''}</span></TableCell>
                     <TableCell className="text-right">{editable ? <Input type="number" defaultValue={t.totalOvertimeHours} className="ml-auto w-20 text-right" onBlur={(e) => { const v = Number(e.target.value); if (v !== t.totalOvertimeHours) editRow(t, { totalOvertimeHours: v }); }} /> : <span className="tnum">{t.totalOvertimeHours}</span>}</TableCell>
                     <TableCell className="text-right tnum">{t.workedDays}</TableCell>
                     <TableCell className="text-right">{editable ? <Input type="number" defaultValue={t.absenceDays} className="ml-auto w-16 text-right" onBlur={(e) => { const v = Number(e.target.value); if (v !== t.absenceDays) editRow(t, { absenceDays: v }); }} /> : <span className="tnum">{t.absenceDays}</span>}</TableCell>

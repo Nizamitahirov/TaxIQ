@@ -195,6 +195,7 @@ export default function TaxPage() {
           <KV label={tt('Vergiyə cəlb olunan mənfəət (illik P&L)', 'Taxable profit (annual P&L)')} value={formatCurrency(profitTax.profit, cur)} />
           <KV label={tt('Dərəcə', 'Rate')} value={`${PROFIT_TAX_RATE * 100}%`} />
           <KV label={tt('Hesablanmış vergi', 'Computed tax')} value={formatCurrency(profitTax.tax, cur)} primary />
+          <KV label={tt('Rüblük cari ödəniş (¼, m.151)', 'Quarterly advance (¼, Art.151)')} value={formatCurrency(Math.round(profitTax.tax / 4 * 100) / 100, cur)} />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">{tt('Qeyd: mənfəət vergisi illik əsasda hesablanır (IFRS Mənfəət-Zərər hesabatından). Rüblük avanslar mənfəətin nisbətinə görə tənzimlənir.', 'Note: profit tax is computed annually (from the IFRS P&L). Quarterly advances are adjusted pro-rata.')}</p>
       </DeclCard>
