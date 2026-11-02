@@ -220,7 +220,7 @@ export default function BudgetPage() {
                 <YAxis fontSize={11} tickLine={false} axisLine={false} width={54} tickFormatter={(v: number) => (Math.abs(v) >= 1000 ? `${Math.round(v / 1000)}k` : String(v))} />
                 <Tooltip formatter={(v: number) => formatCurrency(v, cur)} />
                 <Legend />
-                <Bar name={tt('Plan', 'Plan')} dataKey="plan" fill="#5B5BF5" radius={[4, 4, 0, 0]} barSize={16} />
+                <Bar name={tt('Plan', 'Plan')} dataKey="plan" fill="#ED1C24" radius={[4, 4, 0, 0]} barSize={16} />
                 <Line name={tt('Fakt', 'Actual')} type="monotone" dataKey="actual" stroke="#16c098" strokeWidth={2.5} dot={{ r: 3 }} />
               </ComposedChart>
             </ResponsiveContainer>

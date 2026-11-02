@@ -116,12 +116,12 @@ export default function DepreciationPage() {
             <p className="mb-3 text-sm font-medium text-muted-foreground">{tt('Xalis qalıq dəyəri proqnozu (12 ay)', 'Net book value projection (12 months)')}</p>
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={projection}>
-                <defs><linearGradient id="nbvGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5B5BF5" stopOpacity={0.4} /><stop offset="100%" stopColor="#5B5BF5" stopOpacity={0} /></linearGradient></defs>
+                <defs><linearGradient id="nbvGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#ED1C24" stopOpacity={0.4} /><stop offset="100%" stopColor="#ED1C24" stopOpacity={0} /></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} width={54} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))} />
                 <Tooltip formatter={(v: number) => formatCurrency(v, cur)} />
-                <Area type="monotone" dataKey="nbv" stroke="#5B5BF5" strokeWidth={2.5} fill="url(#nbvGrad)" />
+                <Area type="monotone" dataKey="nbv" stroke="#ED1C24" strokeWidth={2.5} fill="url(#nbvGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent></Card>

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils/cn';
 
 /** Yeganə brend aksenti — yaşıl "zəka qığılcımı" (həm açıq, həm tünd fonda oxunur). */
-const BRAND_GREEN = '#22C55E';
+const BRAND_ACCENT = '#FF7A00';
 
 /**
  * TAX iQ brend nişanı — adaptiv (monoxrom): plitə, yüksələn sütunlar və trend
@@ -24,7 +24,7 @@ export function LogoMark({ className }: { className?: string }) {
       <path d="M150 286 L256 220 L352 150" fill="none" stroke="currentColor" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M300 150 L352 150 L352 202" fill="none" stroke="currentColor" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round" />
       {/* yaşıl zəka qığılcımı */}
-      <circle cx="398" cy="118" r="36" fill={BRAND_GREEN} />
+      <circle cx="398" cy="118" r="36" fill={BRAND_ACCENT} />
     </svg>
   );
 }
@@ -42,7 +42,7 @@ export function Logo({ compact = false, subtitle = false }: { compact?: boolean;
       {!compact && (
         <span className="flex flex-col leading-none">
           <span className="text-lg font-extrabold tracking-tight">
-            Tax<span className="text-[#22C55E]">i</span><span>Q</span>
+            Tax<span className="text-[#FF7A00]">i</span><span>Q</span>
           </span>
           {subtitle && (
             <span className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-60">Smart Tax Solutions</span>

@@ -36,7 +36,7 @@ const money = (n: number, cur: string) => new Intl.NumberFormat('az-AZ', { minim
 /** Faktura üçün şablon konteksti qurur */
 export function buildInvoiceContext(inv: Invoice, company: Company, customer: Customer | null): Ctx {
   return {
-    company: { name: company.name, legalName: company.legalName ?? '', taxId: company.taxId ?? '', address: company.address ?? '', phone: company.phone ?? '', logoUrl: company.logoUrl ?? '', brandColor: company.brandColor ?? '#5B5BF5', directorName: company.directorName ?? '' },
+    company: { name: company.name, legalName: company.legalName ?? '', taxId: company.taxId ?? '', address: company.address ?? '', phone: company.phone ?? '', logoUrl: company.logoUrl ?? '', brandColor: company.brandColor ?? '#ED1C24', directorName: company.directorName ?? '' },
     customer: { name: inv.customerName ?? customer?.name ?? '', taxId: customer?.taxId ?? '', address: customer?.billingAddress ?? '' },
     invoice: { invoiceNumber: inv.invoiceNumber, issueDate: inv.issueDate, dueDate: inv.dueDate, currency: inv.currency, subtotal: money(inv.subtotal - inv.discountTotal, inv.currency), vatTotal: money(inv.vatTotal, inv.currency), grandTotal: money(inv.grandTotal, inv.currency), grandTotalWords: amountToWordsAz(inv.grandTotal, ...(CUR_WORDS[inv.currency] ?? ['manat', 'qəpik'])) },
     lineItems: inv.lineItems.map((l) => ({ description: l.description, quantity: l.quantity, unit: l.unit ?? '', unitPrice: money(l.unitPrice, inv.currency), discountPercent: l.discountPercent || 0, vatRate: l.vatRate || 0, lineTotal: money(l.lineTotal, inv.currency) })),

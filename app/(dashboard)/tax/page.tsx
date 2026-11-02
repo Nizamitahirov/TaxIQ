@@ -113,7 +113,7 @@ export default function TaxPage() {
 
       {/* Xülasə kartları */}
       <div className="mb-6 grid gap-4 md:grid-cols-3">
-        <SummaryCard icon={Receipt} tint="from-indigo-500 to-violet-500" title={tt('ƏDV (18%)', 'VAT (18%)')} value={formatCurrency(vat.payable, cur)}
+        <SummaryCard icon={Receipt} tint="from-red-500 to-orange-500" title={tt('ƏDV (18%)', 'VAT (18%)')} value={formatCurrency(vat.payable, cur)}
           sub={tt(`Çıxış ${formatCurrency(vat.outputVat, cur)} − Giriş ${formatCurrency(vat.inputVat, cur)}`, `Output ${formatCurrency(vat.outputVat, cur)} − Input ${formatCurrency(vat.inputVat, cur)}`)}
           note={vat.payable >= 0 ? tt('ödəniləcək', 'payable') : tt('əvəzləşdirmə', 'creditable')} />
         <SummaryCard icon={Users2} tint="from-amber-500 to-orange-500" title={tt('Ödəmə mənbəyində vergi', 'Withholding tax')} value={formatCurrency(wh.incomeTax, cur)}

@@ -70,7 +70,7 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Brend paneli (desktop) */}
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#1F5AEB] to-[#153E9E] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#ED1C24] via-[#F2541B] to-[#FF7A00] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/10 blur-3xl" />
         <div className="relative flex items-center gap-3">

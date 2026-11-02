@@ -6,7 +6,7 @@ const esc = (s: string) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&am
 
 /** Hər işçi üçün payslip (06 §6 dizayner infrastrukturunun sadə alternativi) */
 export function printPayslips(run: PayrollRun, company: Company, cur: string) {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   const period = `${MONTHS[run.periodMonth - 1]} ${run.periodYear}`;
   const slips = run.lines.map((l) => `
     <div class="slip">

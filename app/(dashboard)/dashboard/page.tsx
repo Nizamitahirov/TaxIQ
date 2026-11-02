@@ -65,7 +65,7 @@ function PlatformSection({ greet, firstName, todayStr }: { greet: string; firstN
       {isLoading || !data ? <KpiSkeleton /> : (
         <>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <KpiCard icon={Building2} tint="bg-violet-500/12 text-violet-600" label={tt('Şirkətlər', 'Companies')} value={String(data.totalCompanies)} sub={`${data.activeCompanies} ${tt('aktiv', 'active')}`} />
+            <KpiCard icon={Building2} tint="bg-orange-500/12 text-orange-600" label={tt('Şirkətlər', 'Companies')} value={String(data.totalCompanies)} sub={`${data.activeCompanies} ${tt('aktiv', 'active')}`} />
             <KpiCard icon={ShieldCheck} tint="bg-emerald-500/12 text-emerald-600" label={tt('Aktiv', 'Active')} value={String(data.activeCompanies)} sub={`${data.suspendedCompanies} ${tt('dayandırılıb', 'suspended')}`} />
             <KpiCard icon={Users2} tint="bg-sky-500/12 text-sky-600" label={tt('İstifadəçilər', 'Users')} value={String(data.totalUsers)} sub={`${data.staffUsers} staff`} />
             <KpiCard icon={UserCheck} tint="bg-amber-500/12 text-amber-600" label={tt('Müştəri istifadəçiləri', 'Client users')} value={String(data.clientUsers)} />
@@ -114,7 +114,7 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
         <div className="flex min-w-0 flex-col gap-6">
           {showHero && <Hero title={`${greet}, ${firstName} 🔥`} sub={`${todayStr} · ${company.name}`} label={`TaxIQ · ${roleName}`} cta={{ href: '/sales', label: tt('Yeni faktura', 'New invoice') }} />}
           <div className="grid gap-4 sm:grid-cols-3">
-            <StatMini icon={TrendingUp} tint="bg-violet-500/12 text-violet-600" value={formatCurrency(m.revenueThisMonth, cur)} label={tt('Bu ay gəlir', 'Revenue this month')} />
+            <StatMini icon={TrendingUp} tint="bg-orange-500/12 text-orange-600" value={formatCurrency(m.revenueThisMonth, cur)} label={tt('Bu ay gəlir', 'Revenue this month')} />
             <StatMini icon={Wallet} tint="bg-emerald-500/12 text-emerald-600" value={formatCurrency(m.cashTotal, cur)} label={tt('Kassa/Bank', 'Cash/Bank')} />
             <StatMini icon={Receipt} tint="bg-sky-500/12 text-sky-600" value={formatCurrency(m.arTotal, cur)} label={tt('Debitor (AR)', 'Receivables (AR)')} />
           </div>
@@ -133,7 +133,7 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
                   <CartesianGrid horizontal={false} strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatCurrency(v, cur)} />
                   <YAxis type="category" dataKey="name" width={130} fontSize={12} tickLine={false} axisLine={false} tick={{ fill: 'currentColor' }} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v, cur)} cursor={{ fill: 'rgba(91,91,245,0.06)' }} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v, cur)} cursor={{ fill: 'rgba(237, 28, 36,0.06)' }} />
                   <Bar dataKey="revenue" radius={[0, 6, 6, 0]} barSize={18}>
                     {m.topCustomers.slice(0, 6).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Bar>
@@ -164,10 +164,10 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
             <CardContent>
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart data={m.revenueTrend} barSize={22}>
-                  <defs><linearGradient id="miniBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7c6cf5" /><stop offset="100%" stopColor="#5B5BF5" /></linearGradient></defs>
+                  <defs><linearGradient id="miniBar" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7c6cf5" /><stop offset="100%" stopColor="#ED1C24" /></linearGradient></defs>
                   <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} /><YAxis fontSize={11} tickLine={false} axisLine={false} width={30} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v, cur)} cursor={{ fill: 'rgba(91,91,245,0.06)' }} />
-                  <Bar dataKey="value" radius={[8, 8, 4, 4]}>{m.revenueTrend.map((d, i) => { const max = Math.max(...m.revenueTrend.map((x) => x.value)); return <Cell key={i} fill={d.value === max ? '#5B5BF5' : 'url(#miniBar)'} fillOpacity={d.value === max ? 1 : 0.5} />; })}</Bar>
+                  <Tooltip formatter={(v: number) => formatCurrency(v, cur)} cursor={{ fill: 'rgba(237, 28, 36,0.06)' }} />
+                  <Bar dataKey="value" radius={[8, 8, 4, 4]}>{m.revenueTrend.map((d, i) => { const max = Math.max(...m.revenueTrend.map((x) => x.value)); return <Cell key={i} fill={d.value === max ? '#ED1C24' : 'url(#miniBar)'} fillOpacity={d.value === max ? 1 : 0.5} />; })}</Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -178,7 +178,7 @@ function CompanySection({ companyId, company, roleName, greet, firstName, todayS
             <CardContent className="space-y-1">
               {m.topCustomers.length === 0 ? <Empty text={tt('Müştəri satışı yoxdur', 'No customer sales')} /> : m.topCustomers.slice(0, 5).map((c) => (
                 <div key={c.name} className="flex items-center gap-3 border-b border-border/50 py-2 last:border-0">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#5B5BF5] to-[#8b3df0] text-xs font-bold text-white">{c.name.slice(0, 2).toUpperCase()}</span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ED1C24] to-[#FF7A00] text-xs font-bold text-white">{c.name.slice(0, 2).toUpperCase()}</span>
                   <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{c.name}</p><p className="text-xs text-muted-foreground">{tt('Müştəri', 'Customer')}</p></div>
                   <span className="shrink-0 text-sm font-bold text-primary">{formatCurrency(c.revenue, cur)}</span>
                 </div>
@@ -359,7 +359,7 @@ function CustomizeDialog({ open, onOpenChange, cfg, onApply }: { open: boolean; 
 // ── Ortaq komponentlər (Uperp tərzi) ──
 function Hero({ title, sub, label, cta }: { title: string; sub: string; label: string; cta: { href: string; label: string } }) {
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#6b5cf2] via-[#6a4cf3] to-[#8b3df0] p-7 text-white shadow-[0_24px_70px_-24px_rgba(91,91,245,0.6)] lg:p-9">
+    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#ED1C24] via-[#F2541B] to-[#FF7A00] p-7 text-white shadow-[0_24px_70px_-24px_rgba(237,28,36,0.6)] lg:p-9">
       <div aria-hidden className="pointer-events-none absolute inset-0"><Sparkles className="absolute right-8 top-4 h-40 w-40 text-white/[0.12]" strokeWidth={1} /><div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" /></div>
       <div className="relative max-w-xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70">{label}</p>
@@ -392,11 +392,11 @@ function AvatarRing({ name, avatarUrl, percent, editable }: { name: string; avat
   const { inputRef, uploading, openPicker, onFile } = useAvatarUpload();
   const inner = (
     <>
-      <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(#5B5BF5 ${p * 3.6}deg, rgba(127,127,127,0.14) 0deg)` }} />
+      <div className="absolute inset-0 rounded-full" style={{ background: `conic-gradient(#ED1C24 ${p * 3.6}deg, rgba(127,127,127,0.14) 0deg)` }} />
       <div className="absolute inset-[7px] overflow-hidden rounded-full bg-card">
-        {avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={avatarUrl} alt={name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#5B5BF5] to-[#8b3df0] text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</div>}
+        {avatarUrl ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={avatarUrl} alt={name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#ED1C24] to-[#FF7A00] text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</div>}
       </div>
-      <span className="absolute -right-1 top-1 rounded-full bg-[#5B5BF5] px-2 py-0.5 text-[11px] font-bold text-white shadow-lg">{p.toFixed(0)}%</span>
+      <span className="absolute -right-1 top-1 rounded-full bg-[#ED1C24] px-2 py-0.5 text-[11px] font-bold text-white shadow-lg">{p.toFixed(0)}%</span>
     </>
   );
   if (!editable) return <div className="relative h-28 w-28">{inner}</div>;
@@ -406,7 +406,7 @@ function AvatarRing({ name, avatarUrl, percent, editable }: { name: string; avat
       <button type="button" onClick={openPicker} disabled={uploading} title={tt('Şəkli dəyişdir', 'Change photo')}
         className="group relative h-28 w-28 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card">
         {inner}
-        <span className="absolute bottom-[7px] right-[7px] z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-[#5B5BF5] text-white shadow-lg transition-transform group-hover:scale-110">
+        <span className="absolute bottom-[7px] right-[7px] z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-card bg-[#ED1C24] text-white shadow-lg transition-transform group-hover:scale-110">
           {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
         </span>
         <span className="pointer-events-none absolute inset-[7px] flex items-center justify-center rounded-full bg-black/45 text-[11px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100">
@@ -424,7 +424,7 @@ function GaugeCard({ title, percent, label, sub }: { title: string; percent: num
         <div className="relative">
           <ResponsiveContainer width="100%" height={160}>
             <RadialBarChart innerRadius="72%" outerRadius="100%" data={[{ name: title, value: pct }]} startAngle={90} endAngle={-270}>
-              <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#5B5BF5" /><stop offset="100%" stopColor="#8b3df0" /></linearGradient></defs>
+              <defs><linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ED1C24" /><stop offset="100%" stopColor="#FF7A00" /></linearGradient></defs>
               <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
               <RadialBar background={{ fill: 'rgba(127,127,127,0.12)' }} dataKey="value" cornerRadius={20} fill="url(#gaugeGrad)" />
             </RadialBarChart>

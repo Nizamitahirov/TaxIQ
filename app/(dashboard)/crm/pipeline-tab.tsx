@@ -47,7 +47,7 @@ export function PipelineTab({ companyId, actorUid, actorName, baseCurrency }: Cr
 
   const tiles = [
     { icon: Wallet, label: tt('Açıq pipeline dəyəri', 'Open pipeline value'), val: formatCurrency(openVal, baseCurrency), tint: 'text-sky-500' },
-    { icon: TrendingUp, label: tt('Çəkili proqnoz', 'Weighted forecast'), val: formatCurrency(forecast, baseCurrency), tint: 'text-violet-500' },
+    { icon: TrendingUp, label: tt('Çəkili proqnoz', 'Weighted forecast'), val: formatCurrency(forecast, baseCurrency), tint: 'text-orange-500' },
     { icon: Percent, label: tt('Uğur nisbəti', 'Win rate'), val: `${wr}%`, tint: 'text-emerald-500' },
     { icon: Target, label: tt('Açıq imkanlar', 'Open opportunities'), val: String(openCount), tint: 'text-amber-500' },
   ];

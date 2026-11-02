@@ -134,13 +134,13 @@ function AreaCard({ a, style }: { a: AreaDef & { items: NavItem[] }; style: Card
 
 // Default abstract "avatract" mesh gradient (üzlük şəkli yoxdursa)
 const DEFAULT_COVER = {
-  backgroundColor: '#4f46e5',
+  backgroundColor: '#ed1c24',
   backgroundImage:
-    'radial-gradient(at 18% 22%, #818cf8 0px, transparent 55%),' +
+    'radial-gradient(at 18% 22%, #ff7a00 0px, transparent 55%),' +
     'radial-gradient(at 82% 8%, #a78bfa 0px, transparent 50%),' +
     'radial-gradient(at 92% 82%, #22d3ee 0px, transparent 45%),' +
     'radial-gradient(at 8% 92%, #fb7185 0px, transparent 45%),' +
-    'linear-gradient(135deg, #4f46e5, #7c3aed)',
+    'linear-gradient(135deg, #ed1c24, #f2541b)',
 } as const;
 
 // ── Profil + üzlük + tamamlanma ring-i ──
@@ -177,18 +177,18 @@ function ProfileRing({ name, roleName, avatarUrl, coverUrl, percent, openCount, 
           <svg viewBox="0 0 120 120" className="absolute inset-0 h-32 w-32 -rotate-90">
             <circle cx="60" cy="60" r={R} fill="none" strokeWidth="8" className="stroke-secondary" />
             <circle cx="60" cy="60" r={R} fill="none" strokeWidth="8" strokeLinecap="round" stroke="url(#ringGrad)" strokeDasharray={`${dash} ${C - dash}`} className="transition-[stroke-dasharray] duration-700" />
-            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#6366f1" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs>
+            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ed1c24" /><stop offset="100%" stopColor="#ff7a00" /></linearGradient></defs>
           </svg>
           <button type="button" onClick={avatar.openPicker} disabled={avatar.uploading} title="Profil şəklini dəyişdir"
             className="group absolute inset-[14px] overflow-hidden rounded-full outline-none ring-2 ring-card focus-visible:ring-primary">
             {avatarUrl
               ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={avatarUrl} alt={name} className="h-full w-full object-cover" />
-              : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</div>}
+              : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#ed1c24] to-[#ff7a00] text-2xl font-bold text-white">{name.slice(0, 2).toUpperCase()}</div>}
             <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity group-hover:opacity-100">
               {avatar.uploading ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
             </span>
           </button>
-          <span className="absolute bottom-1 right-1 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] px-2 py-0.5 text-[11px] font-bold text-white shadow-lg ring-2 ring-card">{percent}%</span>
+          <span className="absolute bottom-1 right-1 rounded-full bg-gradient-to-br from-[#ed1c24] to-[#ff7a00] px-2 py-0.5 text-[11px] font-bold text-white shadow-lg ring-2 ring-card">{percent}%</span>
         </div>
         <p className="mt-3 text-lg font-bold">{name}</p>
         <p className="text-xs text-muted-foreground">{roleName}</p>

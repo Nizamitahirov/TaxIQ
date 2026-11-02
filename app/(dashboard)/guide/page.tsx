@@ -19,7 +19,7 @@ export default function GuidePage() {
 
   const sections: Section[] = useMemo(() => [
     {
-      id: 'company', icon: Building2, tint: 'from-indigo-500 to-violet-500',
+      id: 'company', icon: Building2, tint: 'from-red-500 to-orange-500',
       title: tt('1. Şirkət yaratmaq', '1. Create a company'),
       desc: tt('Sıfırdan yeni müştəri/şirkət qeydiyyatı — 6 addımlıq sihirbaz.', 'Register a new client/company from scratch — a 6-step wizard.'),
       steps: [
@@ -64,7 +64,7 @@ export default function GuidePage() {
       ],
     },
     {
-      id: 'import', icon: Upload, tint: 'from-fuchsia-500 to-purple-500',
+      id: 'import', icon: Upload, tint: 'from-orange-500 to-purple-500',
       title: tt('5. Əsas məlumatlar (Excel idxal)', '5. Master data (Excel import)'),
       desc: tt('Müştəri, təchizatçı, mal və əməkdaşları toplu şəkildə yükləyin.', 'Bulk-load customers, vendors, goods and employees.'),
       steps: [
@@ -86,7 +86,7 @@ export default function GuidePage() {
       ],
     },
     {
-      id: 'hr', icon: UsersRound, tint: 'from-blue-500 to-indigo-500',
+      id: 'hr', icon: UsersRound, tint: 'from-blue-500 to-red-500',
       title: tt('7. HR və Əmək haqqı', '7. HR & Payroll'),
       desc: tt('İşçilər, tabel, məzuniyyət və əmək haqqı hesablanması.', 'Employees, timesheets, leave and payroll.'),
       steps: [
@@ -106,7 +106,7 @@ export default function GuidePage() {
       ],
     },
     {
-      id: 'more', icon: Sparkles, tint: 'from-violet-500 to-fuchsia-500',
+      id: 'more', icon: Sparkles, tint: 'from-orange-500 to-orange-500',
       title: tt('9. CRM, SƏTƏM və İş axını', '9. CRM, HSE & Workflow'),
       desc: tt('Satış boru xətti, təhlükəsizlik və təsdiq axınları.', 'Sales pipeline, safety, and approval flows.'),
       steps: [
@@ -125,7 +125,7 @@ export default function GuidePage() {
       />
 
       {/* Giriş / axın xülasəsi */}
-      <Card className="mb-6 overflow-hidden rounded-card border-0 bg-gradient-to-br from-[#5B5BF5] to-[#8B3DF0] text-white">
+      <Card className="mb-6 overflow-hidden rounded-card border-0 bg-gradient-to-br from-[#ED1C24] to-[#FF7A00] text-white">
         <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15"><Rocket className="h-6 w-6" /></span>

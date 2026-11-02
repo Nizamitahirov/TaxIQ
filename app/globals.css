@@ -3,100 +3,110 @@
 @tailwind utilities;
 
 /*
-  UP ERP — Gradex/Birtask vizual dilinə uyğunlaşdırılmış dizayn sistemi.
-  Açıq-fonlu produktivlik estetikası: periwinkle #5B5BF5 primary, yumşaq səthlər
-  (#F7F8FC / #FFFFFF), Montserrat, yumşaq layerli kölgələr, 12px radius. Dark mode.
+  TaxIQ — Birbank vizual stilistikasına uyğunlaşdırılmış dizayn sistemi.
+  Korporativ qırmızı→narıncı: primary #ED1C24, gradient narıncı #FF7A00,
+  isti-neytral səthlər, yumşaq layerli kölgələr, 12px radius. Dark mode.
+  (Yalnız dizayn ilhamı — məhsulun Birbankla əlaqəsi yoxdur.)
 */
 
 @layer base {
   :root {
     --radius: 0.75rem;
 
-    --background: #f7f8fc;
-    --foreground: #0f1129;
+    --background: #f8f7f8;
+    --foreground: #1b1a1f;
 
     --card: #ffffff;
-    --card-foreground: #0f1129;
+    --card-foreground: #1b1a1f;
     --popover: #ffffff;
-    --popover-foreground: #0f1129;
+    --popover-foreground: #1b1a1f;
 
-    --primary: #5b5bf5;
+    --primary: #ed1c24;
     --primary-foreground: #ffffff;
-    --primary-soft: #eeeefe;
+    --primary-soft: #fdecec;
 
-    --secondary: #f2f3f8;
-    --secondary-foreground: #2a2c45;
-    --muted: #f2f3f8;
-    --muted-foreground: #6b6f8a;
-    --accent: #eeeefe;
-    --accent-foreground: #4646d6;
+    /* Birbank brend gradienti (qırmızı→narıncı) */
+    --brand-red: #ed1c24;
+    --brand-orange: #ff7a00;
+    --gradient-brand: linear-gradient(135deg, #ed1c24 0%, #ff7a00 100%);
 
-    --destructive: #ff6a6a;
+    --secondary: #f4f2f4;
+    --secondary-foreground: #352f33;
+    --muted: #f4f2f4;
+    --muted-foreground: #78737a;
+    --accent: #fdecec;
+    --accent-foreground: #c4121a;
+
+    --destructive: #e5484d;
     --destructive-foreground: #ffffff;
-    --success: #16c098;
+    --success: #16a37b;
     --success-foreground: #ffffff;
     --warning: #f5a524;
     --warning-foreground: #5a3d05;
-    --info: #4dabf7;
+    --info: #3b82f6;
     --info-foreground: #ffffff;
 
-    --border: #e7e9f2;
-    --input: #e7e9f2;
-    --ring: #5b5bf5;
+    --border: #ece8ec;
+    --input: #ece8ec;
+    --ring: #ed1c24;
 
     --sidebar: #ffffff;
-    --sidebar-foreground: #2a2c45;
-    --sidebar-border: #e7e9f2;
-    --sidebar-accent: #f2f3f8;
+    --sidebar-foreground: #352f33;
+    --sidebar-border: #ece8ec;
+    --sidebar-accent: #f4f2f4;
 
-    --shadow-sm: 0 1px 2px rgba(15, 17, 41, 0.04);
-    --shadow-card: 0 4px 16px -4px rgba(15, 17, 41, 0.08), 0 2px 4px -2px rgba(15, 17, 41, 0.04);
-    --shadow-lg: 0 16px 40px -12px rgba(15, 17, 41, 0.12), 0 4px 8px -4px rgba(15, 17, 41, 0.04);
-    --shadow-glow: 0 8px 24px -6px rgba(91, 91, 245, 0.35);
+    --shadow-sm: 0 1px 2px rgba(27, 26, 31, 0.04);
+    --shadow-card: 0 4px 16px -4px rgba(27, 26, 31, 0.08), 0 2px 4px -2px rgba(27, 26, 31, 0.04);
+    --shadow-lg: 0 16px 40px -12px rgba(27, 26, 31, 0.12), 0 4px 8px -4px rgba(27, 26, 31, 0.04);
+    --shadow-glow: 0 8px 24px -6px rgba(237, 28, 36, 0.35);
   }
 
   .dark {
-    --background: #0e1024;
-    --foreground: #f2f3fa;
+    --background: #141015;
+    --foreground: #f6f2f4;
 
-    --card: #181b33;
-    --card-foreground: #f2f3fa;
-    --popover: #181b33;
-    --popover-foreground: #f2f3fa;
+    --card: #1f1a21;
+    --card-foreground: #f6f2f4;
+    --popover: #1f1a21;
+    --popover-foreground: #f6f2f4;
 
-    --primary: #6e6cff;
+    --primary: #ff5a3c;
     --primary-foreground: #ffffff;
-    --primary-soft: rgba(91, 91, 245, 0.16);
+    --primary-soft: rgba(237, 28, 36, 0.18);
 
-    --secondary: #21243d;
-    --secondary-foreground: #d7daea;
-    --muted: #21243d;
-    --muted-foreground: #9094b5;
-    --accent: rgba(91, 91, 245, 0.16);
-    --accent-foreground: #c7c7ff;
+    --brand-red: #ff4438;
+    --brand-orange: #ff8a2b;
+    --gradient-brand: linear-gradient(135deg, #ff4438 0%, #ff8a2b 100%);
 
-    --destructive: #ff7a7a;
+    --secondary: #2a232c;
+    --secondary-foreground: #e6dde2;
+    --muted: #2a232c;
+    --muted-foreground: #a3999f;
+    --accent: rgba(237, 28, 36, 0.18);
+    --accent-foreground: #ffb4a0;
+
+    --destructive: #ff6b6f;
     --destructive-foreground: #1a0808;
     --success: #1fd0a6;
     --success-foreground: #07241d;
     --warning: #f5a524;
     --warning-foreground: #2a1e06;
-    --info: #4dabf7;
+    --info: #60a5fa;
     --info-foreground: #06182b;
 
     --border: rgba(255, 255, 255, 0.08);
     --input: rgba(255, 255, 255, 0.12);
-    --ring: #6e6cff;
+    --ring: #ff5a3c;
 
-    --sidebar: #14162b;
-    --sidebar-foreground: #d7daea;
+    --sidebar: #181318;
+    --sidebar-foreground: #e6dde2;
     --sidebar-border: rgba(255, 255, 255, 0.07);
-    --sidebar-accent: #21243d;
+    --sidebar-accent: #2a232c;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --shadow-card: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.5);
-    --shadow-glow: 0 8px 24px -6px rgba(110, 108, 255, 0.4);
+    --shadow-glow: 0 8px 24px -6px rgba(255, 90, 60, 0.4);
   }
 }
 

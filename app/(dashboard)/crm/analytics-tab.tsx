@@ -48,7 +48,7 @@ export function AnalyticsTab({ companyId, baseCurrency }: CrmTabProps) {
 
   const tiles = [
     { icon: Users, tint: 'text-sky-500', label: tt('Ümumi lead', 'Total leads'), val: String(stats.totalLeads) },
-    { icon: Target, tint: 'text-violet-500', label: tt('Çevrilmə nisbəti', 'Conversion rate'), val: `${stats.convRate}%` },
+    { icon: Target, tint: 'text-orange-500', label: tt('Çevrilmə nisbəti', 'Conversion rate'), val: `${stats.convRate}%` },
     { icon: Trophy, tint: 'text-emerald-500', label: tt('Uğur nisbəti', 'Win rate'), val: `${stats.wr}%` },
     { icon: Coins, tint: 'text-amber-500', label: tt('Orta sövdələşmə', 'Avg deal size'), val: formatCurrency(stats.avgDeal, baseCurrency) },
   ];
@@ -93,7 +93,7 @@ export function AnalyticsTab({ companyId, baseCurrency }: CrmTabProps) {
                     <span className="text-muted-foreground tnum">{s.count} · {s.pct}%</span>
                   </div>
                   <div className="h-2.5 overflow-hidden rounded-full bg-secondary">
-                    <div className="h-full rounded-full bg-gradient-to-r from-[#5B5BF5] to-[#8b3df0]" style={{ width: `${Math.max(3, s.pct)}%` }} />
+                    <div className="h-full rounded-full bg-gradient-to-r from-[#ED1C24] to-[#FF7A00]" style={{ width: `${Math.max(3, s.pct)}%` }} />
                   </div>
                 </div>
               ))}

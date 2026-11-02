@@ -215,7 +215,7 @@ export default function NewCompanyWizard() {
                   <SelectContent><SelectItem value="az">Azərbaycanca</SelectItem><SelectItem value="en">English</SelectItem></SelectContent>
                 </Select>
               </Field>
-              <Field label={tt('Brend rəngi (hex, opsional)', 'Brand color (hex, optional)')}><Input value={d.brandColor} onChange={(e) => set({ brandColor: e.target.value })} placeholder="#5B5BF5" /></Field>
+              <Field label={tt('Brend rəngi (hex, opsional)', 'Brand color (hex, optional)')}><Input value={d.brandColor} onChange={(e) => set({ brandColor: e.target.value })} placeholder="#ED1C24" /></Field>
               {d.sector === 'hospitality' && (
                 <Field label={tt('Ümumi otaq sayı (RevPAR/ADR üçün)', 'Total rooms (for RevPAR/ADR)')}><Input type="number" value={d.totalRooms ?? ''} onChange={(e) => set({ totalRooms: e.target.value ? Number(e.target.value) : null })} /></Field>
               )}

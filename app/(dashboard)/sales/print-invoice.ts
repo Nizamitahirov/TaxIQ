@@ -11,7 +11,7 @@ const CUR_WORDS: Record<string, [string, string]> = { AZN: ['manat', 'qəpik'], 
  * `autoPrint` true olduqda yükləndikdən sonra avtomatik window.print() çağırır.
  */
 export function buildInvoiceHtml(inv: Invoice, company: Company, opts: { autoPrint?: boolean } = {}): string {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   const rows = inv.lineItems.map((l, i) => `
     <tr>
       <td>${i + 1}</td>

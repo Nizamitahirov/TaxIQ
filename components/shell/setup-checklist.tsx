@@ -63,7 +63,7 @@ export function SetupChecklist() {
       <div aria-hidden className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
       <button onClick={() => setDismissed(true)} aria-label="Bağla" className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary"><X className="h-4 w-4" /></button>
       <div className="relative flex items-center gap-3">
-        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-white"><Rocket className="h-5 w-5" /></span>
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#ed1c24] to-[#ff7a00] text-white"><Rocket className="h-5 w-5" /></span>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5 font-bold"><Sparkles className="h-4 w-4 text-primary" /> {tt("Quraşdırmanı tamamlayın","Complete setup")}</p>
           <p className="text-xs text-muted-foreground">{doneCount}/{steps.length} {tt("addım","steps")} · {active?.company.name}</p>
@@ -71,7 +71,7 @@ export function SetupChecklist() {
         <span className="text-2xl font-bold tnum text-primary">{pct}%</span>
       </div>
       <div className="relative mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
-        <div className="h-full rounded-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] transition-all duration-500" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full bg-gradient-to-r from-[#ed1c24] to-[#ff7a00] transition-all duration-500" style={{ width: `${pct}%` }} />
       </div>
       <div className="relative mt-4 grid gap-2 sm:grid-cols-2">
         {steps.map((s) => (

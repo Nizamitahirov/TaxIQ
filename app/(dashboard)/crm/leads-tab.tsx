@@ -117,7 +117,7 @@ export function LeadsTab({ companyId, canEdit, canConvert, actorUid, actorName, 
                       <TableCell className="text-muted-foreground">{tt(LEAD_SOURCE[l.source]?.az ?? l.source, LEAD_SOURCE[l.source]?.en ?? l.source)}</TableCell>
                       <TableCell><Badge variant={LEAD_STATUS[l.status]?.v ?? 'secondary'}>{tt(LEAD_STATUS[l.status]?.az ?? l.status, LEAD_STATUS[l.status]?.en ?? l.status)}</Badge></TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1.5"><div className="h-1.5 w-14 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gradient-to-r from-[#5B5BF5] to-[#8b3df0]" style={{ width: `${l.score ?? 0}%` }} /></div><span className="tnum text-xs text-muted-foreground">{l.score ?? 0}</span></div>
+                        <div className="flex items-center gap-1.5"><div className="h-1.5 w-14 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gradient-to-r from-[#ED1C24] to-[#FF7A00]" style={{ width: `${l.score ?? 0}%` }} /></div><span className="tnum text-xs text-muted-foreground">{l.score ?? 0}</span></div>
                       </TableCell>
                       <TableCell className="text-right tnum">{l.estimatedValue ? formatCurrency(l.estimatedValue, l.currency ?? baseCurrency) : '—'}</TableCell>
                       <TableCell className="text-right">

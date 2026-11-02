@@ -15,8 +15,8 @@ export interface StageDef {
 
 export const STAGES: StageDef[] = [
   { key: 'qualification', az: 'İxtisaslaşma', en: 'Qualification', probability: 10, open: true, tint: 'text-sky-500', bar: 'bg-sky-500' },
-  { key: 'needs_analysis', az: 'Ehtiyac təhlili', en: 'Needs analysis', probability: 30, open: true, tint: 'text-indigo-500', bar: 'bg-indigo-500' },
-  { key: 'proposal', az: 'Təklif', en: 'Proposal', probability: 55, open: true, tint: 'text-violet-500', bar: 'bg-violet-500' },
+  { key: 'needs_analysis', az: 'Ehtiyac təhlili', en: 'Needs analysis', probability: 30, open: true, tint: 'text-red-500', bar: 'bg-red-500' },
+  { key: 'proposal', az: 'Təklif', en: 'Proposal', probability: 55, open: true, tint: 'text-orange-500', bar: 'bg-orange-500' },
   { key: 'negotiation', az: 'Danışıqlar', en: 'Negotiation', probability: 80, open: true, tint: 'text-amber-500', bar: 'bg-amber-500' },
   { key: 'won', az: 'Uğurlu (qazanıldı)', en: 'Won', probability: 100, open: false, tint: 'text-emerald-500', bar: 'bg-emerald-500' },
   { key: 'lost', az: 'İtirildi', en: 'Lost', probability: 0, open: false, tint: 'text-rose-500', bar: 'bg-rose-500' },

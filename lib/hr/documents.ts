@@ -94,7 +94,7 @@ const header = (company: Company) => `<div class="hd">
 
 /** HR əmri (decree) çapı */
 export function printHROrder(order: HROrder, company: Company) {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   printHtml(order.title, brand, `${header(company)}
     <h1>Ə M R</h1>
     <div class="no">№ ${esc(order.orderNumber)} · ${azDate(order.orderDate)}</div>
@@ -104,7 +104,7 @@ export function printHROrder(order: HROrder, company: Company) {
 
 /** Əmək müqaviləsi (labor contract) çapı */
 export function printLaborContract(emp: Employee, company: Company) {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   const rows = `
     <table>
       <tr><th>İşəgötürən</th><td>${esc(company.legalName ?? company.name)}${company.taxId ? ', VÖEN ' + esc(company.taxId) : ''}</td></tr>
@@ -128,7 +128,7 @@ export function printLaborContract(emp: Employee, company: Company) {
 
 /** Xidməti (mülki-hüquqi) müqavilə çapı */
 export function printServiceContract(c: ServiceContract, company: Company) {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   const rows = `
     <table>
       <tr><th>Sifarişçi</th><td>${esc(company.legalName ?? company.name)}${company.taxId ? ', VÖEN ' + esc(company.taxId) : ''}</td></tr>
@@ -148,7 +148,7 @@ export function printServiceContract(c: ServiceContract, company: Company) {
 
 /** Elektron əmək müqaviləsi bildirişi — struktur forma (10 §2.2, kopyala/çap üçün) */
 export function printEContractNotification(emp: Employee, company: Company) {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   const rows = `
     <table>
       <tr><th>İşəgötürənin adı</th><td>${esc(company.legalName ?? company.name)}</td></tr>

@@ -19,7 +19,7 @@ import { useTT } from '@/lib/i18n/tt';
 import type { DocumentTemplate } from '@/types';
 
 const SAMPLE = {
-  company: { name: 'TaxIQ Consulting MMC', legalName: 'TaxIQ Consulting MMC', taxId: '1234567890', address: 'Bakı', phone: '+994 12 000 00 00', brandColor: '#5B5BF5', logoUrl: '' },
+  company: { name: 'TaxIQ Consulting MMC', legalName: 'TaxIQ Consulting MMC', taxId: '1234567890', address: 'Bakı', phone: '+994 12 000 00 00', brandColor: '#ED1C24', logoUrl: '' },
   customer: { name: 'Nümunə Müştəri MMC', taxId: '9876543210', address: 'Gəncə' },
   invoice: { invoiceNumber: 'INV-2026-00001', issueDate: '2026-01-15', dueDate: '2026-02-14', currency: 'AZN', subtotal: '1 000,00 AZN', vatTotal: '180,00 AZN', grandTotal: '1 180,00 AZN' },
   lineItems: [

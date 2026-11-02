@@ -35,7 +35,7 @@ function openHtml(html: string) {
 
 /** Malların təhvil verilməsi qaiməsi (Goods Despatched Note). */
 export function printDeliveryNote(dn: DeliveryNote, company: Company) {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   const rows = dn.lineItems.map((l, i) => `<tr><td>${i + 1}</td><td>${esc(l.description)}</td><td style="text-align:right">${l.quantity}</td><td>${esc(l.unit ?? '')}</td></tr>`).join('');
   const meta = `<div class="muted">№ ${esc(dn.deliveryNoteNumber)}</div><div class="muted">Tarix: ${esc(dn.despatchDate)}</div>`;
   const body = `
@@ -54,7 +54,7 @@ export function printDeliveryNote(dn: DeliveryNote, company: Company) {
 
 /** CMR — əmtəə-nəqliyyat qaiməsi (yerli/beynəlxalq). */
 export function printCmr(c: CmrConsignment, company: Company) {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   const kind = c.kind === 'international' ? 'BEYNƏLXALQ' : 'YERLİ';
   const meta = `<div class="muted">№ ${esc(c.cmrNumber)} · ${kind}</div><div class="muted">Tarix: ${esc(c.issueDate)}</div>`;
   const body = `
@@ -80,7 +80,7 @@ export function printCmr(c: CmrConsignment, company: Company) {
 
 /** Remittance advice (ödəniş məktubu). */
 export function printRemittance(ra: RemittanceAdvice, company: Company) {
-  const brand = company.brandColor || '#5B5BF5';
+  const brand = company.brandColor || '#ED1C24';
   const rows = ra.allocations.map((a, i) => `<tr><td>${i + 1}</td><td>${esc(a.billNumber)}</td><td>${esc(a.billDate ?? '')}</td><td style="text-align:right">${fmt(a.amount, ra.currency)}</td></tr>`).join('');
   const meta = `<div class="muted">№ ${esc(ra.adviceNumber)}</div><div class="muted">Tarix: ${esc(ra.paymentDate)}</div>`;
   const body = `

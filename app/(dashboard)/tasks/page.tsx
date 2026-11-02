@@ -140,7 +140,7 @@ function BoardView({ tasks, onMove, onOpen, onDelete }: { tasks: UserTask[]; onM
                   {(t.labels ?? []).length > 0 && <div className="mt-2 flex flex-wrap gap-1">{t.labels!.map((l) => <span key={l} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{l}</span>)}</div>}
                   <div className="mt-2.5 flex items-center gap-2">
                     {t.dueDate && <span className={cn('flex items-center gap-1 text-[11px]', isOverdue(t) ? 'font-semibold text-danger' : 'text-muted-foreground')}><CalendarDays className="h-3 w-3" />{t.dueDate.slice(5)}</span>}
-                    {t.assigneeName && <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] text-[10px] font-bold text-white" title={t.assigneeName}>{initials(t.assigneeName)}</span>}
+                    {t.assigneeName && <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-[#ed1c24] to-[#ff7a00] text-[10px] font-bold text-white" title={t.assigneeName}>{initials(t.assigneeName)}</span>}
                   </div>
                 </div>
               ))}
@@ -208,7 +208,7 @@ function ReportView({ tasks, members }: { tasks: UserTask[]; members: TeamMember
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {tile(tt('Ümumi', 'Total'), total, 'bg-violet-500/12 text-violet-600', BarChart3)}
+        {tile(tt('Ümumi', 'Total'), total, 'bg-orange-500/12 text-orange-600', BarChart3)}
         {tile(tt('Tamamlanma', 'Completion'), `${pct}%`, 'bg-emerald-500/12 text-emerald-600', CheckCircle2)}
         {tile(tt('İcrada', 'In progress'), inProg, 'bg-amber-500/12 text-amber-600', Timer)}
         {tile(tt('Gecikmiş', 'Overdue'), overdue, 'bg-rose-500/12 text-rose-600', AlertTriangle)}
@@ -222,7 +222,7 @@ function ReportView({ tasks, members }: { tasks: UserTask[]; members: TeamMember
               return (
                 <div key={a.name}>
                   <div className="mb-1 flex items-center justify-between text-sm"><span className="font-medium">{a.name}</span><span className="text-muted-foreground">{a.done}/{a.total} · {p}%</span></div>
-                  <div className="h-2 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]" style={{ width: `${p}%` }} /></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-secondary"><div className="h-full rounded-full bg-gradient-to-r from-[#ed1c24] to-[#ff7a00]" style={{ width: `${p}%` }} /></div>
                 </div>
               );
             })}

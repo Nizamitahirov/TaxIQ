@@ -106,7 +106,7 @@ function GeneralTab({ company, actorUid }: { company: Company; actorUid: string 
         <F label={tt('Telefon', 'Phone')}><Input value={form.phone} onChange={(e) => set({ phone: e.target.value })} /></F>
         <F label={tt('E-poçt', 'Email')}><Input value={form.email} onChange={(e) => set({ email: e.target.value })} /></F>
         <F label={tt('Rəhbər', 'Director')}><Input value={form.directorName} onChange={(e) => set({ directorName: e.target.value })} /></F>
-        <F label={tt('Brend rəngi', 'Brand color')}><Input value={form.brandColor} onChange={(e) => set({ brandColor: e.target.value })} placeholder="#5B5BF5" /></F>
+        <F label={tt('Brend rəngi', 'Brand color')}><Input value={form.brandColor} onChange={(e) => set({ brandColor: e.target.value })} placeholder="#ED1C24" /></F>
         <F full label={tt('Fəaliyyət kodu (rəsmi 7 rəqəmli)', 'Activity code (official 7-digit)')}>
           <ActivityCodePicker code={form.activityCode} name={form.activityName} onSelect={(code, name) => set({ activityCode: code, activityName: name })} />
         </F>

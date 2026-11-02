@@ -304,12 +304,12 @@ function PrefsTab() {
         <Label className="flex items-center gap-1.5"><LayoutGrid className="h-3.5 w-3.5" /> {tt('Bölmə kartlarının görünüşü', 'Section card appearance')} <span className="font-normal text-muted-foreground">{tt('(Bölmələr səhifəsi)', '(Sections page)')}</span></Label>
         <div className="grid max-w-md grid-cols-2 gap-3">
           <CardStyleOption active={cardStyle === 'gradient'} onClick={() => applyCardStyle('gradient')} label={tt('Rəngli', 'Colorful')}>
-            <div className="h-full w-full rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]" />
+            <div className="h-full w-full rounded-lg bg-gradient-to-br from-[#ed1c24] to-[#ff7a00]" />
           </CardStyleOption>
           <CardStyleOption active={cardStyle === 'minimal'} onClick={() => applyCardStyle('minimal')} label={tt('Sadə (ağ + abstrakt)', 'Minimal (white + abstract)')}>
             <div className="relative h-full w-full overflow-hidden rounded-lg border border-border bg-card">
               <div className="absolute -right-2 -top-3 h-10 w-10 rounded-full opacity-50 blur-lg" style={{ background: 'rgba(99,102,241,0.5)' }} />
-              <div className="absolute left-2 top-2 h-4 w-4 rounded-md bg-gradient-to-br from-[#6366f1] to-[#8b5cf6]" />
+              <div className="absolute left-2 top-2 h-4 w-4 rounded-md bg-gradient-to-br from-[#ed1c24] to-[#ff7a00]" />
             </div>
           </CardStyleOption>
         </div>

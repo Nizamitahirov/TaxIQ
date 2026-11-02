@@ -101,7 +101,7 @@ export default function CashflowPage() {
             <Legend />
             <Bar name={tt('Daxilolma', 'Inflow')} dataKey="inflow" fill="#16c098" radius={[4, 4, 0, 0]} barSize={18} />
             <Bar name={tt('Ödəniş', 'Outflow')} dataKey="outflow" fill="#ff6a6a" radius={[4, 4, 0, 0]} barSize={18} />
-            <Line name={tt('Proqnoz qalıq', 'Projected balance')} type="monotone" dataKey="balance" stroke="#5B5BF5" strokeWidth={2.5} dot={{ r: 3 }} />
+            <Line name={tt('Proqnoz qalıq', 'Projected balance')} type="monotone" dataKey="balance" stroke="#ED1C24" strokeWidth={2.5} dot={{ r: 3 }} />
           </ComposedChart>
         </ResponsiveContainer>
       </CardContent></Card>
